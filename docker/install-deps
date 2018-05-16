@@ -106,8 +106,13 @@ if [ ! -f /usr/local/lib/libeatmydata.so ]; then
     rm -rf /tmp/libeatmydata
 fi
 
-if [ ! -f /tmp/libboost/boost_1_59_0.tar.gz ]; then
-    mkdir -p /tmp/libboost
-    wget --progress=dot:giga -O /tmp/libboost/boost_1_59_0.tar.gz \
-        'http://downloads.sourceforge.net/boost/boost/1.59.0/boost_1_59_0.tar.gz'
-fi
+DOWNLOAD_ROOT=/tmp/source_downloads
+mkdir -p "${DOWNLOAD_ROOT}"
+until wget --progress=dot:giga -O "${DOWNLOAD_ROOT}/boost_1_59_0.tar.gz" 'http://downloads.sourceforge.net/boost/boost/1.59.0/boost_1_59_0.tar.gz'; do
+    echo "waiting"
+    sleep 1
+done
+until wget --progress=dot:giga -O "${DOWNLOAD_ROOT}/googletest-release-1.8.0.zip" 'https://github.com/google/googletest/archive/release-1.8.0.zip'; do
+    echo "waiting"
+    sleep 1
+done

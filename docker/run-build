@@ -32,7 +32,7 @@ docker run --rm \
     export SSL_VER='${SSL_VER}'
 
     mkdir  /tmp/results
-    cp -r /tmp/libboost /tmp/results/libboost
+    cp -r /tmp/source_downloads /tmp/results/source_downloads
     bash -x /tmp/scripts/build-binary /tmp/results /tmp/ps
 
     rm -rf /tmp/ps/results

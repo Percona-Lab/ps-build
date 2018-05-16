@@ -32,8 +32,8 @@ TARGET_CFLAGS=${TARGET_CFLAGS:-}
 mkdir -p ${1:-./build}
 WORKDIR=$(cd ${1:-./build}; pwd -P)
 INSTALL_DIR=${WORKDIR}/DESTDIR
-BOOST_DIR=${WORKDIR}/libboost
-mkdir -p ${INSTALL_DIR} ${BOOST_DIR}
+DOWNLOAD_DIR=${WORKDIR}/source_downloads
+mkdir -p ${INSTALL_DIR} ${DOWNLOAD_DIR}
 SOURCEDIR=$(cd ${2:-$(dirname $0)/../sources}; pwd -P)
 
 
@@ -147,8 +147,10 @@ pushd ${WORKDIR}
         -DWITH_QUERY_RESPONSE_TIME=ON \
         -DWITH_NUMA=ON \
         -DWITH_INNODB_MEMCACHED=ON \
+        -DENABLE_DOWNLOADS=ON \
+        -DDOWNLOAD_ROOT=${DOWNLOAD_DIR} \
         -DDOWNLOAD_BOOST=ON \
-        -DWITH_BOOST=${BOOST_DIR} \
+        -DWITH_BOOST=${DOWNLOAD_DIR} \
         -DWITH_KEYRING_VAULT=ON \
         -DWITH_ZLIB=system \
         -DCMAKE_INSTALL_PREFIX=/usr/local/$PRODUCT_FULL \
