@@ -58,6 +58,11 @@ fi
 if [[ "${ANALYZER_OPTS}" = *WITH_VALGRIND=ON* ]]; then
     BUILD_COMMENT+="-valgrind"
 fi
+if [[ "$(lsb_release -d -s)" = *"CentOS release 6."* ]] && [[ "${CMAKE_BUILD_TYPE}" = "RelWithDebInfo" ]]; then
+    MYSQL_MAINTAINER_MODE="OFF"
+else
+    MYSQL_MAINTAINER_MODE="ON"
+fi
 
 
 # ------------------------------------------------------------------------------
@@ -128,16 +133,12 @@ export LSAN_OPTIONS=verbosity=2:log_threads=1
 pushd ${WORKDIR}
     ${JOB_CMAKE} \
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-        ${CMAKE_OPTS} \
-        ${ANALYZER_OPTS} \
         -DWITH_TOKUDB=${WITH_TOKUDB} \
         -DWITH_ROCKSDB=${WITH_ROCKSDB} \
         -DWITH_EMBEDDED_SERVER=${WITH_EMBEDDED_SERVER} \
         -DWITH_RAPID=${WITH_RAPID} \
         -DWITH_SSL=${WITH_SSL} \
         -DWITH_MECAB=${WITH_MECAB} \
-        ${PERFSCHEMA_OPTS} \
-        ${TARGET_CFLAGS:+-DCMAKE_C_FLAGS="${TARGET_CFLAGS}" -DCMAKE_CXX_FLAGS="${TARGET_CFLAGS}"} \
         -DBUILD_CONFIG=mysql_release \
         -DFEATURE_SET=community \
         -DENABLE_DTRACE=OFF \
@@ -156,7 +157,11 @@ pushd ${WORKDIR}
         -DCMAKE_INSTALL_PREFIX=/usr/local/$PRODUCT_FULL \
         -DMYSQL_DATADIR=/usr/local/$PRODUCT_FULL/data \
         -DCOMPILATION_COMMENT="$COMMENT" \
-        -DMYSQL_MAINTAINER_MODE=ON \
+        -DMYSQL_MAINTAINER_MODE=${MYSQL_MAINTAINER_MODE} \
+        ${TARGET_CFLAGS:+-DCMAKE_C_FLAGS="${TARGET_CFLAGS}" -DCMAKE_CXX_FLAGS="${TARGET_CFLAGS}"} \
+        ${PERFSCHEMA_OPTS} \
+        ${ANALYZER_OPTS} \
+        ${CMAKE_OPTS} \
         ${SOURCEDIR}
     make ${MAKE_OPTS}
     make DESTDIR=${INSTALL_DIR} install
