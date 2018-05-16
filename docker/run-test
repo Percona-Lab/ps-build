@@ -3,12 +3,17 @@
 set -o errexit
 set -o xtrace
 
-ROOT_DIR=$(cd $(dirname $0)/../..; pwd -P)
+ROOT_DIR=$(cd $(dirname $0)/../sources; pwd -P)
+SCRIPTS_DIR=$(cd $(dirname $0)/../local; pwd -P)
 SOURCE_IMAGE=${1:-centos:7}
 
-docker run --rm --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps perconalab/ps-build:${SOURCE_IMAGE//[:\/]/-} sh -c "
-    mkdir /tmp/results
-    cp /tmp/ps/results/*.tar.gz /tmp/results
+docker run --rm \
+    --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps \
+    --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
+    perconalab/ps-build:${SOURCE_IMAGE//[:\/]/-} \
+    sh -c "
+    set -o errexit
+    set -o xtrace
 
     export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     export ANALYZER_OPTS=${ANALYZER_OPTS}
@@ -18,7 +23,10 @@ docker run --rm --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps percona
     export MTR_ARGS=${MTR_ARGS}
     export MTR_REPEAT=${MTR_REPEAT}
 
-    bash -x /tmp/ps/build-ps/jenkins/test-binary.sh /tmp/results
+    mkdir /tmp/results
+    cp /tmp/ps/results/*.tar.gz /tmp/results
+
+    bash -x /tmp/scripts/test-binary /tmp/results
 
     mv /tmp/results/*.xml /tmp/results/*.output /tmp/ps/results/
     chown $(id -u):$(id -g) /tmp/ps/results/*.xml /tmp/ps/results/*.output

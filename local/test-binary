@@ -14,7 +14,7 @@
 set -o errexit
 set -o xtrace
 
-WORKDIR_ABS=$(cd ${1:-.}; pwd -P)
+WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
 tar -C $WORKDIR_ABS -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
 cd $WORKDIR_ABS/Percona-Server-*/mysql-test
 

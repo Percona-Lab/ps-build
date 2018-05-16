@@ -13,6 +13,7 @@ docker run --rm \
     perconalab/ps-build:${SOURCE_IMAGE//[:\/]/-} \
     sh -c "
     set -o errexit
+    set -o xtrace
 
     export JOB_CMAKE='${JOB_CMAKE}'
     export COMPILER='${COMPILER}'
