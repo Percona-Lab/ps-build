@@ -8,6 +8,15 @@ cd ps-build
 ./docker/run-test centos:6
 ```
 
+## Docker debug
+```
+git clone https://github.com/Percona-Lab/ps-build
+cd ps-build
+./local/checkout
+
+./docker/run-build-debug centos:6
+```
+
 # Local way
 ```
 git clone https://github.com/Percona-Lab/ps-build
