@@ -69,19 +69,16 @@ if [ -f /usr/bin/apt-get ]; then
         PKGLIST+=" libasan5"
     fi
 
-    # Debian Wheezy
-    if [[ "$(lsb_release -r -s)" ==  7.11 ]] && [[ $(lsb_release -i -s) == Debian ]]; then
-        PKGLIST="${PKGLIST//gcc g++/gcc-4.9-backport}"
-    fi
-
     until apt-get -y install ${PKGLIST}; do
         echo "waiting"
         sleep 1
     done
 
     # Debian Wheezy
-    if [[ "$(lsb_release -r -s)" ==  7.11 ]] && [[ $(lsb_release -i -s) == Debian ]]; then
+    if [[ "$(lsb_release -r -s)" =  "7.11" ]] && [[ "$(lsb_release -i -s)" = "Debian" ]]; then
         apt-get -y remove gcc g++
+        wget http://jenkins.percona.com/downloads/gcc-5.4.0/gcc-5.4.0_debian-wheezy-x64.tar.gz -O /tmp/gcc-5.4.0_debian-wheezy-x64.tar.gz
+        tar -C /usr/local -zxf /tmp/gcc-5.4.0_debian-wheezy-x64.tar.gz
     fi
     apt-get -y clean
 fi
@@ -93,8 +90,10 @@ fi
 
 if [ ! -f /usr/local/lib/libeatmydata.so ]; then
     # Debian Wheezy
-    if [[ -f /usr/lib/gcc-4.9-backport/bin/gcc ]]; then
-        export PATH=/usr/lib/gcc-4.9-backport/bin:${PATH}
+    if [[ "$(lsb_release -r -s)" =  "7.11" ]] && [[ "$(lsb_release -i -s)" = "Debian" ]]; then
+        export PATH=/usr/local/gcc-5.4.0/bin:${PATH}
+        export CC=gcc-5.4
+        export CXX=g++-5.4
     fi
     git clone https://github.com/stewartsmith/libeatmydata /tmp/libeatmydata
     pushd /tmp/libeatmydata

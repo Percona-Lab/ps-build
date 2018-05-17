@@ -81,6 +81,31 @@ COMMENT="Percona Server (GPL), Release ${MYSQL_VERSION_EXTRA#-}, Revision ${REVI
 
 
 # ------------------------------------------------------------------------------
+# Set compile options
+# ------------------------------------------------------------------------------
+if [[ "$COMPILER" != "default" ]]; then
+    export CC=${COMPILER}
+    export CXX=$(echo ${COMPILER} | sed -e 's/gcc/g++/; s/clang/clang++/')
+else
+    export CC=gcc
+    export CXX=g++
+fi
+export LSAN_OPTIONS=verbosity=2:log_threads=1
+
+# CentOS 6
+if [[ -f /opt/rh/devtoolset-4/enable ]]; then
+    source /opt/rh/devtoolset-4/enable
+fi
+# Debian Wheezy
+if [[ "$(lsb_release -r -s)" =  "7.11" ]] && [[ "$(lsb_release -i -s)" = "Debian" ]]; then
+    WITH_TOKUDB=OFF
+    export PATH=/usr/local/gcc-5.4.0/bin:${PATH}
+    export CC=gcc-5.4
+    export CXX=g++-5.4
+fi
+
+
+# ------------------------------------------------------------------------------
 # Check tokudb
 # ------------------------------------------------------------------------------
 if [[ "${WITH_TOKUDB}" = "ON" ]]; then
@@ -105,26 +130,6 @@ if [ -e /etc/redhat-release ]; then
 else
     WITH_MECAB="system"
 fi
-
-
-# ------------------------------------------------------------------------------
-# Set compile options
-# ------------------------------------------------------------------------------
-if [[ "$COMPILER" != "default" ]]; then
-    export CC=${COMPILER}
-    export CXX=$(echo ${COMPILER} | sed -e 's/gcc/g++/; s/clang/clang++/')
-else
-    export CC=gcc
-    export CXX=g++
-fi
-if [[ -f /opt/rh/devtoolset-4/enable ]]; then
-    source /opt/rh/devtoolset-4/enable
-fi
-if [[ -f /usr/lib/gcc-4.9-backport/bin/gcc ]]; then
-    export PATH=/usr/lib/gcc-4.9-backport/bin:${PATH}
-    export LD_LIBRARY_PATH=/usr/lib/gcc-4.9-backport/lib
-fi
-export LSAN_OPTIONS=verbosity=2:log_threads=1
 
 
 # ------------------------------------------------------------------------------
