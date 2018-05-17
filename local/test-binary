@@ -23,34 +23,34 @@ HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
 HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so')
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
 
-if [[ ${CMAKE_BUILD_TYPE} == Debug ]]; then
+if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     MTR_ARGS+=" --debug-server"
 fi
-if [[ ${ANALYZER_OPTS} == *WITH_VALGRIND=ON* ]]; then
+if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
     MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
-elif [[ ${ANALYZER_OPTS} == *WITH_ASAN=ON* ]]; then
+elif [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
     export ASAN_OPTIONS=allocator_may_return_null=true
 else
     EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
-    if [ "x${EATMYDATA}" = "x" ]; then
+    if [[ -z "${EATMYDATA}" ]]; then
         echo "No libeatmydata.so lib found"
         exit 1
     fi
 fi
 
-if [ "x${MTR_REPEAT}" != "x" ]; then
+if [[ -n "${MTR_REPEAT}" ]]; then
     MTR_ARGS+=" --repeat=${MTR_REPEAT}"
 fi
 
 # force to use mecab everywhere (except RHEL)
-if [ ! -e /etc/redhat-release ]; then
+if [[ ! -e /etc/redhat-release ]]; then
     MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
 fi
 
 status=0
 
 # Running MTR test cases
-if [ "x$DEFAULT_TESTING" != "xno" ]; then
+if [[ "${DEFAULT_TESTING}" != "no" ]]; then
 	LD_PRELOAD="${EATMYDATA}" MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=$(grep -c ^processor /proc/cpuinfo) \
         --result-file \
@@ -65,9 +65,9 @@ if [ "x$DEFAULT_TESTING" != "xno" ]; then
 fi
 
 
-if [ "x$HOTBACKUP_TESTING" != "xno" -a "x${TOKUDB_PLUGIN}" != "x" -a "x${HOTBACKUP_LIB}" != "x" -a "x${HOTBACKUP_PLUGIN}" != "x" ]; then
+if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
     MYSQLD_ENV="${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
-    if [[ ${ANALYZER_OPTS} == *WITH_ASAN=ON* ]]; then
+    if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
         MYSQLD_ENV="$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libasan.so*' | head -n1):${MYSQLD_ENV}"
     fi
 
@@ -86,9 +86,9 @@ if [ "x$HOTBACKUP_TESTING" != "xno" -a "x${TOKUDB_PLUGIN}" != "x" -a "x${HOTBACK
 fi
 
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
-if [ "x${TOKUDB_ENGINES_MTR}" = "xyes" -a "x${TOKUDB_PLUGIN}" != "x" ]; then
+if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
     # we test with system jemalloc
-    if [ "x${JEMALLOC}" = "x" ]; then
+    if [[ -z "${JEMALLOC}" ]]; then
         echo "No jemalloc lib found"
         exit 1
     fi
