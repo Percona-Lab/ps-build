@@ -15,13 +15,13 @@ docker run --rm \
     set -o errexit
     set -o xtrace
 
-    export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    export ANALYZER_OPTS=${ANALYZER_OPTS}
-    export DEFAULT_TESTING=${DEFAULT_TESTING}
-    export HOTBACKUP_TESTING=${HOTBACKUP_TESTING}
-    export TOKUDB_ENGINES_MTR=${TOKUDB_ENGINES_MTR}
-    export MTR_ARGS=${MTR_ARGS}
-    export MTR_REPEAT=${MTR_REPEAT}
+    export CMAKE_BUILD_TYPE='${CMAKE_BUILD_TYPE}'
+    export ANALYZER_OPTS='${ANALYZER_OPTS}'
+    export DEFAULT_TESTING='${DEFAULT_TESTING}'
+    export HOTBACKUP_TESTING='${HOTBACKUP_TESTING}'
+    export TOKUDB_ENGINES_MTR='${TOKUDB_ENGINES_MTR}'
+    export MTR_ARGS='${MTR_ARGS}'
+    export MTR_REPEAT='${MTR_REPEAT}'
 
     mkdir /tmp/results
     cp /tmp/ps/results/*.tar.gz /tmp/results
