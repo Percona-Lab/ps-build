@@ -76,7 +76,6 @@ if [ -f /usr/bin/apt-get ]; then
 
     # Debian Wheezy
     if [[ "$(lsb_release -r -s)" =  "7.11" ]] && [[ "$(lsb_release -i -s)" = "Debian" ]]; then
-        apt-get -y remove gcc g++
         wget http://jenkins.percona.com/downloads/gcc-5.4.0/gcc-5.4.0_debian-wheezy-x64.tar.gz -O /tmp/gcc-5.4.0_debian-wheezy-x64.tar.gz
         tar -C /usr/local -zxf /tmp/gcc-5.4.0_debian-wheezy-x64.tar.gz
     fi
