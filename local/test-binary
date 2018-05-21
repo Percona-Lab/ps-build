@@ -15,8 +15,9 @@ set -o errexit
 set -o xtrace
 
 WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
-tar -C $WORKDIR_ABS -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
-cd $WORKDIR_ABS/Percona-Server-*/mysql-test
+mkdir -p ${WORKDIR_ABS}/PS
+tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
+cd ${WORKDIR_ABS}/PS/mysql-test
 
 TOKUDB_PLUGIN=$(find $WORKDIR_ABS -type f -name 'ha_tokudb.so')
 HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
