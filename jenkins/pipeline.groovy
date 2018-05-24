@@ -41,7 +41,7 @@ pipeline {
             description: 'Type of build to produce',
             name: 'CMAKE_BUILD_TYPE')
         choice(
-            choices: '\n-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON\n-DWITH_ASAN=ON\n-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON\n-DWITH_ASAN=ON -DWITH_UBSAN=ON\n-DWITH_UBSAN=ON\n-DWITH_MSAN=ON\n-DWITH_VALGRIND=ON',
+            choices: '\n-DWITH_ASAN=ON\n-DWITH_VALGRIND=ON',
             description: 'Enable code checking',
             name: 'ANALYZER_OPTS')
         choice(
@@ -50,16 +50,8 @@ pipeline {
             name: 'WITH_TOKUDB')
         choice(
             choices: 'ON\nOFF',
-            description: 'Compile RocksDB engine',
-            name: 'WITH_ROCKSDB')
-        choice(
-            choices: 'ON\nOFF',
             description: 'Whether to build embedded server',
             name: 'WITH_EMBEDDED_SERVER')
-        choice(
-            choices: 'ON\nOFF',
-            description: 'Whether to build rapid development cycle plugins',
-            name: 'WITH_RAPID')
         choice(
             choices: 'system\nbundled',
             description: 'Type of SSL support',
