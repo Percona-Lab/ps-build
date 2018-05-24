@@ -57,12 +57,6 @@
         - -DWITH_VALGRIND=ON
         description: Enable code checking
     - choice:
-        name: WITHOUT_TOKUDB
-        choices:
-        - "OFF"
-        - "ON"
-        description: Compile TokuDB engine
-    - choice:
         name: WITH_EMBEDDED_SERVER
         choices:
         - "ON"
@@ -94,18 +88,6 @@
         - "yes"
         - "no"
         description: Run mysql-test-run.pl
-    - choice:
-        name: HOTBACKUP_TESTING
-        choices:
-        - "no"
-        - "yes"
-        description: Run mysql-test-run.pl --suite tokudb.backup
-    - choice:
-        name: TOKUDB_ENGINES_MTR
-        choices:
-        - "no"
-        - "yes"
-        description: Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb
     - string:
         name: MTR_ARGS
         default: --unit-tests-report
