@@ -10,7 +10,6 @@ set -o xtrace
 JOB_CMAKE=${JOB_CMAKE:-cmake}
 COMPILER=${COMPILER:-default}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
-WITHOUT_TOKUDB=${WITHOUT_TOKUDB:-OFF}
 WITH_EMBEDDED_SERVER=${WITH_EMBEDDED_SERVER:-ON}
 WITH_SSL=${WITH_SSL:-system}
 PERFSCHEMA_OPTS=${PERFSCHEMA_OPTS:-}
@@ -36,30 +35,11 @@ SOURCEDIR=$(cd ${2:-$(dirname $0)/../sources}; pwd -P)
 
 
 # ------------------------------------------------------------------------------
-# download external libs
-# ------------------------------------------------------------------------------
-wget_loop() {
-    local FILE="$1"
-    local URL="$2"
-
-    if [[ ! -f "${DOWNLOAD_DIR}/${FILE}" ]]; then
-        until wget --progress=dot:giga -O "${DOWNLOAD_DIR}/${FILE}" "${URL}"; do
-            echo "sleep before retry"
-            sleep 1
-        done
-    fi
-}
-GMOCK_VERSION=$(grep 'SET(GMOCK_PACKAGE_NAME' ${SOURCEDIR}/unittest/gunit/CMakeLists.txt | sed -re 's/.*([0-9]+[.][0-9]+[.][0-9]+).*/\1/')
-wget_loop "googletest-release-${GMOCK_VERSION}.zip" "https://github.com/google/googletest/archive/release-${GMOCK_VERSION}.zip"
-
-
-# ------------------------------------------------------------------------------
 # Set OS/Arch flags
 # ------------------------------------------------------------------------------
 if [[ "$(getconf LONG_BIT)" = "32" ]]; then
     TARGET_ARCH="i686"
     TARGET_CFLAGS+=" -m32 -march=i686"
-    WITHOUT_TOKUDB=ON
 else
     TARGET_ARCH="$(uname -m)"
 fi
@@ -116,28 +96,11 @@ fi
 
 
 # ------------------------------------------------------------------------------
-# Check tokudb
-# ------------------------------------------------------------------------------
-if [[ "${WITHOUT_TOKUDB}" = "OFF" ]]; then
-    CMAKE_OPTS+=" -DBUILD_TESTING=OFF -DUSE_GTAGS=OFF -DUSE_CTAGS=OFF -DUSE_ETAGS=OFF -DUSE_CSCOPE=OFF -DTOKUDB_BACKUP_PLUGIN_VERSION=${TOKUDB_BACKUP_VERSION}"
-    if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
-        CMAKE_OPTS+=" -DTOKU_DEBUG_PARANOID=ON"
-    else
-        CMAKE_OPTS+=" -DTOKU_DEBUG_PARANOID=OFF"
-    fi
-    if [[ "${ANALYZER_OPTS}" = *WITH_VALGRIND=ON* ]]; then
-        CMAKE_OPTS+=" -DUSE_VALGRIND=ON"
-    fi
-fi
-
-
-# ------------------------------------------------------------------------------
 # Finaly, compile!
 # ------------------------------------------------------------------------------
 pushd ${WORKDIR}
     ${JOB_CMAKE} \
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-        -DWITHOUT_TOKUDB=${WITHOUT_TOKUDB} \
         -DWITH_EMBEDDED_SERVER=${WITH_EMBEDDED_SERVER} \
         -DWITH_SSL=${WITH_SSL} \
         -DBUILD_CONFIG=mysql_release \
@@ -145,10 +108,7 @@ pushd ${WORKDIR}
         -DENABLE_DTRACE=OFF \
         -DWITH_PAM=ON \
         -DWITH_SCALABILITY_METRICS=ON \
-        -DWITH_NUMA=ON \
-        -DWITH_INNODB_MEMCACHED=ON \
         -DENABLE_DOWNLOADS=ON \
-        -DDOWNLOAD_ROOT=${DOWNLOAD_DIR} \
         -DWITH_ZLIB=system \
         -DCMAKE_INSTALL_PREFIX=/usr/local/$PRODUCT_FULL \
         -DMYSQL_DATADIR=/usr/local/$PRODUCT_FULL/data \

@@ -45,10 +45,6 @@ pipeline {
             description: 'Enable code checking',
             name: 'ANALYZER_OPTS')
         choice(
-            choices: 'OFF\nON',
-            description: 'Compile TokuDB engine',
-            name: 'WITHOUT_TOKUDB')
-        choice(
             choices: 'ON\nOFF',
             description: 'Whether to build embedded server',
             name: 'WITH_EMBEDDED_SERVER')
@@ -73,14 +69,6 @@ pipeline {
             choices: 'yes\nno',
             description: 'Run mysql-test-run.pl',
             name: 'DEFAULT_TESTING')
-        choice(
-            choices: 'yes\nno',
-            description: 'Run mysql-test-run.pl --suite tokudb.backup',
-            name: 'HOTBACKUP_TESTING')
-        choice(
-            choices: 'yes\nno',
-            description: 'Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb',
-            name: 'TOKUDB_ENGINES_MTR')
         string(
             defaultValue: '--unit-tests-report',
             description: 'mysql-test-run.pl options, for options like: --big-test --only-big-tests --nounit-tests --unit-tests-report',
