@@ -28,7 +28,7 @@ if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     MTR_ARGS+=" --debug-server"
 fi
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
-    MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
+    MTR_ARGS+=" --valgrind --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
 elif [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
     export ASAN_OPTIONS=allocator_may_return_null=true
     export LSAN_OPTIONS=verbosity=2:log_threads=1:log_pointers=1
@@ -42,11 +42,6 @@ fi
 
 if [[ -n "${MTR_REPEAT}" ]]; then
     MTR_ARGS+=" --repeat=${MTR_REPEAT}"
-fi
-
-# force to use mecab everywhere (except RHEL)
-if [[ ! -e /etc/redhat-release ]]; then
-    MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
 fi
 
 status=0

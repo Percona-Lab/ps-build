@@ -53,12 +53,7 @@
         choices:
         - -DWITH_VALGRIND=ON
         -
-        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
         - -DWITH_ASAN=ON
-        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
-        - -DWITH_ASAN=ON -DWITH_UBSAN=ON
-        - -DWITH_UBSAN=ON
-        - -DWITH_MSAN=ON
         description: Enable code checking
     - choice:
         name: WITH_TOKUDB
@@ -67,23 +62,11 @@
         - "ON"
         description: Compile TokuDB engine
     - choice:
-        name: WITH_ROCKSDB
-        choices:
-        - "OFF"
-        - "ON"
-        description: DONT ENABLE IT, YOU WILL GET ENDLESS JOB!!
-    - choice:
         name: WITH_EMBEDDED_SERVER
         choices:
         - "ON"
         - "OFF"
         description: Whether to build embedded server
-    - choice:
-        name: WITH_RAPID
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build rapid development cycle plugins
     - choice:
         name: WITH_SSL
         choices:
