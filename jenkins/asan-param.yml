@@ -52,12 +52,7 @@
     - choice:
         name: ANALYZER_OPTS
         choices:
-        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
         - -DWITH_ASAN=ON
-        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
-        - -DWITH_ASAN=ON -DWITH_UBSAN=ON
-        - -DWITH_UBSAN=ON
-        - -DWITH_MSAN=ON
         -
         - -DWITH_VALGRIND=ON
         description: Enable code checking
@@ -68,23 +63,11 @@
         - "OFF"
         description: Compile TokuDB engine
     - choice:
-        name: WITH_ROCKSDB
-        choices:
-        - "ON"
-        - "OFF"
-        description: Compile RocksDB engine
-    - choice:
         name: WITH_EMBEDDED_SERVER
         choices:
         - "ON"
         - "OFF"
         description: Whether to build embedded server
-    - choice:
-        name: WITH_RAPID
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build rapid development cycle plugins
     - choice:
         name: WITH_SSL
         choices:
