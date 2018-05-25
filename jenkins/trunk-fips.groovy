@@ -34,11 +34,11 @@ void build(String CMAKE_BUILD_TYPE) {
 
 pipeline {
     environment {
-        PS_BRANCH = "5.7"
+        PS_BRANCH = "5.6"
     }
     parameters {
         run(
-            projectName: 'percona-server-5.7-trunk',
+            projectName: 'percona-server-5.6-trunk',
             description: '',
             name: 'UPSTREAM')
         string(
@@ -61,7 +61,7 @@ pipeline {
         buildDiscarder(logRotator(artifactNumToKeepStr: '10'))
     }
     triggers {
-        upstream threshold: hudson.model.Result.UNSTABLE, upstreamProjects: 'percona-server-5.7-trunk'
+        upstream threshold: hudson.model.Result.UNSTABLE, upstreamProjects: 'percona-server-5.6-trunk'
     }
     stages {
         stage('Test') {

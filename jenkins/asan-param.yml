@@ -1,9 +1,9 @@
 - job:
-    name: percona-server-5.7-asan-param
+    name: percona-server-5.6-asan-param
     project-type: matrix
     defaults: global
     description: |
-        MySQL 5.7 parametrised AddressSanitizer build
+        MySQL 5.6 parametrised AddressSanitizer build
         Do not edit this job through the web!
     disabled: false
     concurrent: true
@@ -21,7 +21,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "5.7"
+        default: "5.6"
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
@@ -134,7 +134,7 @@
           - ubuntu:bionic
     builders:
     - trigger-builds:
-      - project: percona-server-5.7-pipeline
+      - project: percona-server-5.6-pipeline
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -147,12 +147,12 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-5.7-pipeline
+        project: percona-server-5.6-pipeline
         which-build: specific-build
-        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}"
+        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_6_pipeline}"
         do-not-fingerprint: true
     - shell: |
-        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}" > PIPELINE_BUILD_NUMBER
+        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_5_6_pipeline}" > PIPELINE_BUILD_NUMBER
         gunzip build.log.gz
     publishers:
     - warnings:
