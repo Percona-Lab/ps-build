@@ -1,12 +1,12 @@
 - job:
-    name: percona-server-5.7-param
+    name: percona-server-5.6-param
     project-type: matrix
     defaults: global
     description: |
         Do not edit this job through the web!
     disabled: false
     concurrent: true
-    auth-token: psparam57
+    auth-token: psparam56
     node: micro-amazon
     properties:
     - build-discarder:
@@ -21,7 +21,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "5.7"
+        default: "5.6"
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
@@ -141,7 +141,7 @@
           - debian:jessie
     builders:
     - trigger-builds:
-      - project: percona-server-5.7-pipeline
+      - project: percona-server-5.6-pipeline
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -154,9 +154,9 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-5.7-pipeline
+        project: percona-server-5.6-pipeline
         which-build: specific-build
-        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}"
+        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_6_pipeline}"
         do-not-fingerprint: true
     - shell: |
         gunzip build.log.gz
