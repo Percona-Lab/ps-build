@@ -1,0 +1,17 @@
+- job:
+    name: percona-server-5.7-pipeline
+    project-type: pipeline
+    sandbox: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/Percona-Lab/ps-build
+            branches:
+            - "5.7"
+            wipe-workspace: false
+      lightweight-checkout: true
+      script-path: jenkins/pipeline.groovy
+    parameters:
+    - string:
+        name: LABEL
+        default: docker

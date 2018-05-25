@@ -1,0 +1,187 @@
+- job:
+    name: percona-server-5.7-trunk
+    project-type: matrix
+    defaults: global
+    description: |
+        Do not edit this job through the web!
+    disabled: false
+    concurrent: false
+    auth-token: pstrunk57
+    node: micro-amazon
+    triggers:
+    - timed: H 23 * * 1-5
+    properties:
+    - build-discarder:
+        days-to-keep: -1
+        num-to-keep: 10
+        artifact-days-to-keep: -1
+        artifact-num-to-keep: 10
+    parameters:
+    - string:
+        name: GIT_REPO
+        default:
+        description: URL to percona-server repository
+    - string:
+        name: BRANCH
+        default: "5.7"
+        description: Tag/Branch for percona-server repository
+    - string:
+        name: PERCONAFT_REPO
+        default:
+        description: URL to forked PerconaFT repository
+    - string:
+        name: PERCONAFT_BRANCH
+        default:
+        description: Tag/Branch for PerconaFT repository
+    - string:
+        name: TOKUBACKUP_REPO
+        default:
+        description: URL to forked Percona-TokuBackup repository
+    - string:
+        name: TOKUBACKUP_BRANCH
+        default:
+        description: Tag/Branch for Percona-TokuBackup repository
+    - choice:
+        name: JOB_CMAKE
+        choices:
+        - /usr/bin/cmake
+        description: path to cmake binary
+    - choice:
+        name: COMPILER
+        choices:
+        - default
+        description: compiler version
+    - choice:
+        name: ANALYZER_OPTS
+        choices:
+        -
+        - -DWITH_ASAN=ON
+        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
+        - -DWITH_MSAN=ON
+        - -DWITH_UBSAN=ON
+        - -DWITH_VALGRIND=ON
+        description: Enable code checking
+    - choice:
+        name: WITH_TOKUDB
+        choices:
+        - "ON"
+        - "OFF"
+        description: Compile TokuDB engine
+    - choice:
+        name: WITH_ROCKSDB
+        choices:
+        - "ON"
+        - "OFF"
+        description: Compile RocksDB engine
+    - choice:
+        name: WITH_EMBEDDED_SERVER
+        choices:
+        - "ON"
+        - "OFF"
+        description: Whether to build embedded server
+    - choice:
+        name: WITH_RAPID
+        choices:
+        - "ON"
+        - "OFF"
+        description: Whether to build rapid development cycle plugins
+    - choice:
+        name: WITH_SSL
+        choices:
+        - system
+        - /usr
+        description: Type of SSL support
+    - choice:
+        name: PERFSCHEMA_OPTS
+        choices:
+        -
+        - -DWITHOUT_PERFSCHEMA_STORAGE_ENGINE=ON
+        description: Disable Performance Schema
+    - string:
+        name: CMAKE_OPTS
+        default:
+        description: cmake options
+    - string:
+        name: MAKE_OPTS
+        default:
+        description: make options, like VERBOSE=1
+    - choice:
+        name: DEFAULT_TESTING
+        choices:
+        - "yes"
+        - "no"
+        description: Run mysql-test-run.pl
+    - choice:
+        name: HOTBACKUP_TESTING
+        choices:
+        - "yes"
+        - "no"
+        description: Run mysql-test-run.pl --suite tokudb.backup
+    - choice:
+        name: TOKUDB_ENGINES_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run mysql-test-run.pl engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb
+    - string:
+        name: MTR_ARGS
+        default: --unit-tests-report --big-test
+        description: "mysql-test-run.pl options, for options like: --big-test --only-big-tests --nounit-tests --unit-tests-report"
+    - string:
+        name: MTR_REPEAT
+        default: "1"
+        description: Run each test N number of times, --repeat=N
+    - choice:
+        name: LABEL
+        choices:
+        - docker
+        - docker-32gb
+        description: Run build on specified instance type
+    axes:
+      - axis:
+         type: user-defined
+         name: CMAKE_BUILD_TYPE
+         values:
+          - RelWithDebInfo
+          - Debug
+      - axis:
+         type: user-defined
+         name: DOCKER_OS
+         values:
+          - centos:6
+          - centos:7
+          - i386/centos:6
+          - ubuntu:trusty
+          - ubuntu:xenial
+          - ubuntu:artful
+          - ubuntu:bionic
+          - debian:wheezy
+          - debian:jessie
+    builders:
+    - trigger-builds:
+      - project: percona-server-5.7-pipeline
+        current-parameters: true
+        block: true
+        block-thresholds:
+          build-step-failure-threshold: FAILURE
+          unstable-threshold: never
+          failure-threshold: FAILURE
+    - shell: |
+        sudo find . -name "*.xml" -o -name "*.log" -delete
+    - copyartifact:
+        project: percona-server-5.7-pipeline
+        which-build: specific-build
+        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}"
+        do-not-fingerprint: true
+    - shell: |
+        gunzip build.log.gz
+    publishers:
+    - warnings:
+        workspace-file-scanners:
+        - file-pattern: 'build.log'
+          scanner: 'GNU C Compiler 4 (gcc)'
+        run-always: true
+        shouldDetectModules: false
+    - junit:
+        results: "**/*.xml"
+        keep-long-stdio: true
