@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-5.6-repeat-trunk
+    name: percona-server-5.5-repeat-trunk
     project-type: matrix
     defaults: global
     description: |
@@ -21,7 +21,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "5.6"
+        default: "5.5"
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
@@ -116,7 +116,7 @@
           - centos:6
     builders:
     - trigger-builds:
-      - project: percona-server-5.6-pipeline
+      - project: percona-server-5.5-pipeline
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -129,9 +129,9 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-5.6-pipeline
+        project: percona-server-5.5-pipeline
         which-build: specific-build
-        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_6_pipeline}"
+        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_5_pipeline}"
         do-not-fingerprint: true
     - shell: |
         echo "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}" > PIPELINE_BUILD_NUMBER

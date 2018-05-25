@@ -1,7 +1,7 @@
 - view:
-    name: '5.6'
+    name: '5.5'
     description: |
-        percona-server-5.6 jobs
+        percona-server-5.5 jobs
         Do not edit these jobs through the web!
     view-type: list
-    regex: '.*-5[.]6-.*'
+    regex: '.*-5[.]5-.*'

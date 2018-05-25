@@ -5,7 +5,7 @@ pipeline {
             description: 'URL to percona-server repository',
             name: 'GIT_REPO')
         string(
-            defaultValue: '5.6',
+            defaultValue: '5.5',
             description: 'Tag/Branch for percona-server repository',
             name: 'BRANCH')
         string(
@@ -101,7 +101,7 @@ pipeline {
                 }
 
                 sh 'echo Prepare: \$(date -u "+%s")'
-                git branch: '5.6', url: 'https://github.com/Percona-Lab/ps-build'
+                git branch: '5.5', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     git reset --hard
                     git clean -xdf
