@@ -20,7 +20,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "5.5"
+        default: "5.7"
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
