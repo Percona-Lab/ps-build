@@ -161,6 +161,9 @@
     - trigger-builds:
       - project: percona-server-5.7-pipeline
         current-parameters: true
+        predefined-parameters: |
+          DOCKER_OS=${DOCKER_OS}
+          CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         block: true
         block-thresholds:
           build-step-failure-threshold: FAILURE
