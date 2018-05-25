@@ -1,0 +1,7 @@
+- view:
+    name: '5.7'
+    description: |
+        percona-server-5.7 jobs
+        Do not edit these jobs through the web!
+    view-type: list
+    regex: '.*-5[.]7-.*'
