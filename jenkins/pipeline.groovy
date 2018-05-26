@@ -95,7 +95,7 @@ pipeline {
             name: 'MTR_ARGS')
         string(
             defaultValue: '1',
-            description: 'Run each test N number of times',
+            description: 'Run each test N number of times, --repeat=N',
             name: 'MTR_REPEAT')
         choice(
             choices: 'docker\ndocker-32gb',
