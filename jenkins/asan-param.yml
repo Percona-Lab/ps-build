@@ -112,14 +112,14 @@
     - choice:
         name: HOTBACKUP_TESTING
         choices:
-        - "yes"
         - "no"
+        - "yes"
         description: Run mysql-test-run.pl --suite tokudb.backup
     - choice:
         name: TOKUDB_ENGINES_MTR
         choices:
-        - "yes"
         - "no"
+        - "yes"
         description: Run mysql-test-run.pl engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb
     - string:
         name: MTR_ARGS
