@@ -3,6 +3,18 @@
 set -o errexit
 set -o xtrace
 
+DOWNLOAD_ROOT=/tmp/source_downloads
+wget_loop() {
+    local FILE="$1"
+    local URL="$2"
+
+    mkdir -p "${DOWNLOAD_ROOT}"
+    until wget --progress=dot:giga -O "${DOWNLOAD_ROOT}/${FILE}" "${URL}"; do
+        echo "sleep before retry"
+        sleep 1
+    done
+}
+
 if [ -f /usr/bin/yum ]; then
     until yum -y update; do
         yum clean all
@@ -76,8 +88,9 @@ if [ -f /usr/bin/apt-get ]; then
 
     # Debian Wheezy
     if [[ "$(lsb_release -r -s)" =  "7.11" ]] && [[ "$(lsb_release -i -s)" = "Debian" ]]; then
-        wget http://jenkins.percona.com/downloads/gcc-5.4.0/gcc-5.4.0_debian-wheezy-x64.tar.gz -O /tmp/gcc-5.4.0_debian-wheezy-x64.tar.gz
-        tar -C /usr/local -zxf /tmp/gcc-5.4.0_debian-wheezy-x64.tar.gz
+        wget_loop 'gcc-5.4.0_debian-wheezy-x64.tar.gz' 'http://jenkins.percona.com/downloads/gcc-5.4.0/gcc-5.4.0_debian-wheezy-x64.tar.gz'
+        tar -C /usr/local -zxf "${DOWNLOAD_ROOT}/gcc-5.4.0_debian-wheezy-x64.tar.gz"
+        rm -rf "${DOWNLOAD_ROOT}/gcc-5.4.0_debian-wheezy-x64.tar.gz"
     fi
     apt-get -y clean
 fi
@@ -98,13 +111,11 @@ if [ ! -f /usr/local/lib/libeatmydata.so ]; then
     rm -rf /tmp/libeatmydata
 fi
 
-DOWNLOAD_ROOT=/tmp/source_downloads
-mkdir -p "${DOWNLOAD_ROOT}"
-until wget --progress=dot:giga -O "${DOWNLOAD_ROOT}/boost_1_59_0.tar.gz" 'http://downloads.sourceforge.net/boost/boost/1.59.0/boost_1_59_0.tar.gz'; do
-    echo "waiting"
-    sleep 1
-done
-until wget --progress=dot:giga -O "${DOWNLOAD_ROOT}/googletest-release-1.8.0.zip" 'https://github.com/google/googletest/archive/release-1.8.0.zip'; do
-    echo "waiting"
-    sleep 1
-done
+# boost 1.59.0 needed for percona-server 5.7
+wget_loop 'boost_1_59_0.tar.gz' 'http://downloads.sourceforge.net/boost/boost/1.59.0/boost_1_59_0.tar.gz'
+
+# boost 1.66.0 needed for percona-server 8.0
+wget_loop 'boost_1_66_0.tar.gz' 'http://downloads.sourceforge.net/boost/boost/1.66.0/boost_1_66_0.tar.gz'
+
+# googletest 1.8.0 needed for percona-server 5.7
+wget_loop 'googletest-release-1.8.0.zip' 'https://github.com/google/googletest/archive/release-1.8.0.zip'
