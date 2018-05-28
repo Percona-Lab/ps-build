@@ -41,7 +41,7 @@ pipeline {
             description: 'Type of build to produce',
             name: 'CMAKE_BUILD_TYPE')
         choice(
-            choices: '\n-DWITH_ASAN=ON\n-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON\n-DWITH_MSAN=ON\n-DWITH_UBSAN=ON\n-DWITH_VALGRIND=ON',
+            choices: '\n-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON\n-DWITH_ASAN=ON\n-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON\n-DWITH_ASAN=ON -DWITH_UBSAN=ON\n-DWITH_UBSAN=ON\n-DWITH_MSAN=ON\n-DWITH_VALGRIND=ON',
             description: 'Enable code checking',
             name: 'ANALYZER_OPTS')
         choice(
