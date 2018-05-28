@@ -86,7 +86,7 @@
         name: WITH_SSL
         choices:
         - system
-        - /usr
+        - bundled
         description: Type of SSL support
     - choice:
         name: PERFSCHEMA_OPTS
