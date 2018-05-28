@@ -61,7 +61,7 @@ pipeline {
             description: 'Whether to build rapid development cycle plugins',
             name: 'WITH_RAPID')
         choice(
-            choices: 'system\n/usr',
+            choices: 'system\nbundled',
             description: 'Type of SSL support',
             name: 'WITH_SSL')
         choice(
