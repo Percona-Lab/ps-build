@@ -55,10 +55,12 @@
         name: ANALYZER_OPTS
         choices:
         -
-        - -DWITH_ASAN=ON
         - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
-        - -DWITH_MSAN=ON
+        - -DWITH_ASAN=ON
+        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
+        - -DWITH_ASAN=ON -DWITH_UBSAN=ON
         - -DWITH_UBSAN=ON
+        - -DWITH_MSAN=ON
         - -DWITH_VALGRIND=ON
         description: Enable code checking
     - choice:

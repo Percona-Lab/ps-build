@@ -53,10 +53,12 @@
         choices:
         - -DWITH_VALGRIND=ON
         -
-        - -DWITH_ASAN=ON
         - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
-        - -DWITH_MSAN=ON
+        - -DWITH_ASAN=ON
+        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
+        - -DWITH_ASAN=ON -DWITH_UBSAN=ON
         - -DWITH_UBSAN=ON
+        - -DWITH_MSAN=ON
         description: Enable code checking
     - choice:
         name: WITH_TOKUDB
