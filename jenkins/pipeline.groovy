@@ -107,6 +107,7 @@ pipeline {
     }
     options {
         compressBuildLog()
+        skipStagesAfterUnstable()
         buildDiscarder(logRotator(artifactNumToKeepStr: '200'))
     }
     stages {
@@ -128,6 +129,7 @@ pipeline {
             }
         }
         stage('Build') {
+            options { retry(2) }
             steps {
                 sh '''
                     sg docker -c "
@@ -147,6 +149,7 @@ pipeline {
             }
         }
         stage('Test') {
+            options { retry(2) }
             steps {
                 unstash 'binary'
                 sh '''
