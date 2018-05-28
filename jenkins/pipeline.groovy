@@ -113,9 +113,11 @@ pipeline {
     stages {
         stage('Prepare') {
             steps {
+                sh '''
+                    echo Prepare: \$(date -u "+%s")
+                '''
                 git poll: true, branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
-                    date -u
                     git reset --hard
                     git clean -xdf
                     ./local/checkout
@@ -132,6 +134,7 @@ pipeline {
             options { retry(2) }
             steps {
                 sh '''
+                    echo Build: \$(date -u "+%s")
                     sg docker -c "
                         ./docker/run-build ${DOCKER_OS}
                     " 2>&1 | tee build.log
@@ -153,6 +156,7 @@ pipeline {
             steps {
                 unstash 'binary'
                 sh '''
+                    echo Test: \$(date -u "+%s")
                     sg docker -c "
                         ./docker/run-test ${DOCKER_OS}
                     "
@@ -160,6 +164,13 @@ pipeline {
                 archiveArtifacts 'sources/results/*.xml'
                 step([$class: 'JUnitResultArchiver', testResults: 'sources/results/*.xml', healthScaleFactor: 1.0])
             }
+        }
+    }
+    post {
+        always {
+            sh '''
+                echo Finish: \$(date -u "+%s")
+            '''
         }
     }
 }
