@@ -1,3 +1,4 @@
 docker/Dockerfile
+jenkins/result/
 sources/
 *~
