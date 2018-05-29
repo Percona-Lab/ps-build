@@ -68,8 +68,7 @@
         name: WITH_ROCKSDB
         choices:
         - "OFF"
-        - "ON"
-        description: Compile RocksDB engine
+        description: Compile RocksDB engine (infinity Loop on valgrind)
     - choice:
         name: WITH_EMBEDDED_SERVER
         choices:
