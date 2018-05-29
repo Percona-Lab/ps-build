@@ -132,9 +132,8 @@ pipeline {
                         s^/tmp/results/^sources/^;
                         s^/xz/src/build_lzma/^/third_party/xz-4.999.9beta/^;
                     ' build.log
-                    gzip -c build.log > build.log.gz
                 '''
-                stash includes: 'build.log.gz', name: 'build.log'
+                stash includes: 'build.log', name: 'build.log'
                 stash includes: 'sources/results/*.tar.gz', name: 'binary'
             }
         }
@@ -143,8 +142,9 @@ pipeline {
             agent { label 'micro-amazon' }
             steps {
                 unstash 'build.log'
-                archiveArtifacts 'build.log.gz'
                 warnings canComputeNew: false, canResolveRelativePaths: false, categoriesPattern: '', defaultEncoding: '', excludePattern: '', healthy: '', includePattern: '', messagesPattern: '', parserConfigurations: [[parserName: 'GNU C Compiler 4 (gcc)', pattern: 'build.log']], unHealthy: ''
+                sh 'gzip build.log'
+                archiveArtifacts 'build.log.gz'
             }
         }
         stage('Test') {
