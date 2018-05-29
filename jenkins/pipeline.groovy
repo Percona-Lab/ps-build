@@ -103,7 +103,7 @@ pipeline {
             name: 'LABEL')
     }
     agent {
-        label LABEL
+        label 'micro-amazon'
     }
     options {
         compressBuildLog()
@@ -111,29 +111,12 @@ pipeline {
         buildDiscarder(logRotator(artifactNumToKeepStr: '200'))
     }
     stages {
-        stage('Prepare') {
-            steps {
-                sh '''
-                    echo Prepare: \$(date -u "+%s")
-                '''
-                git poll: true, branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
-                sh '''
-                    git reset --hard
-                    git clean -xdf
-                    ./local/checkout
-                    sg docker -c "
-                        if [ \$(docker ps -q | wc -l) -ne 0 ]; then
-                            docker ps -q | xargs docker stop --time 1 || :
-                        fi
-                        docker pull perconalab/ps-build:\${DOCKER_OS//[:\\/]/-}
-                    "
-                '''
-            }
-        }
         stage('Build') {
             options { retry(2) }
             agent { label LABEL }
             steps {
+                sh 'echo Prepare: \$(date -u "+%s")'
+                git poll: true, branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     git reset --hard
                     git clean -xdf
@@ -151,9 +134,17 @@ pipeline {
                     ' build.log
                     gzip -c build.log > build.log.gz
                 '''
+                stash includes: 'build.log.gz', name: 'build.log'
+                stash includes: 'sources/results/*.tar.gz', name: 'binary'
+            }
+        }
+        stage('archive build') {
+            options { retry(2) }
+            agent { label 'micro-amazon' }
+            steps {
+                unstash 'build.log'
                 archiveArtifacts 'build.log.gz'
                 warnings canComputeNew: false, canResolveRelativePaths: false, categoriesPattern: '', defaultEncoding: '', excludePattern: '', healthy: '', includePattern: '', messagesPattern: '', parserConfigurations: [[parserName: 'GNU C Compiler 4 (gcc)', pattern: 'build.log']], unHealthy: ''
-                stash includes: 'sources/results/*.tar.gz', name: 'binary'
             }
         }
         stage('Test') {
@@ -166,8 +157,17 @@ pipeline {
                     sg docker -c "
                         ./docker/run-test ${DOCKER_OS}
                     "
+                    gzip sources/results/*.output
                 '''
-                archiveArtifacts 'sources/results/*.xml'
+                stash includes: 'sources/results/*.xml,sources/results/*.output.gz', name: 'test.log'
+            }
+        }
+        stage('archive test') {
+            options { retry(2) }
+            agent { label 'micro-amazon' }
+            steps {
+                unstash 'test.log'
+                archiveArtifacts 'sources/results/*.xml,sources/results/*.output.gz'
                 step([$class: 'JUnitResultArchiver', testResults: 'sources/results/*.xml', healthScaleFactor: 1.0])
             }
         }
