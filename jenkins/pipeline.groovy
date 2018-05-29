@@ -132,8 +132,13 @@ pipeline {
         }
         stage('Build') {
             options { retry(2) }
+            agent { label LABEL }
             steps {
                 sh '''
+                    git reset --hard
+                    git clean -xdf
+                    ./local/checkout
+
                     echo Build: \$(date -u "+%s")
                     sg docker -c "
                         ./docker/run-build ${DOCKER_OS}
@@ -153,6 +158,7 @@ pipeline {
         }
         stage('Test') {
             options { retry(2) }
+            agent { label LABEL }
             steps {
                 unstash 'binary'
                 sh '''
