@@ -95,11 +95,6 @@ if [ -f /usr/bin/apt-get ]; then
     apt-get -y clean
 fi
 
-if [ ! -d /usr/local/percona-subunit2junitxml ]; then
-    git clone https://github.com/percona/percona-subunit2junitxml.git /usr/local/percona-subunit2junitxml
-    ln -s /usr/local/percona-subunit2junitxml/subunit2junitxml /usr/bin/subunit2junitxml
-fi
-
 if [ ! -f /usr/local/lib/libeatmydata.so ]; then
     git clone https://github.com/stewartsmith/libeatmydata /tmp/libeatmydata
     pushd /tmp/libeatmydata
