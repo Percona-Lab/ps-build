@@ -107,8 +107,8 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             --mysqld=--plugin-load=tokudb=ha_tokudb.so \
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${MTR_ARGS} \
-            2>&1 | tee ${WORKDIR_ABS}/tokudb_engines.output || true
-    awk 'BEGIN { print "<testsuite name=\"Percona Server - TokuDB\">" } /^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/ { print "<testcase name=\""$1"\" time=\"" $6/1000 "\"/>" } /^(.*) .*\[ skipped \]/ { print "<testcase name=\""$1"\"><skipped/></testcase>" } /^(.*) .*\[ (retry-)?fail \]/ { print "<testcase name=\""$1"\"><failure/></testcase>" } /^MTR\47s internal check of the test case \47(.*)\47 failed/ { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" } END { print "</testsuite>" }' < ${WORKDIR_ABS}/tokudb_engines.output > ${WORKDIR_ABS}/junit_tokudb.xml
+            2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
+    awk 'BEGIN { print "<testsuite name=\"Percona Server - TokuDB\">" } /^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/ { print "<testcase name=\""$1"\" time=\"" $6/1000 "\"/>" } /^(.*) .*\[ skipped \]/ { print "<testcase name=\""$1"\"><skipped/></testcase>" } /^(.*) .*\[ (retry-)?fail \]/ { print "<testcase name=\""$1"\"><failure/></testcase>" } /^MTR\47s internal check of the test case \47(.*)\47 failed/ { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" } END { print "</testsuite>" }' < ${WORKDIR_ABS}/tokudb.output > ${WORKDIR_ABS}/junit_tokudb.xml
 fi
 
 exit $status
