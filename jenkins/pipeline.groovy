@@ -153,13 +153,14 @@ pipeline {
             options { retry(2) }
             agent { label LABEL }
             steps {
-                dir('sources/results') { deleteDir() }
+                sh '''
+                    git reset --hard
+                    git clean -xdf
+                    rm -rf sources/results
+                '''
                 unstash 'binary'
                 sh '''
                     echo Test: \$(date -u "+%s")
-                    git reset --hard
-                    git clean -xdf
-
                     sg docker -c "
                         ./docker/run-test ${DOCKER_OS}
                     "
