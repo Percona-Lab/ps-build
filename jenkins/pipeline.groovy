@@ -141,6 +141,7 @@ pipeline {
             options { retry(2) }
             agent { label 'micro-amazon' }
             steps {
+                deleteDir()
                 unstash 'build.log'
                 warnings canComputeNew: false, canResolveRelativePaths: false, categoriesPattern: '', defaultEncoding: '', excludePattern: '', healthy: '', includePattern: '', messagesPattern: '', parserConfigurations: [[parserName: 'GNU C Compiler 4 (gcc)', pattern: 'build.log']], unHealthy: ''
                 sh 'gzip build.log'
@@ -151,9 +152,13 @@ pipeline {
             options { retry(2) }
             agent { label LABEL }
             steps {
+                dir('sources/results') { deleteDir() }
                 unstash 'binary'
                 sh '''
                     echo Test: \$(date -u "+%s")
+                    git reset --hard
+                    git clean -xdf
+
                     sg docker -c "
                         ./docker/run-test ${DOCKER_OS}
                     "
@@ -166,6 +171,7 @@ pipeline {
             options { retry(2) }
             agent { label 'micro-amazon' }
             steps {
+                deleteDir()
                 unstash 'test.log'
                 archiveArtifacts 'sources/results/*.xml,sources/results/*.output.gz'
                 step([$class: 'JUnitResultArchiver', testResults: 'sources/results/*.xml', healthScaleFactor: 1.0])
