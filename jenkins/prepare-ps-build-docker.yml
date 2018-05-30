@@ -59,7 +59,6 @@
                             "ubuntu:trusty": { build('ubuntu:trusty') },
                             "ubuntu:xenial": { build('ubuntu:xenial') },
                             "ubuntu:bionic": { build('ubuntu:bionic') },
-                            "debian:wheezy": { build('debian:wheezy') },
                             "debian:jessie": { build('debian:jessie') },
                         )
                     }

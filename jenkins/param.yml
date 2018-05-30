@@ -155,7 +155,6 @@
           - ubuntu:xenial
           - ubuntu:artful
           - ubuntu:bionic
-          - debian:wheezy
           - debian:jessie
     builders:
     - trigger-builds:

@@ -116,12 +116,6 @@ export LSAN_OPTIONS=verbosity=2:log_threads=1:log_pointers=1
 if [[ -f /opt/rh/devtoolset-4/enable ]]; then
     source /opt/rh/devtoolset-4/enable
 fi
-# Debian Wheezy
-if [[ "$(lsb_release -r -s)" =  "7.11" ]] && [[ "$(lsb_release -i -s)" = "Debian" ]]; then
-    export PATH=/usr/local/gcc-5.4.0/bin:${PATH}
-    export CC=gcc-5.4
-    export CXX=g++-5.4
-fi
 
 
 # ------------------------------------------------------------------------------

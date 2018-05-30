@@ -48,7 +48,6 @@
         - ubuntu:trusty
         - ubuntu:xenial
         - ubuntu:bionic
-        - debian:wheezy
         - debian:jessie
         description: OS version for compilation
     - choice:
