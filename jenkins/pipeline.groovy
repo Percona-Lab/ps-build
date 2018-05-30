@@ -133,6 +133,7 @@ pipeline {
                         s^/xz/src/build_lzma/^/third_party/xz-4.999.9beta/^;
                     ' build.log
                 '''
+                sh 'echo Archive build: \$(date -u "+%s")'
                 stash includes: 'build.log', name: 'build.log'
                 stash includes: 'sources/results/*.tar.gz', name: 'binary'
             }
@@ -164,6 +165,7 @@ pipeline {
                     "
                     gzip sources/results/*.output
                 '''
+                sh 'echo Archive test: \$(date -u "+%s")'
                 stash includes: 'sources/results/*.xml,sources/results/*.output.gz', name: 'test.log'
             }
         }
