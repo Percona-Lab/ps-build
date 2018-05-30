@@ -29,14 +29,14 @@ if [ -f /usr/bin/yum ]; then
 
     PKGLIST=" \
         gcc-c++ gperf ncurses-devel perl readline-devel openssl-devel jemalloc unzip \
-        time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel \
+        time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel valgrind \
         perl-Time-HiRes libcurl-devel openldap-devel perl-Env perl-Data-Dumper \
         perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 \
         numactl-devel git which make rpm-build ccache libtool redhat-lsb-core \
     "
     if [ $(rpm --eval %rhel) -lt 7 -a $(rpm --eval %_arch) = x86_64 ]; then
         PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-4-gcc-c++}
-        PKGLIST+=" devtoolset-4-valgrind"
+        PKGLIST=${PKGLIST/ valgrind/ devtoolset-4-valgrind}
     fi
 
     until yum -y install ${PKGLIST}; do
