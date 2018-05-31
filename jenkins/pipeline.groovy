@@ -133,11 +133,27 @@ pipeline {
                         s^/tmp/results/^sources/^;
                         s^/xz/src/build_lzma/^/third_party/xz-4.999.9beta/^;
                     ' build.log
-                    gzip -c build.log > build.log.gz
-                    aws s3 cp --no-progress build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz
+                    gzip build.log
+
+                    until aws s3 cp --no-progress build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz; do
+                        sleep 5
+                    done
+                    until aws s3 cp --no-progress sources/results/*.tar.gz s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz; do
+                        sleep 5
+                    done
+                '''
+            }
+        }
+        stage('Archive Build') {
+            options { retry(3) }
+            agent { label 'micro-amazon' }
+            steps {
+                deleteDir()
+                sh '''
+                    aws s3 sync --no-progress s3://ps-build-cache/${BUILD_TAG}/build.log.gz build.log.gz
+                    gunzip build.log.gz
                 '''
                 warnings canComputeNew: false, canResolveRelativePaths: false, categoriesPattern: '', defaultEncoding: '', excludePattern: '', healthy: '', includePattern: '', messagesPattern: '', parserConfigurations: [[parserName: 'GNU C Compiler 4 (gcc)', pattern: 'build.log']], unHealthy: ''
-                stash includes: 'sources/results/*.tar.gz', name: 'binary'
             }
         }
         stage('Test') {
@@ -147,9 +163,10 @@ pipeline {
                     git reset --hard
                     git clean -xdf
                     rm -rf sources/results
-                '''
-                unstash 'binary'
-                sh '''
+                    until aws s3 sync --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
+                        sleep 5
+                    done
+
                     echo Test: \$(date -u "+%s")
                     sg docker -c "
                         ./docker/run-test ${DOCKER_OS}
@@ -157,14 +174,14 @@ pipeline {
 
                     echo Archive test: \$(date -u "+%s")
                     gzip sources/results/*.output
-                    until aws s3 sync --no-progress --exclude 'Percona-Server-*.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/; do
+                    until aws s3 sync --no-progress --exclude 'binary.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/; do
                         sleep 5
                     done
                 '''
             }
         }
         stage('Archive') {
-            options { retry(2) }
+            options { retry(3) }
             agent { label 'micro-amazon' }
             steps {
                 deleteDir()
