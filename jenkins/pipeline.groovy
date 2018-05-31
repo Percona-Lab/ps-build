@@ -134,7 +134,7 @@ pipeline {
                         s^/xz/src/build_lzma/^/third_party/xz-4.999.9beta/^;
                     ' build.log
                     gzip -c build.log > build.log.gz
-                    aws s3 cp build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz
+                    aws s3 cp --no-progress build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz
                 '''
                 warnings canComputeNew: false, canResolveRelativePaths: false, categoriesPattern: '', defaultEncoding: '', excludePattern: '', healthy: '', includePattern: '', messagesPattern: '', parserConfigurations: [[parserName: 'GNU C Compiler 4 (gcc)', pattern: 'build.log']], unHealthy: ''
                 stash includes: 'sources/results/*.tar.gz', name: 'binary'
@@ -157,7 +157,7 @@ pipeline {
 
                     echo Archive test: \$(date -u "+%s")
                     gzip sources/results/*.output
-                    aws s3 sync ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/
+                    aws s3 sync --no-progress --exclude 'Percona-Server-*.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/
                 '''
             }
         }
@@ -166,7 +166,7 @@ pipeline {
             agent { label 'micro-amazon' }
             steps {
                 deleteDir()
-                sh 'aws s3 sync s3://ps-build-cache/${BUILD_TAG}/ ./'
+                sh 'aws s3 sync --no-progress s3://ps-build-cache/${BUILD_TAG}/ ./'
                 step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
                 archiveArtifacts 'build.log.gz,*.xml,*.output.gz'
             }
