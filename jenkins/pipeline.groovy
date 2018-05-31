@@ -168,6 +168,7 @@ pipeline {
                 deleteDir()
                 sh 'aws s3 sync s3://ps-build-cache/${BUILD_TAG}/ ./'
                 step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
+                archiveArtifacts 'build.log.gz,*.xml,*.output.gz'
             }
         }
     }
