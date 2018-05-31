@@ -127,26 +127,17 @@ pipeline {
                         ./docker/run-build ${DOCKER_OS}
                     " 2>&1 | tee build.log
 
+                    echo Archive build: \$(date -u "+%s")
                     sed -i -e '
                         s^/tmp/ps/^sources/^;
                         s^/tmp/results/^sources/^;
                         s^/xz/src/build_lzma/^/third_party/xz-4.999.9beta/^;
                     ' build.log
+                    gzip -c build.log > build.log.gz
+                    aws s3 cp build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz
                 '''
-                sh 'echo Archive build: \$(date -u "+%s")'
-                stash includes: 'build.log', name: 'build.log'
-                stash includes: 'sources/results/*.tar.gz', name: 'binary'
-            }
-        }
-        stage('archive build') {
-            options { retry(2) }
-            agent { label 'micro-amazon' }
-            steps {
-                deleteDir()
-                unstash 'build.log'
                 warnings canComputeNew: false, canResolveRelativePaths: false, categoriesPattern: '', defaultEncoding: '', excludePattern: '', healthy: '', includePattern: '', messagesPattern: '', parserConfigurations: [[parserName: 'GNU C Compiler 4 (gcc)', pattern: 'build.log']], unHealthy: ''
-                sh 'gzip build.log'
-                archiveArtifacts 'build.log.gz'
+                stash includes: 'sources/results/*.tar.gz', name: 'binary'
             }
         }
         stage('Test') {
@@ -163,20 +154,20 @@ pipeline {
                     sg docker -c "
                         ./docker/run-test ${DOCKER_OS}
                     "
+
+                    echo Archive test: \$(date -u "+%s")
                     gzip sources/results/*.output
+                    aws s3 sync ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/
                 '''
-                sh 'echo Archive test: \$(date -u "+%s")'
-                stash includes: 'sources/results/*.xml,sources/results/*.output.gz', name: 'test.log'
             }
         }
-        stage('archive test') {
+        stage('Archive') {
             options { retry(2) }
             agent { label 'micro-amazon' }
             steps {
                 deleteDir()
-                unstash 'test.log'
-                archiveArtifacts 'sources/results/*.xml,sources/results/*.output.gz'
-                step([$class: 'JUnitResultArchiver', testResults: 'sources/results/*.xml', healthScaleFactor: 1.0])
+                sh 'aws s3 sync s3://ps-build-cache/${BUILD_TAG}/ ./'
+                step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
             }
         }
     }
