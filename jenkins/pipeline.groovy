@@ -157,7 +157,9 @@ pipeline {
 
                     echo Archive test: \$(date -u "+%s")
                     gzip sources/results/*.output
-                    aws s3 sync --no-progress --exclude 'Percona-Server-*.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/
+                    until aws s3 sync --no-progress --exclude 'Percona-Server-*.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/; do
+                        sleep 5
+                    done
                 '''
             }
         }
