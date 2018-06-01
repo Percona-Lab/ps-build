@@ -186,7 +186,7 @@ pipeline {
             agent { label 'micro-amazon' }
             steps {
                 deleteDir()
-                sh 'aws s3 sync --no-progress --exclude 'binary.tar.gz' s3://ps-build-cache/${BUILD_TAG}/ ./'
+                sh "aws s3 sync --no-progress --exclude 'binary.tar.gz' s3://ps-build-cache/${BUILD_TAG}/ ./"
                 step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
                 archiveArtifacts 'build.log.gz,*.xml,*.output.gz'
             }
