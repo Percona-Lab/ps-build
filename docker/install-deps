@@ -40,6 +40,7 @@ if [ -f /usr/bin/yum ]; then
 				[devtoolset-6]
 				name=devtoolset-6
 				baseurl=https://copr-be.cloud.fedoraproject.org/results/mlampe/devtoolset-6.1/epel-6-i386/
+				gpgcheck=0
 			EOF
         fi
         PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-6-gcc-c++}
