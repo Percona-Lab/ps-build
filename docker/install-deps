@@ -34,9 +34,12 @@ if [ -f /usr/bin/yum ]; then
         perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 \
         numactl-devel git which make rpm-build ccache libtool redhat-lsb-core \
     "
-    if [ $(rpm --eval %rhel) -lt 7 -a $(rpm --eval %_arch) = x86_64 ]; then
-        PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-4-gcc-c++}
-        PKGLIST=${PKGLIST/ valgrind/ devtoolset-4-valgrind}
+    if [[ "$(rpm --eval %rhel)" = "6" ]]; then
+        if [[ "$(rpm --eval %_arch)" = "i386" ]]; then
+            yum-config-manager --add-repo https://copr-be.cloud.fedoraproject.org/results/mlampe/devtoolset-6.1/epel-6-i386/
+        fi
+        PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-6-gcc-c++}
+        PKGLIST=${PKGLIST/ valgrind/ devtoolset-6-valgrind}
     fi
 
     until yum -y install ${PKGLIST}; do

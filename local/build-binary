@@ -113,8 +113,8 @@ fi
 export LSAN_OPTIONS=verbosity=2:log_threads=1:log_pointers=1
 
 # CentOS 6
-if [[ -f /opt/rh/devtoolset-4/enable ]]; then
-    source /opt/rh/devtoolset-4/enable
+if [[ -f /opt/rh/devtoolset-6/enable ]]; then
+    source /opt/rh/devtoolset-6/enable
 fi
 
 
