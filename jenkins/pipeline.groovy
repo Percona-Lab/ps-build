@@ -146,6 +146,9 @@ pipeline {
                         until aws s3 cp --no-progress sources/results/*.tar.gz s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz; do
                             sleep 5
                         done
+                    else
+                        echo cannot find compiled archive
+                        exit 1
                     fi
                 '''
             }
