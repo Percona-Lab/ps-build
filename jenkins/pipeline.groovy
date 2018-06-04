@@ -136,12 +136,17 @@ pipeline {
                     ' build.log
                     gzip build.log
 
-                    until aws s3 cp --no-progress build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz; do
-                        sleep 5
-                    done
-                    until aws s3 cp --no-progress sources/results/*.tar.gz s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz; do
-                        sleep 5
-                    done
+                    if [[ -f build.log.gz ]]; then
+                        until aws s3 cp --no-progress build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz; do
+                            sleep 5
+                        done
+                    fi
+
+                    if [[ -f \$(ls sources/results/*.tar.gz | head -1) ]]; then
+                        until aws s3 cp --no-progress sources/results/*.tar.gz s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz; do
+                            sleep 5
+                        done
+                    fi
                 '''
             }
         }
