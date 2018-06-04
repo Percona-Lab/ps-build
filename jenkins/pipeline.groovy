@@ -106,13 +106,13 @@ pipeline {
         label 'micro-amazon'
     }
     options {
-        retry(2)
         compressBuildLog()
         skipStagesAfterUnstable()
         buildDiscarder(logRotator(artifactNumToKeepStr: '200'))
     }
     stages {
         stage('Build') {
+            options { retry(2) }
             agent { label LABEL }
             steps {
                 sh 'echo Prepare: \$(date -u "+%s")'
@@ -166,6 +166,7 @@ pipeline {
             }
         }
         stage('Test') {
+            options { retry(2) }
             agent { label LABEL }
             steps {
                 sh '''
