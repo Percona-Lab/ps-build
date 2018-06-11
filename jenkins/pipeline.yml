@@ -139,7 +139,7 @@
         choices:
         - "yes"
         - "no"
-        description: Run mysql-test-run.pl engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb
+        description: Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb
     - string:
         name: MTR_ARGS
         default: --unit-tests-report

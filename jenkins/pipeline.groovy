@@ -87,7 +87,7 @@ pipeline {
             name: 'HOTBACKUP_TESTING')
         choice(
             choices: 'yes\nno',
-            description: 'Run mysql-test-run.pl engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb',
+            description: 'Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb',
             name: 'TOKUDB_ENGINES_MTR')
         string(
             defaultValue: '--unit-tests-report',
