@@ -217,7 +217,6 @@ pipeline {
 
             // workaround https://issues.jenkins-ci.org/browse/JENKINS-49183
             script {
-                currentBuild.currentResult = 'UNSTABLE'
                 currentBuild.result = 'UNSTABLE'
             }
         }
