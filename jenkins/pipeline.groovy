@@ -137,13 +137,13 @@ pipeline {
                     gzip build.log
 
                     if [[ -f build.log.gz ]]; then
-                        until aws s3 cp --no-progress build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz; do
+                        until aws s3 cp --no-progress --acl public-read build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz; do
                             sleep 5
                         done
                     fi
 
                     if [[ -f \$(ls sources/results/*.tar.gz | head -1) ]]; then
-                        until aws s3 cp --no-progress sources/results/*.tar.gz s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz; do
+                        until aws s3 cp --no-progress --acl public-read sources/results/*.tar.gz s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz; do
                             sleep 5
                         done
                     else
@@ -184,7 +184,7 @@ pipeline {
 
                     echo Archive test: \$(date -u "+%s")
                     gzip sources/results/*.output
-                    until aws s3 sync --no-progress --exclude 'binary.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/; do
+                    until aws s3 sync --no-progress --acl public-read --exclude 'binary.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/; do
                         sleep 5
                     done
                 '''
@@ -195,9 +195,17 @@ pipeline {
             agent { label 'micro-amazon' }
             steps {
                 deleteDir()
-                sh "aws s3 sync --no-progress --exclude 'binary.tar.gz' s3://ps-build-cache/${BUILD_TAG}/ ./"
+                sh '''
+                    aws s3 sync --no-progress --exclude 'binary.tar.gz' s3://ps-build-cache/${BUILD_TAG}/ ./
+
+                    echo "
+                        binary    - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/binary.tar.gz
+                        build log - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/build.log.gz
+                        mtr log   - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/mtr.output.gz
+                    " > public_url
+                '''
                 step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
-                archiveArtifacts 'build.log.gz,*.xml,*.output.gz'
+                archiveArtifacts 'build.log.gz,*.xml,*.output.gz,public_url'
             }
         }
     }
