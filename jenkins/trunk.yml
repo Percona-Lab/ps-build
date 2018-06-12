@@ -19,7 +19,7 @@
     parameters:
     - string:
         name: GIT_REPO
-        default:
+        default: "https://github.com/percona/percona-server"
         description: URL to percona-server repository
     - string:
         name: BRANCH
