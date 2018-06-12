@@ -115,6 +115,10 @@ pipeline {
             options { retry(2) }
             agent { label LABEL }
             steps {
+                script {
+                    currentBuild.displayName = "${CMAKE_BUILD_TYPE}/${DOCKER_OS}"
+                    currentBuild.description = currentBuild.rawBuild.getCause(hudson.model.Cause$UpstreamCause)?.shortDescription
+                }
                 sh 'echo Prepare: \$(date -u "+%s")'
                 git poll: true, branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
