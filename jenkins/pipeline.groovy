@@ -1,7 +1,7 @@
 pipeline {
     parameters {
         string(
-            defaultValue: '',
+            defaultValue: 'https://github.com/percona/percona-server',
             description: 'URL to percona-server repository',
             name: 'GIT_REPO')
         string(
