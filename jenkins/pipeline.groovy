@@ -183,6 +183,7 @@ pipeline {
 
                     echo Test: \$(date -u "+%s")
                     sg docker -c "
+                        ulimit -a
                         ./docker/run-test ${DOCKER_OS}
                     "
 
