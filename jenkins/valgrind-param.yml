@@ -56,10 +56,10 @@
         - -DWITH_ASAN=ON
         description: Enable code checking
     - choice:
-        name: WITH_TOKUDB
+        name: WITHOUT_TOKUDB
         choices:
-        - "OFF"
         - "ON"
+        - "OFF"
         description: Compile TokuDB engine
     - choice:
         name: WITH_EMBEDDED_SERVER
