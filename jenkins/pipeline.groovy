@@ -45,9 +45,9 @@ pipeline {
             description: 'Enable code checking',
             name: 'ANALYZER_OPTS')
         choice(
-            choices: 'ON\nOFF',
+            choices: 'OFF\nON',
             description: 'Compile TokuDB engine',
-            name: 'WITH_TOKUDB')
+            name: 'WITHOUT_TOKUDB')
         choice(
             choices: 'ON\nOFF',
             description: 'Whether to build embedded server',

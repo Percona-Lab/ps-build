@@ -10,7 +10,7 @@ set -o xtrace
 JOB_CMAKE=${JOB_CMAKE:-cmake}
 COMPILER=${COMPILER:-default}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
-WITH_TOKUDB=${WITH_TOKUDB:-ON}
+WITHOUT_TOKUDB=${WITHOUT_TOKUDB:-OFF}
 WITH_EMBEDDED_SERVER=${WITH_EMBEDDED_SERVER:-ON}
 WITH_SSL=${WITH_SSL:-system}
 PERFSCHEMA_OPTS=${PERFSCHEMA_OPTS:-}
@@ -59,7 +59,7 @@ wget_loop "googletest-release-${GMOCK_VERSION}.zip" "https://github.com/google/g
 if [[ "$(getconf LONG_BIT)" = "32" ]]; then
     TARGET_ARCH="i686"
     TARGET_CFLAGS+=" -m32 -march=i686"
-    WITH_TOKUDB=OFF
+    WITHOUT_TOKUDB=ON
 else
     TARGET_ARCH="$(uname -m)"
 fi
@@ -118,7 +118,7 @@ fi
 # ------------------------------------------------------------------------------
 # Check tokudb
 # ------------------------------------------------------------------------------
-if [[ "${WITH_TOKUDB}" = "ON" ]]; then
+if [[ "${WITHOUT_TOKUDB}" = "OFF" ]]; then
     CMAKE_OPTS+=" -DBUILD_TESTING=OFF -DUSE_GTAGS=OFF -DUSE_CTAGS=OFF -DUSE_ETAGS=OFF -DUSE_CSCOPE=OFF -DTOKUDB_BACKUP_PLUGIN_VERSION=${TOKUDB_BACKUP_VERSION}"
     if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
         CMAKE_OPTS+=" -DTOKU_DEBUG_PARANOID=ON"
@@ -137,7 +137,7 @@ fi
 pushd ${WORKDIR}
     ${JOB_CMAKE} \
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-        -DWITH_TOKUDB=${WITH_TOKUDB} \
+        -DWITHOUT_TOKUDB=${WITHOUT_TOKUDB} \
         -DWITH_EMBEDDED_SERVER=${WITH_EMBEDDED_SERVER} \
         -DWITH_SSL=${WITH_SSL} \
         -DBUILD_CONFIG=mysql_release \

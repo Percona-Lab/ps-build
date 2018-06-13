@@ -59,10 +59,10 @@
         - -DWITH_VALGRIND=ON
         description: Enable code checking
     - choice:
-        name: WITH_TOKUDB
+        name: WITHOUT_TOKUDB
         choices:
-        - "ON"
         - "OFF"
+        - "ON"
         description: Compile TokuDB engine
     - choice:
         name: WITH_EMBEDDED_SERVER
