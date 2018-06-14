@@ -117,14 +117,6 @@ pipeline {
             steps {
                 script {
                     currentBuild.displayName = "${BUILD_NUMBER} ${CMAKE_BUILD_TYPE}/${DOCKER_OS}"
-                    def upstreamProjectName = currentBuild.rawBuild.getCause(hudson.model.Cause$UpstreamCause)?.getUpstreamProject()
-                    def upstreamNumber = currentBuild.rawBuild.getCause(hudson.model.Cause$UpstreamCause)?.getUpstreamBuild()
-                    if (upstreamProjectName != null && upstreamNumber != null) {
-                        final AbstractProject causeProject = ((AbstractProject) Jenkins.getInstance().getItemByFullName(upstreamProjectName));
-                        if (causeProject != null) {
-                            currentBuild.description = "by " + causeProject.getBuildByNumber(upstreamNumber).getRootBuild().getCause(hudson.model.Cause$UserIdCause).getUserName();
-                        }
-                    }
                 }
 
                 sh 'echo Prepare: \$(date -u "+%s")'
