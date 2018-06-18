@@ -129,6 +129,9 @@ pipeline {
 
                     echo Build: \$(date -u "+%s")
                     sg docker -c "
+                        if [ \$(docker ps -q | wc -l) -ne 0 ]; then
+                            docker ps -q | xargs docker stop --time 1 || :
+                        fi
                         ./docker/run-build ${DOCKER_OS}
                     " 2>&1 | tee build.log
 
@@ -183,6 +186,9 @@ pipeline {
 
                     echo Test: \$(date -u "+%s")
                     sg docker -c "
+                        if [ \$(docker ps -q | wc -l) -ne 0 ]; then
+                            docker ps -q | xargs docker stop --time 1 || :
+                        fi
                         ulimit -a
                         ./docker/run-test ${DOCKER_OS}
                     "
