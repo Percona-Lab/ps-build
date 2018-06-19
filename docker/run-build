@@ -35,11 +35,11 @@ docker run --rm \
 
     mkdir  /tmp/results
     cp -r /tmp/source_downloads /tmp/results/source_downloads
+    sudo chown mysql:mysql /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util
     bash -x /tmp/scripts/build-binary /tmp/results /tmp/ps
 
-    rm -rf /tmp/ps/results
-    mkdir  /tmp/ps/results
-    mv /tmp/results/*.tar.gz /tmp/ps/results/
-
-    chown -R $(id -u):$(id -g) /tmp/ps/results
+    sudo rm -rf /tmp/ps/results
+    sudo mkdir /tmp/ps/results
+    sudo mv /tmp/results/*.tar.gz /tmp/ps/results/
+    sudo chown -R $(id -u):$(id -g) /tmp/ps/results /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util
 "
