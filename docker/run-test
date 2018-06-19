@@ -8,7 +8,7 @@ SCRIPTS_DIR=$(cd $(dirname $0)/../local; pwd -P)
 SOURCE_IMAGE=${1:-centos:7}
 
 docker run --rm \
-    --cap-add SYS_PTRACE \
+    --security-opt seccomp=unconfined \
     --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
     perconalab/ps-build:${SOURCE_IMAGE//[:\/]/-} \
