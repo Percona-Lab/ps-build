@@ -164,11 +164,6 @@ pipeline {
             options { retry(3) }
             agent { label 'micro-amazon' }
             steps {
-                // workaround https://issues.jenkins-ci.org/browse/JENKINS-49183
-                script {
-                    currentBuild.result = 'UNSTABLE'
-                }
-
                 deleteDir()
                 sh '''
                     aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/build.log.gz ./build.log.gz
@@ -210,11 +205,6 @@ pipeline {
             options { retry(3) }
             agent { label 'micro-amazon' }
             steps {
-                // workaround https://issues.jenkins-ci.org/browse/JENKINS-49183
-                script {
-                    currentBuild.result = 'UNSTABLE'
-                }
-
                 deleteDir()
                 sh '''
                     aws s3 sync --no-progress --exclude 'binary.tar.gz' s3://ps-build-cache/${BUILD_TAG}/ ./
@@ -235,6 +225,11 @@ pipeline {
             sh '''
                 echo Finish: \$(date -u "+%s")
             '''
+
+            // workaround https://issues.jenkins-ci.org/browse/JENKINS-49183
+            script {
+                currentBuild.result = 'UNSTABLE'
+            }
         }
     }
 }
