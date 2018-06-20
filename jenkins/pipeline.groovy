@@ -107,12 +107,13 @@ pipeline {
     }
     options {
         compressBuildLog()
+        skipDefaultCheckout()
         skipStagesAfterUnstable()
         buildDiscarder(logRotator(artifactNumToKeepStr: '200'))
     }
     stages {
         stage('Build') {
-            options { retry(2) }
+            options { retry(3) }
             agent { label LABEL }
             steps {
                 script {
@@ -120,7 +121,7 @@ pipeline {
                 }
 
                 sh 'echo Prepare: \$(date -u "+%s")'
-                git poll: true, branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
+                git branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     git reset --hard
                     git clean -xdf
@@ -173,9 +174,10 @@ pipeline {
             }
         }
         stage('Test') {
-            options { retry(2) }
+            options { retry(3) }
             agent { label LABEL }
             steps {
+                git branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     git reset --hard
                     git clean -xdf
