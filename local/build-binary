@@ -185,6 +185,13 @@ pushd ${WORKDIR}
         ${SOURCEDIR}
     make ${MAKE_OPTS}
     make DESTDIR=${INSTALL_DIR} install
+
+    # workaround for PS-4533
+    if [ ! -e "${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/rapid/plugin" ]; then
+        install -d ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/rapid
+        cp -r ${SOURCEDIR}/rapid/plugin \
+              ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/rapid/plugin
+    fi
 popd
 
 tar -C ${INSTALL_DIR}/usr/local --owner=0 --group=0 -czf "${WORKDIR}/$PRODUCT_FULL.tar.gz" $PRODUCT_FULL
