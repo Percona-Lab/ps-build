@@ -178,6 +178,7 @@
         build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}"
         do-not-fingerprint: true
     - shell: |
+        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}" > PIPELINE_BUILD_NUMBER
         gunzip build.log.gz
     publishers:
     - warnings:
@@ -189,3 +190,5 @@
     - junit:
         results: "**/*.xml"
         keep-long-stdio: true
+    - archive:
+        artifacts: 'PIPELINE_BUILD_NUMBER'
