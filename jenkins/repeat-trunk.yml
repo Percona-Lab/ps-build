@@ -3,7 +3,7 @@
     project-type: matrix
     defaults: global
     description: |
-        Run mysql-test-run with --big-test --repeat=2
+        Run mysql-test-run with --repeat=2
         Do not edit this job through the web!
     disabled: false
     concurrent: true
@@ -90,8 +90,8 @@
         description: Run mysql-test-run.pl
     - string:
         name: MTR_ARGS
-        default: --unit-tests-report --big-test
-        description: "mysql-test-run.pl options, for options like: --big-test --only-big-tests --nounit-tests --unit-tests-report"
+        default: --unit-tests-report
+        description: "mysql-test-run.pl options, for options like: --nounit-tests --unit-tests-report"
     - string:
         name: MTR_REPEAT
         default: "2"
