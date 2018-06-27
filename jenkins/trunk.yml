@@ -25,22 +25,6 @@
         name: BRANCH
         default: "5.5"
         description: Tag/Branch for percona-server repository
-    - string:
-        name: PERCONAFT_REPO
-        default:
-        description: URL to forked PerconaFT repository
-    - string:
-        name: PERCONAFT_BRANCH
-        default:
-        description: Tag/Branch for PerconaFT repository
-    - string:
-        name: TOKUBACKUP_REPO
-        default:
-        description: URL to forked Percona-TokuBackup repository
-    - string:
-        name: TOKUBACKUP_BRANCH
-        default:
-        description: Tag/Branch for Percona-TokuBackup repository
     - choice:
         name: JOB_CMAKE
         choices:

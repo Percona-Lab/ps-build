@@ -8,22 +8,6 @@ pipeline {
             defaultValue: '5.5',
             description: 'Tag/Branch for percona-server repository',
             name: 'BRANCH')
-        string(
-            defaultValue: '',
-            description: 'URL to forked PerconaFT repository',
-            name: 'PERCONAFT_REPO')
-        string(
-            defaultValue: '',
-            description: 'Tag/Branch for PerconaFT repository',
-            name: 'PERCONAFT_BRANCH')
-        string(
-            defaultValue: '',
-            description: 'URL to forked Percona-TokuBackup repository',
-            name: 'TOKUBACKUP_REPO')
-        string(
-            defaultValue: '',
-            description: 'Tag/Branch for Percona-TokuBackup repository',
-            name: 'TOKUBACKUP_BRANCH')
         choice(
             choices: 'ubuntu:artful\ncentos:6\ncentos:7\ni386/centos:6\nubuntu:trusty\nubuntu:xenial\nubuntu:bionic\ndebian:jessie\ndebian:stretch',
             description: 'OS version for compilation',
