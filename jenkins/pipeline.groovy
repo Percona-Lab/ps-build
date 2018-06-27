@@ -157,7 +157,7 @@ pipeline {
             options { retry(3) }
             agent { label LABEL }
             steps {
-                git branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
+                git branch: '5.5', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     git reset --hard
                     git clean -xdf
