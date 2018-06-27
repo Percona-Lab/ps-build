@@ -5,7 +5,7 @@ pipeline {
             description: 'URL to percona-server repository',
             name: 'GIT_REPO')
         string(
-            defaultValue: '5.7',
+            defaultValue: '5.6',
             description: 'Tag/Branch for percona-server repository',
             name: 'BRANCH')
         string(
@@ -41,25 +41,17 @@ pipeline {
             description: 'Type of build to produce',
             name: 'CMAKE_BUILD_TYPE')
         choice(
-            choices: '\n-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON\n-DWITH_ASAN=ON\n-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON\n-DWITH_ASAN=ON -DWITH_UBSAN=ON\n-DWITH_UBSAN=ON\n-DWITH_MSAN=ON\n-DWITH_VALGRIND=ON',
+            choices: '\n-DWITH_ASAN=ON\n-DWITH_VALGRIND=ON',
             description: 'Enable code checking',
             name: 'ANALYZER_OPTS')
         choice(
-            choices: 'ON\nOFF',
+            choices: 'OFF\nON',
             description: 'Compile TokuDB engine',
-            name: 'WITH_TOKUDB')
-        choice(
-            choices: 'ON\nOFF',
-            description: 'Compile RocksDB engine',
-            name: 'WITH_ROCKSDB')
+            name: 'WITHOUT_TOKUDB')
         choice(
             choices: 'ON\nOFF',
             description: 'Whether to build embedded server',
             name: 'WITH_EMBEDDED_SERVER')
-        choice(
-            choices: 'ON\nOFF',
-            description: 'Whether to build rapid development cycle plugins',
-            name: 'WITH_RAPID')
         choice(
             choices: 'system\nbundled',
             description: 'Type of SSL support',
@@ -121,7 +113,7 @@ pipeline {
                 }
 
                 sh 'echo Prepare: \$(date -u "+%s")'
-                git branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
+                git branch: '5.6', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     git reset --hard
                     git clean -xdf
@@ -177,7 +169,7 @@ pipeline {
             options { retry(3) }
             agent { label LABEL }
             steps {
-                git branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
+                git branch: '5.6', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     git reset --hard
                     git clean -xdf

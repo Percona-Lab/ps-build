@@ -1,12 +1,12 @@
 - job:
-    name: percona-server-5.7-trunk
+    name: percona-server-5.6-trunk
     project-type: matrix
     defaults: global
     description: |
         Do not edit this job through the web!
     disabled: false
     concurrent: false
-    auth-token: pstrunk57
+    auth-token: pstrunk56
     node: micro-amazon
     triggers:
     - timed: H 23 * * 1-5
@@ -23,7 +23,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "5.7"
+        default: "5.6"
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
@@ -55,38 +55,21 @@
         name: ANALYZER_OPTS
         choices:
         -
-        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
         - -DWITH_ASAN=ON
-        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
-        - -DWITH_ASAN=ON -DWITH_UBSAN=ON
-        - -DWITH_UBSAN=ON
-        - -DWITH_MSAN=ON
         - -DWITH_VALGRIND=ON
         description: Enable code checking
     - choice:
-        name: WITH_TOKUDB
+        name: WITHOUT_TOKUDB
         choices:
-        - "ON"
         - "OFF"
+        - "ON"
         description: Compile TokuDB engine
-    - choice:
-        name: WITH_ROCKSDB
-        choices:
-        - "ON"
-        - "OFF"
-        description: Compile RocksDB engine
     - choice:
         name: WITH_EMBEDDED_SERVER
         choices:
         - "ON"
         - "OFF"
         description: Whether to build embedded server
-    - choice:
-        name: WITH_RAPID
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build rapid development cycle plugins
     - choice:
         name: WITH_SSL
         choices:
@@ -160,7 +143,7 @@
           - debian:jessie
     builders:
     - trigger-builds:
-      - project: percona-server-5.7-pipeline
+      - project: percona-server-5.6-pipeline
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -173,9 +156,9 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-5.7-pipeline
+        project: percona-server-5.6-pipeline
         which-build: specific-build
-        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}"
+        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_6_pipeline}"
         do-not-fingerprint: true
     - shell: |
         gunzip build.log.gz

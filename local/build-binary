@@ -10,10 +10,8 @@ set -o xtrace
 JOB_CMAKE=${JOB_CMAKE:-cmake}
 COMPILER=${COMPILER:-default}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
-WITH_TOKUDB=${WITH_TOKUDB:-ON}
-WITH_ROCKSDB=${WITH_ROCKSDB:-ON}
+WITHOUT_TOKUDB=${WITHOUT_TOKUDB:-OFF}
 WITH_EMBEDDED_SERVER=${WITH_EMBEDDED_SERVER:-ON}
-WITH_RAPID=${WITH_RAPID:-ON}
 WITH_SSL=${WITH_SSL:-system}
 PERFSCHEMA_OPTS=${PERFSCHEMA_OPTS:-}
 ANALYZER_OPTS=${ANALYZER_OPTS:-}
@@ -51,8 +49,6 @@ wget_loop() {
         done
     fi
 }
-BOOST_VERSION=$(grep 'SET(BOOST_PACKAGE_NAME' ${SOURCEDIR}/cmake/boost.cmake | sed -re 's/.*([0-9]+_[0-9]+_[0-9]+).*/\1/')
-wget_loop "boost_${BOOST_VERSION}.tar.gz" "http://downloads.sourceforge.net/boost/boost/${BOOST_VERSION//_/.}/boost_${BOOST_VERSION}.tar.gz"
 GMOCK_VERSION=$(grep 'SET(GMOCK_PACKAGE_NAME' ${SOURCEDIR}/unittest/gunit/CMakeLists.txt | sed -re 's/.*([0-9]+[.][0-9]+[.][0-9]+).*/\1/')
 wget_loop "googletest-release-${GMOCK_VERSION}.zip" "https://github.com/google/googletest/archive/release-${GMOCK_VERSION}.zip"
 
@@ -63,8 +59,7 @@ wget_loop "googletest-release-${GMOCK_VERSION}.zip" "https://github.com/google/g
 if [[ "$(getconf LONG_BIT)" = "32" ]]; then
     TARGET_ARCH="i686"
     TARGET_CFLAGS+=" -m32 -march=i686"
-    WITH_TOKUDB=OFF
-    WITH_ROCKSDB=OFF
+    WITHOUT_TOKUDB=ON
 else
     TARGET_ARCH="$(uname -m)"
 fi
@@ -123,7 +118,7 @@ fi
 # ------------------------------------------------------------------------------
 # Check tokudb
 # ------------------------------------------------------------------------------
-if [[ "${WITH_TOKUDB}" = "ON" ]]; then
+if [[ "${WITHOUT_TOKUDB}" = "OFF" ]]; then
     CMAKE_OPTS+=" -DBUILD_TESTING=OFF -DUSE_GTAGS=OFF -DUSE_CTAGS=OFF -DUSE_ETAGS=OFF -DUSE_CSCOPE=OFF -DTOKUDB_BACKUP_PLUGIN_VERSION=${TOKUDB_BACKUP_VERSION}"
     if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
         CMAKE_OPTS+=" -DTOKU_DEBUG_PARANOID=ON"
@@ -137,28 +132,14 @@ fi
 
 
 # ------------------------------------------------------------------------------
-# Check mecab
-# ------------------------------------------------------------------------------
-# force to use mecab everywhere (except RHEL)
-if [ -e /etc/redhat-release ]; then
-    WITH_MECAB=""
-else
-    WITH_MECAB="system"
-fi
-
-
-# ------------------------------------------------------------------------------
 # Finaly, compile!
 # ------------------------------------------------------------------------------
 pushd ${WORKDIR}
     ${JOB_CMAKE} \
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-        -DWITH_TOKUDB=${WITH_TOKUDB} \
-        -DWITH_ROCKSDB=${WITH_ROCKSDB} \
+        -DWITHOUT_TOKUDB=${WITHOUT_TOKUDB} \
         -DWITH_EMBEDDED_SERVER=${WITH_EMBEDDED_SERVER} \
-        -DWITH_RAPID=${WITH_RAPID} \
         -DWITH_SSL=${WITH_SSL} \
-        -DWITH_MECAB=${WITH_MECAB} \
         -DBUILD_CONFIG=mysql_release \
         -DFEATURE_SET=community \
         -DENABLE_DTRACE=OFF \
@@ -170,9 +151,6 @@ pushd ${WORKDIR}
         -DWITH_INNODB_MEMCACHED=ON \
         -DENABLE_DOWNLOADS=ON \
         -DDOWNLOAD_ROOT=${DOWNLOAD_DIR} \
-        -DDOWNLOAD_BOOST=ON \
-        -DWITH_BOOST=${DOWNLOAD_DIR} \
-        -DWITH_KEYRING_VAULT=ON \
         -DWITH_ZLIB=system \
         -DCMAKE_INSTALL_PREFIX=/usr/local/$PRODUCT_FULL \
         -DMYSQL_DATADIR=/usr/local/$PRODUCT_FULL/data \
@@ -185,13 +163,6 @@ pushd ${WORKDIR}
         ${SOURCEDIR}
     make ${MAKE_OPTS}
     make DESTDIR=${INSTALL_DIR} install
-
-    # workaround for PS-4533
-    if [ ! -e "${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/rapid/plugin" ]; then
-        install -d ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/rapid
-        cp -r ${SOURCEDIR}/rapid/plugin \
-              ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/rapid/plugin
-    fi
 popd
 
 tar -C ${INSTALL_DIR}/usr/local --owner=0 --group=0 -czf "${WORKDIR}/$PRODUCT_FULL.tar.gz" $PRODUCT_FULL
