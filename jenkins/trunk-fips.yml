@@ -1,0 +1,38 @@
+- job:
+    name: percona-server-5.7-trunk-fips
+    project-type: pipeline
+    description: |
+        Do not edit this job through the web!
+    concurrent: false
+    properties:
+    - build-discarder:
+        days-to-keep: -1
+        num-to-keep: 10
+        artifact-days-to-keep: -1
+        artifact-num-to-keep: 10
+    triggers:
+    - reverse:
+        jobs: 'percona-server-5.7-trunk'
+        result: 'unstable'
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/Percona-Lab/ps-build
+            branches:
+            - "5.7"
+            wipe-workspace: false
+      lightweight-checkout: true
+      script-path: jenkins/trunk-fips.groovy
+    parameters:
+    - run:
+        name: UPSTREAM
+        project-name: percona-server-5.7-trunk
+        description:
+    - string:
+        name: MTR_ARGS
+        default: main.fips
+        description: "mysql-test-run.pl options, for options like: --big-test --only-big-tests --nounit-tests --unit-tests-report"
+    - string:
+        name: MTR_REPEAT
+        default: "1"
+        description: Run each test N number of times, --repeat=N
