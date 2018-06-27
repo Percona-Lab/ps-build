@@ -162,7 +162,6 @@ pushd ${WORKDIR}
         -DBUILD_CONFIG=mysql_release \
         -DFEATURE_SET=community \
         -DENABLE_DTRACE=OFF \
-        -DENABLE_DOWNLOADS=ON \
         -DWITH_PAM=ON \
         -DWITH_SCALABILITY_METRICS=ON \
         -DWITH_NUMA=ON \
