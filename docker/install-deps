@@ -32,7 +32,7 @@ if [ -f /usr/bin/yum ]; then
         time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel valgrind \
         perl-Time-HiRes libcurl-devel openldap-devel perl-Env perl-Data-Dumper \
         perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 \
-        numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo \
+        numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan \
     "
     if [[ "$(rpm --eval %rhel)" = "6" ]] && [[ "$(rpm --eval %_arch)" = "x86_64" ]]; then
         cat <<-EOF | tee /etc/yum.repos.d/devtoolset-2.repo
