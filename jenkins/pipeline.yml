@@ -49,6 +49,7 @@
         - ubuntu:xenial
         - ubuntu:bionic
         - debian:jessie
+        - debian:stretch
         description: OS version for compilation
     - choice:
         name: JOB_CMAKE
