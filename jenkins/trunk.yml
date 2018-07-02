@@ -158,6 +158,7 @@
           - ubuntu:artful
           - ubuntu:bionic
           - debian:jessie
+          - debian:stretch
     builders:
     - trigger-builds:
       - project: percona-server-5.7-pipeline
