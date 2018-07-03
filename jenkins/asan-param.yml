@@ -148,7 +148,7 @@
          type: user-defined
          name: DOCKER_OS
          values:
-          - debian:jessie
+          - ubuntu:bionic
     builders:
     - trigger-builds:
       - project: percona-server-5.7-pipeline
