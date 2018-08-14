@@ -92,18 +92,6 @@
         - "ON"
         description: Compile RocksDB engine
     - choice:
-        name: WITH_EMBEDDED_SERVER
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build embedded server
-    - choice:
-        name: WITH_RAPID
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build rapid development cycle plugins
-    - choice:
         name: WITH_SSL
         choices:
         - system

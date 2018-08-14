@@ -53,14 +53,6 @@ pipeline {
             description: 'Compile RocksDB engine',
             name: 'WITH_ROCKSDB')
         choice(
-            choices: 'ON\nOFF',
-            description: 'Whether to build embedded server',
-            name: 'WITH_EMBEDDED_SERVER')
-        choice(
-            choices: 'ON\nOFF',
-            description: 'Whether to build rapid development cycle plugins',
-            name: 'WITH_RAPID')
-        choice(
             choices: 'system\nbundled',
             description: 'Type of SSL support',
             name: 'WITH_SSL')
