@@ -141,7 +141,6 @@
           - centos:6
           - centos:7
           - i386/centos:6
-          - ubuntu:trusty
           - ubuntu:xenial
           - ubuntu:artful
           - ubuntu:bionic
