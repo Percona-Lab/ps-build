@@ -115,9 +115,13 @@ pipeline {
                 sh 'echo Prepare: \$(date -u "+%s")'
                 git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
-                    git reset --hard
-                    git clean -xdf
+                    # sudo is needed for better node recovery after compilation failure
+                    # if building failed on compilation stage directory will have files owned by docker user
+                    sudo git reset --hard
+                    sudo git clean -xdf
                     rm -rf sources/results
+                    sudo git -C sources reset --hard || :
+                    sudo git -C sources clean -xdf   || :
                     ./local/checkout
 
                     echo Build: \$(date -u "+%s")
@@ -171,9 +175,12 @@ pipeline {
             steps {
                 git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
-                    git reset --hard
-                    git clean -xdf
+                    sudo git reset --hard
+                    sudo git clean -xdf
                     rm -rf sources/results
+                    sudo git -C sources reset --hard || :
+                    sudo git -C sources clean -xdf   || :
+
                     until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
                         sleep 5
                     done
