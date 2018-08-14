@@ -114,7 +114,7 @@ pipeline {
                 }
 
                 sh 'echo Prepare: \$(date -u "+%s")'
-                git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
+                git branch: 'fix-8.0-version', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     # sudo is needed for better node recovery after compilation failure
                     # if building failed on compilation stage directory will have files owned by docker user
@@ -174,7 +174,7 @@ pipeline {
             options { retry(3) }
             agent { label LABEL }
             steps {
-                git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
+                git branch: 'fix-8.0-version', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     sudo git reset --hard
                     sudo git clean -xdf
