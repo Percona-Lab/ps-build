@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-5.7-trunk-fips
+    name: percona-server-8.0-trunk-fips
     project-type: pipeline
     description: |
         Do not edit this job through the web!
@@ -12,21 +12,21 @@
         artifact-num-to-keep: 10
     triggers:
     - reverse:
-        jobs: 'percona-server-5.7-trunk'
+        jobs: 'percona-server-8.0-trunk'
         result: 'unstable'
     pipeline-scm:
       scm:
         - git:
             url: https://github.com/Percona-Lab/ps-build
             branches:
-            - "5.7"
+            - "8.0"
             wipe-workspace: false
       lightweight-checkout: true
       script-path: jenkins/trunk-fips.groovy
     parameters:
     - run:
         name: UPSTREAM
-        project-name: percona-server-5.7-trunk
+        project-name: percona-server-8.0-trunk
         description:
     - string:
         name: MTR_ARGS

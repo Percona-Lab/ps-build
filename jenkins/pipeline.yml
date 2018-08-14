@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-5.7-pipeline
+    name: percona-server-8.0-pipeline
     project-type: pipeline
     description: |
         Do not edit this job through the web!
@@ -9,7 +9,7 @@
         - git:
             url: https://github.com/Percona-Lab/ps-build
             branches:
-            - "5.7"
+            - "8.0"
             wipe-workspace: false
       lightweight-checkout: true
       script-path: jenkins/pipeline.groovy
@@ -20,7 +20,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "5.7"
+        default: "8.0"
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
