@@ -45,11 +45,11 @@ pipeline {
             description: 'Enable code checking',
             name: 'ANALYZER_OPTS')
         choice(
-            choices: 'ON\nOFF',
+            choices: 'OFF\nON',
             description: 'Compile TokuDB engine',
             name: 'WITH_TOKUDB')
         choice(
-            choices: 'ON\nOFF',
+            choices: 'OFF\nON',
             description: 'Compile RocksDB engine',
             name: 'WITH_ROCKSDB')
         choice(

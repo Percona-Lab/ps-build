@@ -66,14 +66,14 @@
     - choice:
         name: WITH_TOKUDB
         choices:
-        - "ON"
         - "OFF"
+        - "ON"
         description: Compile TokuDB engine
     - choice:
         name: WITH_ROCKSDB
         choices:
-        - "ON"
         - "OFF"
+        - "ON"
         description: Compile RocksDB engine
     - choice:
         name: WITH_EMBEDDED_SERVER
