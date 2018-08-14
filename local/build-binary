@@ -157,9 +157,7 @@ pushd ${WORKDIR}
         -DWITH_MECAB=${WITH_MECAB} \
         -DBUILD_CONFIG=mysql_release \
         -DFEATURE_SET=community \
-        -DENABLE_DTRACE=OFF \
         -DWITH_PAM=ON \
-        -DWITH_SCALABILITY_METRICS=ON \
         -DWITH_NUMA=ON \
         -DWITH_INNODB_MEMCACHED=ON \
         -DENABLE_DOWNLOADS=ON \
