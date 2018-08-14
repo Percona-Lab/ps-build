@@ -81,7 +81,9 @@ fi
 if [[ "$(lsb_release -d -s)" = *"CentOS release 6."* ]] && [[ "${CMAKE_BUILD_TYPE}" = "RelWithDebInfo" ]]; then
     MYSQL_MAINTAINER_MODE="OFF"
 else
-    MYSQL_MAINTAINER_MODE="ON"
+    # MYSQL_MAINTAINER_MODE="ON"
+    # disable temporaty for 8.0 branch
+    MYSQL_MAINTAINER_MODE="OFF"
 fi
 
 
