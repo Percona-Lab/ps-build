@@ -116,11 +116,12 @@ if [ ! -f /usr/local/lib/libeatmydata.so ]; then
     rm -rf /tmp/libeatmydata
 fi
 
+# NB: resulting docker image will be used for building all branches: 5.6, 5.7, 8.0
 # boost 1.59.0 needed for percona-server 5.7
 wget_loop 'boost_1_59_0.tar.gz' 'http://downloads.sourceforge.net/boost/boost/1.59.0/boost_1_59_0.tar.gz'
 
-# boost 1.66.0 needed for percona-server 8.0
-wget_loop 'boost_1_66_0.tar.gz' 'http://downloads.sourceforge.net/boost/boost/1.66.0/boost_1_66_0.tar.gz'
+# boost 1.67.0 needed for percona-server 8.0
+wget_loop 'boost_1_67_0.tar.gz' 'http://downloads.sourceforge.net/boost/boost/1.67.0/boost_1_67_0.tar.gz'
 
-# googletest 1.8.0 needed for percona-server 5.7
+# googletest 1.8.0 needed for percona-server versions 5.6 to 8.0
 wget_loop 'googletest-release-1.8.0.zip' 'https://github.com/google/googletest/archive/release-1.8.0.zip'
