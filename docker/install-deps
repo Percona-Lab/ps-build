@@ -16,13 +16,14 @@ wget_loop() {
 }
 
 if [ -f /usr/bin/yum ]; then
+    rpm --eval %_arch > /etc/yum/vars/basearch
     until yum -y update; do
         yum clean all
         echo "waiting"
         sleep 1
     done
 
-    until yum -y install wget epel-release; do
+    until yum -y install wget epel-release centos-release-scl; do
         echo "waiting"
         sleep 1
     done
@@ -42,8 +43,17 @@ if [ -f /usr/bin/yum ]; then
 		gpgkey=http://linuxsoft.cern.ch/cern/slc6X/\$basearch/RPM-GPG-KEY-cern
 		gpgcheck=1
 	EOF
-        PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-2-gcc-c++ devtoolset-2-binutils}
-        PKGLIST=${PKGLIST/ valgrind/ devtoolset-2-valgrind}
+        PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-2-gcc-c++ devtoolset-2-binutils devtoolset-6-gcc-c++ devtoolset-6-binutils}
+        PKGLIST=${PKGLIST/ valgrind/ devtoolset-2-valgrind devtoolset-6-valgrind}
+    fi
+    if [[ "$(rpm --eval %rhel)" = "6" ]] && [[ "$(rpm --eval %_arch)" = "i386" ]]; then
+        cat <<-EOF | tee /etc/yum.repos.d/devtoolset-6.repo
+		[devtoolset-6]
+		name=devtoolset-6
+		baseurl=https://copr-be.cloud.fedoraproject.org/results/mlampe/devtoolset-6.1/epel-6-i386/
+		gpgcheck=0
+	EOF
+        PKGLIST+="devtoolset-6-gcc-c++ devtoolset-6-binutils devtoolset-6-valgrind"
     fi
 
     until yum -y install ${PKGLIST}; do
@@ -106,11 +116,12 @@ if [ ! -f /usr/local/lib/libeatmydata.so ]; then
     rm -rf /tmp/libeatmydata
 fi
 
+# NB: resulting docker image will be used for building all branches: 5.6, 5.7, 8.0
 # boost 1.59.0 needed for percona-server 5.7
 wget_loop 'boost_1_59_0.tar.gz' 'http://downloads.sourceforge.net/boost/boost/1.59.0/boost_1_59_0.tar.gz'
 
-# boost 1.66.0 needed for percona-server 8.0
-wget_loop 'boost_1_66_0.tar.gz' 'http://downloads.sourceforge.net/boost/boost/1.66.0/boost_1_66_0.tar.gz'
+# boost 1.67.0 needed for percona-server 8.0
+wget_loop 'boost_1_67_0.tar.gz' 'http://downloads.sourceforge.net/boost/boost/1.67.0/boost_1_67_0.tar.gz'
 
-# googletest 1.8.0 needed for percona-server 5.7
+# googletest 1.8.0 needed for percona-server versions 5.6 to 8.0
 wget_loop 'googletest-release-1.8.0.zip' 'https://github.com/google/googletest/archive/release-1.8.0.zip'

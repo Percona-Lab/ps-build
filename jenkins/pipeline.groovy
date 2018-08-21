@@ -5,7 +5,7 @@ pipeline {
             description: 'URL to percona-server repository',
             name: 'GIT_REPO')
         string(
-            defaultValue: '5.7',
+            defaultValue: '8.0',
             description: 'Tag/Branch for percona-server repository',
             name: 'BRANCH')
         string(
@@ -25,7 +25,7 @@ pipeline {
             description: 'Tag/Branch for Percona-TokuBackup repository',
             name: 'TOKUBACKUP_BRANCH')
         choice(
-            choices: 'ubuntu:artful\ncentos:6\ncentos:7\ni386/centos:6\nubuntu:trusty\nubuntu:xenial\nubuntu:bionic\ndebian:jessie\ndebian:stretch',
+            choices: 'ubuntu:artful\ncentos:6\ncentos:7\ni386/centos:6\nubuntu:xenial\nubuntu:bionic\ndebian:jessie\ndebian:stretch',
             description: 'OS version for compilation',
             name: 'DOCKER_OS')
         choice(
@@ -45,21 +45,13 @@ pipeline {
             description: 'Enable code checking',
             name: 'ANALYZER_OPTS')
         choice(
-            choices: 'ON\nOFF',
+            choices: 'OFF\nON',
             description: 'Compile TokuDB engine',
             name: 'WITH_TOKUDB')
         choice(
-            choices: 'ON\nOFF',
+            choices: 'OFF\nON',
             description: 'Compile RocksDB engine',
             name: 'WITH_ROCKSDB')
-        choice(
-            choices: 'ON\nOFF',
-            description: 'Whether to build embedded server',
-            name: 'WITH_EMBEDDED_SERVER')
-        choice(
-            choices: 'ON\nOFF',
-            description: 'Whether to build rapid development cycle plugins',
-            name: 'WITH_RAPID')
         choice(
             choices: 'system\nbundled',
             description: 'Type of SSL support',
@@ -109,6 +101,7 @@ pipeline {
         compressBuildLog()
         skipDefaultCheckout()
         skipStagesAfterUnstable()
+        timeout(time: 8, unit: 'HOURS')
         buildDiscarder(logRotator(artifactNumToKeepStr: '200'))
     }
     stages {
@@ -121,11 +114,15 @@ pipeline {
                 }
 
                 sh 'echo Prepare: \$(date -u "+%s")'
-                git branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
+                git branch: 'fix-8.0-version', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
-                    git reset --hard
-                    git clean -xdf
+                    # sudo is needed for better node recovery after compilation failure
+                    # if building failed on compilation stage directory will have files owned by docker user
+                    sudo git reset --hard
+                    sudo git clean -xdf
                     rm -rf sources/results
+                    sudo git -C sources reset --hard || :
+                    sudo git -C sources clean -xdf   || :
                     ./local/checkout
 
                     echo Build: \$(date -u "+%s")
@@ -177,11 +174,14 @@ pipeline {
             options { retry(3) }
             agent { label LABEL }
             steps {
-                git branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
+                git branch: 'fix-8.0-version', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
-                    git reset --hard
-                    git clean -xdf
+                    sudo git reset --hard
+                    sudo git clean -xdf
                     rm -rf sources/results
+                    sudo git -C sources reset --hard || :
+                    sudo git -C sources clean -xdf   || :
+
                     until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
                         sleep 5
                     done

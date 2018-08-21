@@ -12,8 +12,6 @@ COMPILER=${COMPILER:-default}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
 WITH_TOKUDB=${WITH_TOKUDB:-ON}
 WITH_ROCKSDB=${WITH_ROCKSDB:-ON}
-WITH_EMBEDDED_SERVER=${WITH_EMBEDDED_SERVER:-ON}
-WITH_RAPID=${WITH_RAPID:-ON}
 WITH_SSL=${WITH_SSL:-system}
 PERFSCHEMA_OPTS=${PERFSCHEMA_OPTS:-}
 ANALYZER_OPTS=${ANALYZER_OPTS:-}
@@ -83,7 +81,9 @@ fi
 if [[ "$(lsb_release -d -s)" = *"CentOS release 6."* ]] && [[ "${CMAKE_BUILD_TYPE}" = "RelWithDebInfo" ]]; then
     MYSQL_MAINTAINER_MODE="OFF"
 else
-    MYSQL_MAINTAINER_MODE="ON"
+    # MYSQL_MAINTAINER_MODE="ON"
+    # disable temporaty for 8.0 branch
+    MYSQL_MAINTAINER_MODE="OFF"
 fi
 
 
@@ -115,8 +115,8 @@ fi
 export LSAN_OPTIONS=verbosity=2:log_threads=1:log_pointers=1
 
 # CentOS 6
-if [[ -f /opt/rh/devtoolset-2/enable ]]; then
-    source /opt/rh/devtoolset-2/enable
+if [[ -f /opt/rh/devtoolset-6/enable ]]; then
+    source /opt/rh/devtoolset-6/enable
 fi
 
 
@@ -155,15 +155,11 @@ pushd ${WORKDIR}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
         -DWITH_TOKUDB=${WITH_TOKUDB} \
         -DWITH_ROCKSDB=${WITH_ROCKSDB} \
-        -DWITH_EMBEDDED_SERVER=${WITH_EMBEDDED_SERVER} \
-        -DWITH_RAPID=${WITH_RAPID} \
         -DWITH_SSL=${WITH_SSL} \
         -DWITH_MECAB=${WITH_MECAB} \
         -DBUILD_CONFIG=mysql_release \
         -DFEATURE_SET=community \
-        -DENABLE_DTRACE=OFF \
         -DWITH_PAM=ON \
-        -DWITH_SCALABILITY_METRICS=ON \
         -DWITH_NUMA=ON \
         -DWITH_INNODB_MEMCACHED=ON \
         -DENABLE_DOWNLOADS=ON \
@@ -183,13 +179,6 @@ pushd ${WORKDIR}
         ${SOURCEDIR}
     make ${MAKE_OPTS}
     make DESTDIR=${INSTALL_DIR} install
-
-    # workaround for PS-4533
-    if [ ! -e "${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/rapid/plugin" ]; then
-        install -d ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/rapid
-        cp -r ${SOURCEDIR}/rapid/plugin \
-              ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/rapid/plugin
-    fi
 popd
 
 tar -C ${INSTALL_DIR}/usr/local --owner=0 --group=0 -czf "${WORKDIR}/$PRODUCT_FULL.tar.gz" $PRODUCT_FULL

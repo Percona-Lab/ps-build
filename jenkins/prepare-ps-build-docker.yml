@@ -42,7 +42,7 @@
             stages {
                 stage('Prepare') {
                     steps {
-                        git poll: true, branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
+                        git poll: true, branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
                         sh '''
                             git reset --hard
                             git clean -xdf
@@ -56,7 +56,6 @@
                             "centos:7":       { build('centos:7') },
                             "i386/centos:6":  { build('i386/centos:6') },
                             "ubuntu:artful":  { build('ubuntu:artful') },
-                            "ubuntu:trusty":  { build('ubuntu:trusty') },
                             "ubuntu:xenial":  { build('ubuntu:xenial') },
                             "ubuntu:bionic":  { build('ubuntu:bionic') },
                             "debian:jessie":  { build('debian:jessie') },

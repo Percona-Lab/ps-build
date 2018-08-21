@@ -1,9 +1,9 @@
 - job:
-    name: percona-server-5.7-asan-param
+    name: percona-server-8.0-asan-param
     project-type: matrix
     defaults: global
     description: |
-        MySQL 5.7 parametrised AddressSanitizer build
+        MySQL 8.0 parametrised AddressSanitizer build
         Do not edit this job through the web!
     disabled: false
     concurrent: true
@@ -21,7 +21,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "5.7"
+        default: "8.0"
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
@@ -64,27 +64,15 @@
     - choice:
         name: WITH_TOKUDB
         choices:
-        - "ON"
         - "OFF"
+        - "ON"
         description: Compile TokuDB engine
     - choice:
         name: WITH_ROCKSDB
         choices:
-        - "ON"
         - "OFF"
+        - "ON"
         description: Compile RocksDB engine
-    - choice:
-        name: WITH_EMBEDDED_SERVER
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build embedded server
-    - choice:
-        name: WITH_RAPID
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build rapid development cycle plugins
     - choice:
         name: WITH_SSL
         choices:
@@ -151,7 +139,7 @@
           - ubuntu:bionic
     builders:
     - trigger-builds:
-      - project: percona-server-5.7-pipeline
+      - project: percona-server-8.0-pipeline
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -164,12 +152,12 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-5.7-pipeline
+        project: percona-server-8.0-pipeline
         which-build: specific-build
-        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}"
+        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}"
         do-not-fingerprint: true
     - shell: |
-        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}" > PIPELINE_BUILD_NUMBER
+        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}" > PIPELINE_BUILD_NUMBER
         gunzip build.log.gz
     publishers:
     - warnings:
