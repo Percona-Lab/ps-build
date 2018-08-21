@@ -101,6 +101,7 @@ pipeline {
         compressBuildLog()
         skipDefaultCheckout()
         skipStagesAfterUnstable()
+        timeout(time: 8, unit: 'HOURS')
         buildDiscarder(logRotator(artifactNumToKeepStr: '200'))
     }
     stages {
