@@ -2,3 +2,4 @@ docker/Dockerfile
 jenkins/result/
 sources/
 *~
+.DS_Store
