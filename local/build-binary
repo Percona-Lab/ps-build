@@ -160,7 +160,7 @@ pushd ${WORKDIR}
         ${CMAKE_OPTS} \
         ${SOURCEDIR}
     make ${MAKE_OPTS}
-    make DESTDIR=${INSTALL_DIR} install
+    make DESTDIR=${INSTALL_DIR} install > make_install.log
 popd
 
 tar -C ${INSTALL_DIR}/usr/local --owner=0 --group=0 -czf "${WORKDIR}/$PRODUCT_FULL.tar.gz" $PRODUCT_FULL
