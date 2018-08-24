@@ -182,7 +182,7 @@ pushd ${WORKDIR}
         ${CMAKE_OPTS} \
         ${SOURCEDIR}
     make ${MAKE_OPTS}
-    make DESTDIR=${INSTALL_DIR} install
+    make DESTDIR=${INSTALL_DIR} install > make_install.log
 
     # workaround for PS-4533
     if [ ! -e "${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/rapid/plugin" ]; then
