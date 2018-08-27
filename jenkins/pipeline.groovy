@@ -90,6 +90,10 @@ pipeline {
             description: 'Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb',
             name: 'TOKUDB_ENGINES_MTR')
         string(
+            defaultValue: '',
+            description: 'TokuDB specific mtr args',
+            name: 'TOKUDB_ENGINES_MTR_ARGS')
+        string(
             defaultValue: '--unit-tests-report',
             description: 'mysql-test-run.pl options, for options like: --big-test --only-big-tests --nounit-tests --unit-tests-report',
             name: 'MTR_ARGS')
