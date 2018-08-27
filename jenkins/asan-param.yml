@@ -107,6 +107,10 @@
         - "yes"
         description: Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb
     - string:
+        name: TOKUDB_ENGINES_MTR_ARGS
+        default:
+        description: TokuDB specific mtr args
+    - string:
         name: MTR_ARGS
         default: --unit-tests-report
         description: "mysql-test-run.pl options, for options like: --big-test --only-big-tests --nounit-tests --unit-tests-report"
