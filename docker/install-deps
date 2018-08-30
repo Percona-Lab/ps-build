@@ -61,7 +61,7 @@ if [ -f /usr/bin/yum ]; then
             echo "waiting"
             sleep 1
         done
-        PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-7-gcc devtoolset-7-gcc-c++ devtoolset-7-binutils}
+        PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-7-gcc-c++ devtoolset-7-binutils}
         PKGLIST=${PKGLIST/ libasan/ devtoolset-7-libasan-devel}
         PKGLIST+=" devtoolset-7-libubsan-devel"
     fi
