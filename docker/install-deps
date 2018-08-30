@@ -56,6 +56,18 @@ if [ -f /usr/bin/yum ]; then
         PKGLIST+="devtoolset-6-gcc-c++ devtoolset-6-binutils devtoolset-6-valgrind"
     fi
 
+    if [[ "$(rpm --eval %rhel)" = "7" ]]; then
+        until yum -y install centos-release-scl; do
+            echo "waiting"
+            sleep 1
+        done
+        PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-7-gcc devtoolset-7-gcc-c++ devtoolset-7-binutils}
+        PKGLIST=${PKGLIST/ libasan/ devtoolset-7-libasan-devel}
+        PKGLIST+=" devtoolset-7-libubsan-devel"
+    fi
+
+#
+
     until yum -y install ${PKGLIST}; do
         echo "waiting"
         sleep 1
