@@ -43,8 +43,9 @@ if [ -f /usr/bin/yum ]; then
 		gpgkey=http://linuxsoft.cern.ch/cern/slc6X/\$basearch/RPM-GPG-KEY-cern
 		gpgcheck=1
 	EOF
-        PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-2-gcc-c++ devtoolset-2-binutils devtoolset-6-gcc-c++ devtoolset-6-binutils}
+        PKGLIST=${PKGLIST/ gcc-c++/ devtoolset-2-gcc-c++ devtoolset-6-gcc-c++}
         PKGLIST=${PKGLIST/ valgrind/ devtoolset-2-valgrind devtoolset-6-valgrind}
+        PKGLIST+="devtoolset-2-binutils devtoolset-6-binutils devtoolset-2-libasan-devel devtoolset-6-libasan-devel"
     fi
     if [[ "$(rpm --eval %rhel)" = "6" ]] && [[ "$(rpm --eval %_arch)" = "i386" ]]; then
         cat <<-EOF | tee /etc/yum.repos.d/devtoolset-6.repo
