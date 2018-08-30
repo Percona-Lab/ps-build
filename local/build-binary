@@ -108,10 +108,8 @@ COMMENT="Percona Server (GPL), Release ${MYSQL_VERSION_EXTRA#-}, Revision ${REVI
 if [[ "$COMPILER" != "default" ]]; then
     export CC=${COMPILER}
     export CXX=$(echo ${COMPILER} | sed -e 's/gcc/g++/; s/clang/clang++/')
-else
-    export CC=gcc
-    export CXX=g++
 fi
+
 export LSAN_OPTIONS=verbosity=2:log_threads=1:log_pointers=1
 
 # CentOS 6
@@ -119,6 +117,10 @@ if [[ -f /opt/rh/devtoolset-6/enable ]]; then
     source /opt/rh/devtoolset-6/enable
 fi
 
+# CentOS 7
+if [[ -f /opt/rh/devtoolset-7/enable ]]; then
+    source /opt/rh/devtoolset-7/enable
+fi
 
 # ------------------------------------------------------------------------------
 # Check tokudb
