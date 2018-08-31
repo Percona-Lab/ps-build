@@ -125,8 +125,18 @@
         description: Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb
     - string:
         name: TOKUDB_ENGINES_MTR_ARGS
-        default:
+        default:  --unit-tests-report
         description: TokuDB specific mtr args
+    - choice:
+        name: ROCKSDB_ENGINES_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=rocksdb
+    - string:
+        name: ROCKSDB_ENGINES_MTR_ARGS
+        default:  --unit-tests-report
+        description: RocksDB specific mtr args
     - string:
         name: MTR_ARGS
         default: --unit-tests-report --big-test

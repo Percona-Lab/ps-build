@@ -90,9 +90,18 @@ pipeline {
             description: 'Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb',
             name: 'TOKUDB_ENGINES_MTR')
         string(
-            defaultValue: '',
+            defaultValue: '--unit-tests-report',
             description: 'TokuDB specific mtr args',
             name: 'TOKUDB_ENGINES_MTR_ARGS')
+        choice(
+            choices: 'yes\nno',
+            description: 'Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=rocksdb',
+            name: 'ROCKSDB_ENGINES_MTR')
+        string(
+            defaultValue: '--unit-tests-report',
+            description: 'RocksDB specific mtr args',
+            name: 'ROCKSDB_ENGINES_MTR_ARGS')
+
         string(
             defaultValue: '--unit-tests-report',
             description: 'mysql-test-run.pl options, for options like: --big-test --only-big-tests --nounit-tests --unit-tests-report',
