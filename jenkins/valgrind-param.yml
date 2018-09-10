@@ -138,7 +138,7 @@
          type: user-defined
          name: DOCKER_OS
          values:
-          - ubuntu:artful
+          - ubuntu:bionic
     builders:
     - trigger-builds:
       - project: percona-server-8.0-pipeline
