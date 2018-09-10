@@ -142,11 +142,8 @@
          values:
           - centos:6
           - centos:7
-          - i386/centos:6
           - ubuntu:xenial
-          - ubuntu:artful
           - ubuntu:bionic
-          - debian:jessie
           - debian:stretch
     builders:
     - trigger-builds:
