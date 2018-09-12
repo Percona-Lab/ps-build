@@ -143,7 +143,7 @@
         description: Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb
     - string:
         name: TOKUDB_ENGINES_MTR_ARGS
-        default: --unit-tests-report
+        default:
         description: TokuDB specific mtr args
     - choice:
         name: ROCKSDB_ENGINES_MTR
