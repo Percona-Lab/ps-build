@@ -54,7 +54,7 @@ if [ -f /usr/bin/yum ]; then
 		baseurl=https://copr-be.cloud.fedoraproject.org/results/mlampe/devtoolset-6.1/epel-6-i386/
 		gpgcheck=0
 	EOF
-        PKGLIST+="devtoolset-6-gcc-c++ devtoolset-6-binutils devtoolset-6-valgrind"
+        PKGLIST+=" devtoolset-6-gcc-c++ devtoolset-6-binutils devtoolset-6-valgrind"
     fi
 
     if [[ "$(rpm --eval %rhel)" = "7" ]]; then
