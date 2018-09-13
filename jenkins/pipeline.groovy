@@ -1,3 +1,12 @@
+pipeline_timeout = 10
+
+if (
+    (params.ANALYZER_OPTS.contains('-DWITH_VALGRIND=ON'))   ||
+    (params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON'))       ||
+    (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON'))
+    )
+    {  pipeline_timeout = 15 }
+
 pipeline {
     parameters {
         string(
@@ -105,7 +114,7 @@ pipeline {
         compressBuildLog()
         skipDefaultCheckout()
         skipStagesAfterUnstable()
-        timeout(time: 10, unit: 'HOURS')
+        timeout(time: pipeline_timeout, unit: 'HOURS')
         buildDiscarder(logRotator(artifactNumToKeepStr: '200'))
     }
     stages {
