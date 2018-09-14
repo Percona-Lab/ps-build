@@ -73,7 +73,7 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         MYSQLD_ENV="$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libasan.so*' | head -n1):${MYSQLD_ENV}"
     fi
 
-    LD_PRELOAD="${MYSQLD_ENV//:/ }" MTR_BUILD_THREAD=auto ./mtr \
+    LD_PRELOAD="${EATMYDATA} ${JEMALLOC}" MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
         --suite-timeout=9999 \
