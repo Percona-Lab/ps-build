@@ -112,7 +112,7 @@
     - string:
         name: MTR_ARGS
         default: --unit-tests-report
-        description: "mysql-test-run.pl options, for options like: --big-test --only-big-tests --nounit-tests --unit-tests-report"
+        description: "mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report"
     - string:
         name: MTR_REPEAT
         default: "1"
