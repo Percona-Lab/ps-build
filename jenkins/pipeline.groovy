@@ -104,7 +104,7 @@ pipeline {
 
         string(
             defaultValue: '--unit-tests-report',
-            description: 'mysql-test-run.pl options, for options like: --big-test --only-big-tests --nounit-tests --unit-tests-report',
+            description: 'mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report',
             name: 'MTR_ARGS')
         string(
             defaultValue: '1',
