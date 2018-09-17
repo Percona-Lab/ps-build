@@ -5,7 +5,7 @@ test-targets =$(addprefix percona-server-5.7-, $(filter-out view, $(targets)))
 all: $(targets)
 
 $(targets):
-	jenkins-jobs update $@.yml
+	jenkins-jobs -s ps.cd update $@.yml
 	@echo
 
 test: $(test-targets)
