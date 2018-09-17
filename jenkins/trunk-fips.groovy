@@ -43,7 +43,7 @@ pipeline {
             name: 'UPSTREAM')
         string(
             defaultValue: 'main.fips',
-            description: 'mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report',
+            description: 'mysql-test-run.pl options, for options like: --big-test --nounit-tests --unit-tests-report',
             name: 'MTR_ARGS')
         string(
             defaultValue: '1',
