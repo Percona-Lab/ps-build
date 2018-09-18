@@ -134,6 +134,21 @@ pipeline {
                 }
 
                 sh 'echo Prepare: \$(date -u "+%s")'
+                echo 'Checking Percona Server branch version, JEN-913 prevent wrong version run'
+                sh '''
+                    MY_BRANCH_BASE_MAJOR=5
+                    MY_BRANCH_BASE_MINOR=7
+                    RAW_VERSION_LINK=$(echo ${GIT_REPO%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
+                    wget ${RAW_VERSION_LINK} -O ${WORKSPACE}/VERSION-${BUILD_NUMBER}
+                    source ${WORKSPACE}/VERSION-${BUILD_NUMBER}
+                    if [[ ${MYSQL_VERSION_MAJOR} -ne ${MY_BRANCH_BASE_MAJOR} || ${MYSQL_VERSION_MINOR} -ne ${MY_BRANCH_BASE_MINOR} ]] ; then
+                        echo "Are you trying to build wrong branch?"
+                        echo "You are trying to build ${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR} instead of ${MY_BRANCH_BASE_MAJOR}.${MY_BRANCH_BASE_MINOR}!"
+                        rm -f ${WORKSPACE}/VERSION-${BUILD_NUMBER}
+                        exit 1
+                    fi
+                    rm -f ${WORKSPACE}/VERSION-${BUILD_NUMBER}
+                '''
                 git branch: '5.7', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     git reset --hard
