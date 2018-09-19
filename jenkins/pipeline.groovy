@@ -134,7 +134,7 @@ pipeline {
                     RAW_VERSION_LINK=$(echo ${GIT_REPO%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
                     wget ${RAW_VERSION_LINK} -O ${WORKSPACE}/VERSION-${BUILD_NUMBER}
                     source ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-                    if [[ ${MYSQL_VERSION_MAJOR} -ne ${MY_BRANCH_BASE_MAJOR} || ${MYSQL_VERSION_MINOR} -ne ${MY_BRANCH_BASE_MINOR} ]] ; then
+                    if [[ ${MYSQL_VERSION_MAJOR} -lt ${MY_BRANCH_BASE_MAJOR} ]] ; then
                         echo "Are you trying to build wrong branch?"
                         echo "You are trying to build ${MYSQL_VERSION_MAJOR}.${MYSQL_VERSION_MINOR} instead of ${MY_BRANCH_BASE_MAJOR}.${MY_BRANCH_BASE_MINOR}!"
                         rm -f ${WORKSPACE}/VERSION-${BUILD_NUMBER}
