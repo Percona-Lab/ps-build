@@ -31,7 +31,7 @@ fi
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
     MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
     if [[ ${PARALLEL} -gt 1 ]]; then
-        PARALLEL=$((PARALLEL/2))
+        PARALLEL=$((PARALLEL/3))
     fi
 elif [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
     export ASAN_OPTIONS=allocator_may_return_null=true

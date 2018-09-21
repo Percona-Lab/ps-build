@@ -5,7 +5,7 @@ if (
     (params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON'))       ||
     (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON'))
     )
-    {  pipeline_timeout = 15 }
+    {  pipeline_timeout = 19 }
 
 pipeline {
     parameters {
