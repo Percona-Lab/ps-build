@@ -35,7 +35,7 @@ if [ -f /usr/bin/yum ]; then
         perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 \
         numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan \
     "
-# packages for ASAN and UBSAN builds
+#
      PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils"
      PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel"
 #
