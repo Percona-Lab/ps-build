@@ -24,7 +24,7 @@ TOKUDB_PLUGIN=$(find $WORKDIR_ABS -type f -name 'ha_tokudb.so')
 HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
 HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so')
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
-MTR_ARGS=" --timestamp"
+MTR_ARGS+=" --timestamp"
 
 if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     MTR_ARGS+=" --debug-server"
