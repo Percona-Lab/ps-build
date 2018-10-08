@@ -116,17 +116,17 @@ fi
 for _outfile_ in *.output; do
     COMPONENT=${_outfile_%.output}
     XMLFILE=junit_${COMPONENT}.xml
+    TESTNAME="Percona Server"
     if [[ ${COMPONENT} = mtr ]]; then
       XMLFILE=junit.xml
-      TESTNAME=MySQL
     fi
     #
     if [[ ${COMPONENT} = tokudb ]]; then
-      TESTNAME="Percona Server - TokuDB"
+      TESTNAME+=" - TokuDB"
     fi
     #
     if [[ ${COMPONENT} = tokudb_hotbackup ]]; then
-      TESTNAME="Percona Server - TokuDB HotBackup"
+      TESTNAME+=" - TokuDB HotBackup"
     fi
     echo  "<testsuite name=\"${TESTNAME}\">" > ${XMLFILE}
     #
