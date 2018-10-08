@@ -69,10 +69,8 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         --testcase-timeout=${TESTCASE_TIMEOUT} \
         | tee ${WORKDIR_ABS}/mtr.output \
         || status=$?
-    awk 'BEGIN { print "<testsuite name=\"MySQL\">" } /^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/ { print "<testcase name=\""$3"\" time=\"" $8/1000 "\"/>" } /^(.*) .*\[ skipped \]/ { print "<testcase name=\""$3"\"><skipped/></testcase>" } /^(.*) .*\[ (retry-)?fail \]/ { print "<testcase name=\""$3"\"><failure/></testcase>" } /^MTR\47s internal check of the test case \47(.*)\47 failed/ { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" } END { print "</testsuite>" }' < ${WORKDIR_ABS}/mtr.output > $WORKDIR_ABS/junit.xml
 fi
-
-
+#
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
     MYSQLD_ENV="${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
     if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
@@ -90,9 +88,8 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         --suite tokudb.backup \
         | tee ${WORKDIR_ABS}/tokudb_hotbackup.output \
         || true
-    awk 'BEGIN { print "<testsuite name=\"Percona Server - TokuDB HotBackup\">" } /^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/ { print "<testcase name=\""$3"\" time=\"" $8/1000 "\"/>" } /^(.*) .*\[ skipped \]/ { print "<testcase name=\""$3"\"><skipped/></testcase>" } /^(.*) .*\[ (retry-)?fail \]/ { print "<testcase name=\""$3"\"><failure/></testcase>" } /^MTR\47s internal check of the test case \47(.*)\47 failed/ { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" } END { print "</testsuite>" }' < ${WORKDIR_ABS}/tokudb_hotbackup.output > ${WORKDIR_ABS}/junit_tokudb_hotbackup.xml
 fi
-
+#
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
 if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
     # we test with system jemalloc
@@ -114,7 +111,31 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
             2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
-    awk 'BEGIN { print "<testsuite name=\"Percona Server - TokuDB\">" } /^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/ { print "<testcase name=\""$3"\" time=\"" $8/1000 "\"/>" } /^(.*) .*\[ skipped \]/ { print "<testcase name=\""$3"\"><skipped/></testcase>" } /^(.*) .*\[ (retry-)?fail \]/ { print "<testcase name=\""$3"\"><failure/></testcase>" } /^MTR\47s internal check of the test case \47(.*)\47 failed/ { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" } END { print "</testsuite>" }' < ${WORKDIR_ABS}/tokudb.output > ${WORKDIR_ABS}/junit_tokudb.xml
 fi
-
+#
+for _outfile_ in *.output; do
+    COMPONENT=${_outfile_%.output}
+    XMLFILE=junit_${COMPONENT}.xml
+    if [[ ${COMPONENT} = mtr ]]; then
+      XMLFILE=junit.xml
+      TESTNAME=MySQL
+    fi
+    #
+    if [[ ${COMPONENT} = tokudb ]]; then
+      TESTNAME="Percona Server - TokuDB"
+    fi
+    #
+    if [[ ${COMPONENT} = tokudb_hotbackup ]]; then
+      TESTNAME="Percona Server - TokuDB HotBackup"
+    fi
+    echo  "<testsuite name=\"${TESTNAME}\">" > ${XMLFILE}
+    #
+    awk '/^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/ { print "<testcase name=\""$3"\" time=\"" $8/1000 "\"/>" }
+         /^(.*) .*\[ skipped \]/ { print "<testcase name=\""$3"\"><skipped/></testcase>" }
+         /^(.*) .*\[ (retry-)?fail \]/ { print "<testcase name=\""$3"\"><failure/></testcase>" }
+         /^MTR\47s internal check of the test case \47(.*)\47 failed/ { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" }' < ${_outfile_} >> ${XMLFILE}
+    #
+    echo  "</testsuite>" >> ${XMLFILE}
+  done
+#
 exit $status
