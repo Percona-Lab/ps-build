@@ -118,6 +118,7 @@ TESTNAME="Percona Server"
 for _outfile_ in *.output; do
     COMPONENT=${_outfile_%.output}
     XMLFILE=junit_${COMPONENT}.xml
+    TESTNAME="Percona Server"
     if [[ ${COMPONENT} = mtr ]]; then
       XMLFILE=junit.xml
     fi
