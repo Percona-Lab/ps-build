@@ -113,20 +113,21 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
 fi
 #
+TESTNAME="Percona Server"
+#
 for _outfile_ in *.output; do
     COMPONENT=${_outfile_%.output}
     XMLFILE=junit_${COMPONENT}.xml
     if [[ ${COMPONENT} = mtr ]]; then
       XMLFILE=junit.xml
-      TESTNAME=MySQL
     fi
     #
     if [[ ${COMPONENT} = tokudb ]]; then
-      TESTNAME="Percona Server - TokuDB"
+      TESTNAME+=" - TokuDB"
     fi
     #
     if [[ ${COMPONENT} = tokudb_hotbackup ]]; then
-      TESTNAME="Percona Server - TokuDB HotBackup"
+      TESTNAME+=" - TokuDB HotBackup"
     fi
     echo  "<testsuite name=\"${TESTNAME}\">" > ${XMLFILE}
     #
