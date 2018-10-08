@@ -130,10 +130,10 @@ for _outfile_ in *.output; do
     fi
     echo  "<testsuite name=\"${TESTNAME}\">" > ${XMLFILE}
     #
-    awk '/^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/ { print "<testcase name=\""$3"\" time=\"" $8/1000 "\"/>" }
-         /^(.*) .*\[ skipped \]/ { print "<testcase name=\""$3"\"><skipped/></testcase>" }
-         /^(.*) .*\[ (retry-)?fail \]/ { print "<testcase name=\""$3"\"><failure/></testcase>" }
-         /^MTR\47s internal check of the test case \47(.*)\47 failed/ { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" }' < ${_outfile_} >> ${XMLFILE}
+    awk '/^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/                 { print "<testcase name=\""$3"\" time=\"" $8/1000 "\"/>" }
+         /^(.*) .*\[ skipped \]/                                        { print "<testcase name=\""$3"\"><skipped/></testcase>" }
+         /^(.*) .*\[ (retry-)?fail \]/                                  { print "<testcase name=\""$3"\"><failure/></testcase>" }
+         /^MTR\47s internal check of the test case \47(.*)\47 failed/   { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" }' < ${_outfile_} >> ${XMLFILE}
     #
     echo  "</testsuite>" >> ${XMLFILE}
   done
