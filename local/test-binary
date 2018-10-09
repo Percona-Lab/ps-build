@@ -25,7 +25,24 @@ HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
 HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so')
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
 MTR_ARGS+=" --timestamp"
-
+#
+##
+function process_mtr_output {
+# parameters are:
+  local TESTNAME=$1
+  local INFILE=$2
+  local OUTFILE=$3
+  echo  "<testsuite name=\"${TESTNAME}\">" > ${OUTFILE}
+  #
+  awk '/^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/                 { print "<testcase name=\""$3"\" time=\"" $8/1000 "\"/>" }
+       /^(.*) .*\[ skipped \]/                                        { print "<testcase name=\""$3"\"><skipped/></testcase>" }
+       /^(.*) .*\[ (retry-)?fail \]/                                  { print "<testcase name=\""$3"\"><failure/></testcase>" }
+       /^MTR\47s internal check of the test case \47(.*)\47 failed/   { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" }' < ${INFILE} >> ${OUTFILE}
+  #
+  echo  "</testsuite>" >> ${OUTFILE}
+}
+##
+#
 if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     MTR_ARGS+=" --debug-server"
 fi
@@ -67,9 +84,8 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         --max-test-fail=0 \
         --suite-timeout=9999 \
         --testcase-timeout=${TESTCASE_TIMEOUT} \
-        | tee ${WORKDIR_ABS}/mtr.output \
-        || status=$?
-    awk 'BEGIN { print "<testsuite name=\"MySQL\">" } /^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/ { print "<testcase name=\""$3"\" time=\"" $8/1000 "\"/>" } /^(.*) .*\[ skipped \]/ { print "<testcase name=\""$3"\"><skipped/></testcase>" } /^(.*) .*\[ (retry-)?fail \]/ { print "<testcase name=\""$3"\"><failure/></testcase>" } /^MTR\47s internal check of the test case \47(.*)\47 failed/ { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" } END { print "</testsuite>" }' < ${WORKDIR_ABS}/mtr.output > $WORKDIR_ABS/junit.xml
+        | tee ${WORKDIR_ABS}/mtr.output || status=$?
+    process_mtr_output MySQL ${WORKDIR_ABS}/mtr.output $WORKDIR_ABS/junit.xml
 fi
 
 
@@ -88,9 +104,8 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         ${MTR_ARGS} \
         --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --suite tokudb.backup \
-        | tee ${WORKDIR_ABS}/tokudb_hotbackup.output \
-        || true
-    awk 'BEGIN { print "<testsuite name=\"Percona Server - TokuDB HotBackup\">" } /^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/ { print "<testcase name=\""$3"\" time=\"" $8/1000 "\"/>" } /^(.*) .*\[ skipped \]/ { print "<testcase name=\""$3"\"><skipped/></testcase>" } /^(.*) .*\[ (retry-)?fail \]/ { print "<testcase name=\""$3"\"><failure/></testcase>" } /^MTR\47s internal check of the test case \47(.*)\47 failed/ { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" } END { print "</testsuite>" }' < ${WORKDIR_ABS}/tokudb_hotbackup.output > ${WORKDIR_ABS}/junit_tokudb_hotbackup.xml
+        | tee ${WORKDIR_ABS}/tokudb_hotbackup.output || true
+    process_mtr_output "Percona Server - TokuDB HotBackup" ${WORKDIR_ABS}/tokudb_hotbackup.output ${WORKDIR_ABS}/junit_tokudb_hotbackup.xml
 fi
 
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
@@ -114,7 +129,7 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
             2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
-    awk 'BEGIN { print "<testsuite name=\"Percona Server - TokuDB\">" } /^([[:alnum:]]+).*[\[] (retry-)?pass [\]](.*)/ { print "<testcase name=\""$3"\" time=\"" $8/1000 "\"/>" } /^(.*) .*\[ skipped \]/ { print "<testcase name=\""$3"\"><skipped/></testcase>" } /^(.*) .*\[ (retry-)?fail \]/ { print "<testcase name=\""$3"\"><failure/></testcase>" } /^MTR\47s internal check of the test case \47(.*)\47 failed/ { print "<testcase name=\"testcase-check-"$8"\"><failure/></testcase>" } END { print "</testsuite>" }' < ${WORKDIR_ABS}/tokudb.output > ${WORKDIR_ABS}/junit_tokudb.xml
+    process_mtr_output "Percona Server - TokuDB" ${WORKDIR_ABS}/tokudb.output ${WORKDIR_ABS}/junit_tokudb.xml
 fi
 
 exit $status
