@@ -18,6 +18,7 @@ if [ ! -d "${ROOT_DIR}" ]; then
     git clone "${GIT_REPO:-https://github.com/percona/percona-server}" "${ROOT_DIR}"
 fi
 
+sudo chown -R $USER $ROOT_DIR
 pushd $ROOT_DIR
     git reset --hard
     git clean -xdf
