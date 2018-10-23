@@ -19,13 +19,15 @@ if [ ! -d "${ROOT_DIR}" ]; then
 fi
 
 pushd $ROOT_DIR
-    git reset --hard
-    git clean -xdf
 
     if [ -n "${GIT_REPO}" ]; then
         git remote set-url origin "${GIT_REPO}"
-        git fetch origin
+        git fetch --all
     fi
+
+    git reset --hard
+    git clean -xdf
+
     if [ -n "${BRANCH}" ]; then
         git checkout "${BRANCH}"
     fi
