@@ -12,6 +12,6 @@ test: $(test-targets)
 
 $(test-targets):
 	@mkdir -p result/$@
-	jenkins-jobs test $(patsubst percona-server-5.6-%,%, $@).yml -o result/$@
+	jenkins-jobs -s ps.cd test $(patsubst percona-server-5.6-%,%, $@).yml -o result/$@
 	@mv result/$@/percona-server-* result/$@/config.xml
 	@echo
