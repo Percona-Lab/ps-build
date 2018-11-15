@@ -70,7 +70,6 @@ pipeline {
         label 'micro-amazon'
     }
     options {
-        compressBuildLog()
         skipDefaultCheckout()
         skipStagesAfterUnstable()
         buildDiscarder(logRotator(numToKeepStr: '200', artifactNumToKeepStr: '200'))
