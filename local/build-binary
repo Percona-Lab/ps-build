@@ -114,11 +114,10 @@ else
 fi
 export LSAN_OPTIONS=verbosity=2:log_threads=1:log_pointers=1
 
-# CentOS 6
-if [[ -f /opt/rh/devtoolset-2/enable ]]; then
-    source /opt/rh/devtoolset-2/enable
+# CentOS 6 and 7
+if [[ -f /opt/rh/devtoolset-7/enable ]]; then
+    source /opt/rh/devtoolset-7/enable
 fi
-
 
 # ------------------------------------------------------------------------------
 # Check tokudb
