@@ -29,6 +29,10 @@ if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
 fi
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
     MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
+    # CentOS 6 and 7
+    if [[ -f /opt/rh/devtoolset-7/enable ]]; then
+        source /opt/rh/devtoolset-7/enable
+    fi
 elif [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
     export ASAN_OPTIONS=allocator_may_return_null=true
     export LSAN_OPTIONS=verbosity=2:log_threads=1:log_pointers=1
