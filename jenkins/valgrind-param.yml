@@ -160,7 +160,15 @@
          type: user-defined
          name: DOCKER_OS
          values:
+          - centos:6
+          - centos:7
+          - i386/centos:6
+          - ubuntu:trusty
+          - ubuntu:xenial
           - ubuntu:artful
+          - ubuntu:bionic
+          - debian:jessie
+          - debian:stretch
     builders:
     - trigger-builds:
       - project: percona-server-5.7-pipeline

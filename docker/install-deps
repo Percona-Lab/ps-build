@@ -34,7 +34,7 @@ if [ -f /usr/bin/yum ]; then
         perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 \
         numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan \
     "
-    if [[ "$(rpm --eval %rhel)" = "6" ]] && [[ "$(rpm --eval %_arch)" = "x86_64" ]]; then
+    if [[ "$(rpm --eval %rhel)" = "6" ]]; then
         cat <<-EOF | tee /etc/yum.repos.d/devtoolset-2.repo
 		[devtoolset-2]
 		name=devtoolset-2
