@@ -25,7 +25,6 @@ docker run --rm \
     export WITH_EMBEDDED_SERVER='${WITH_EMBEDDED_SERVER}'
     export WITH_RAPID='${WITH_RAPID}'
     export WITH_SSL='${WITH_SSL}'
-    export PERFSCHEMA_OPTS='${PERFSCHEMA_OPTS}'
     export CMAKE_OPTS='${CMAKE_OPTS}'
     export MAKE_OPTS='${MAKE_OPTS}'
     export BUILD_COMMENT='${BUILD_COMMENT}'

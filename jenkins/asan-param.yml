@@ -79,12 +79,6 @@
         - system
         - bundled
         description: Type of SSL support
-    - choice:
-        name: PERFSCHEMA_OPTS
-        choices:
-        -
-        - -DWITHOUT_PERFSCHEMA_STORAGE_ENGINE=ON
-        description: Disable Performance Schema
     - string:
         name: CMAKE_OPTS
         default:
