@@ -1,12 +1,18 @@
 pipeline_timeout = 10
 
 if (
-    (params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON'))  ||
+    (params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) ||
     (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON'))
     ) { pipeline_timeout = 19 }
 
 if (params.ANALYZER_OPTS.contains('-DWITH_VALGRIND=ON'))
     { pipeline_timeout = 48 }
+
+if (
+    (params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) &&
+    (params.ANALYZER_OPTS.contains('-DWITH_ASAN_SCOPE=ON')) &&
+    (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON'))
+    ) { LABEL = 'docker-32gb' }
 
 pipeline {
     parameters {
