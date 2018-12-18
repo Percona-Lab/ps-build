@@ -73,10 +73,6 @@ pipeline {
             choices: 'system\nbundled',
             description: 'Type of SSL support',
             name: 'WITH_SSL')
-        choice(
-            choices: '\n-DWITHOUT_PERFSCHEMA_STORAGE_ENGINE=ON',
-            description: 'Disable Performance Schema',
-            name: 'PERFSCHEMA_OPTS')
         string(
             defaultValue: '',
             description: 'cmake options',
