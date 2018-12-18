@@ -73,12 +73,6 @@
         - "OFF"
         - "ON"
         description: Compile RocksDB engine
-    - choice:
-        name: WITH_SSL
-        choices:
-        - system
-        - bundled
-        description: Type of SSL support
     - string:
         name: CMAKE_OPTS
         default:
