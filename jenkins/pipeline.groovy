@@ -117,9 +117,9 @@ pipeline {
     }
     stages {
         stage('Build') {
-            options { retry(3) }
             agent { label LABEL }
             steps {
+                retry(3) {
                 script {
                     currentBuild.displayName = "${BUILD_NUMBER} ${CMAKE_BUILD_TYPE}/${DOCKER_OS}"
                 }
@@ -182,24 +182,26 @@ pipeline {
                         exit 1
                     fi
                 '''
+                }
             }
         }
         stage('Archive Build') {
-            options { retry(3) }
             agent { label 'micro-amazon' }
             steps {
+                retry(3) {
                 deleteDir()
                 sh '''
                     aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/build.log.gz ./build.log.gz
                     gunzip build.log.gz
                 '''
                 warnings canComputeNew: false, canResolveRelativePaths: false, categoriesPattern: '', defaultEncoding: '', excludePattern: '', healthy: '', includePattern: '', messagesPattern: '', parserConfigurations: [[parserName: 'GNU C Compiler 4 (gcc)', pattern: 'build.log']], unHealthy: ''
+                }
             }
         }
         stage('Test') {
-            options { retry(3) }
             agent { label LABEL }
             steps {
+                retry(3) {
                 git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
                 sh '''
                     sudo git reset --hard
@@ -227,12 +229,13 @@ pipeline {
                         sleep 5
                     done
                 '''
+                }
             }
         }
         stage('Archive') {
-            options { retry(3) }
             agent { label 'micro-amazon' }
             steps {
+                retry(3) {
                 deleteDir()
                 sh '''
                     aws s3 sync --no-progress --exclude 'binary.tar.gz' s3://ps-build-cache/${BUILD_TAG}/ ./
@@ -245,6 +248,7 @@ pipeline {
                 '''
                 step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
                 archiveArtifacts 'build.log.gz,*.xml,*.output.gz,public_url'
+                }
             }
         }
     }
@@ -253,11 +257,6 @@ pipeline {
             sh '''
                 echo Finish: \$(date -u "+%s")
             '''
-
-            // workaround https://issues.jenkins-ci.org/browse/JENKINS-49183
-            script {
-                currentBuild.result = 'UNSTABLE'
-            }
         }
     }
 }
