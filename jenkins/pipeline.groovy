@@ -69,6 +69,10 @@ pipeline {
             choices: 'OFF\nON',
             description: 'Compile RocksDB engine',
             name: 'WITH_ROCKSDB')
+        choice(
+            choices: 'system\nbundled',
+            description: 'Type of SSL support',
+            name: 'WITH_SSL')
         string(
             defaultValue: '',
             description: 'cmake options',
@@ -77,6 +81,7 @@ pipeline {
             defaultValue: '',
             description: 'make options, like VERBOSE=1',
             name: 'MAKE_OPTS')
+
         choice(
             choices: 'yes\nno',
             description: 'Run mysql-test-run.pl',
