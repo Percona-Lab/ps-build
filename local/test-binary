@@ -34,10 +34,10 @@ function process_mtr_output {
   local OUTFILE=${3}
   egrep -o '[[:alpha:]]+(_[[:alnum:]]+)?(\.\/)?.*\[.*\].*' ${INFILE} | sort | \
   gawk 'BEGIN { print "<testsuite name=\"@@TESTSUITE@@\" tests=\"@@PASSED@@\" failures=\"@@FAILURES@@\" disabled=\"@@DISABLED@@\" skipped=\"@@SKIPPED@@\">" }
-  /\[.*pass \]/ { printf "\t<testcase name=\"%s\" time=\"%.3f\"></testcase>\n", $1" "$2, $NF/1000.0 }
-  /\[ disabled \]/ { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1" "$2 }
-  /\[ skipped \]/  { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1" "$2 }
-  /\[.*fail \]/    { printf "\t<testcase name=\"%s\"><failure/></testcase>\n", $1" "$2 }
+  /\[.*pass \]/ { printf "\t<testcase name=\"%s\" time=\"%.3f\"></testcase>\n", $1, $NF/1000.0 }
+  /\[ disabled \]/ { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1 }
+  /\[ skipped \]/  { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1 }
+  /\[.*fail \]/    { printf "\t<testcase name=\"%s\"><failure/></testcase>\n", $1 }
   END { print "</testsuite>" }' > ${OUTFILE}.tmp
   gawk '!seen[$0]++' < ${OUTFILE}.tmp > ${OUTFILE}
   rm -f ${OUTFILE}.tmp
