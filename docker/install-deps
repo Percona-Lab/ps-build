@@ -96,6 +96,11 @@ if [ -f /usr/bin/apt-get ]; then
         echo "waiting"
         sleep 1
     done
+    if [[ $(lsb_release -sc)  = cosmic ]]; then
+        apt-get -y install libssl1.0-dev libcurl4-gnutls-dev
+    else
+        apt-get -y install libssl-dev
+    fi
     apt-get -y clean
 fi
 
