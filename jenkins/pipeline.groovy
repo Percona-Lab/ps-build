@@ -3,10 +3,10 @@ pipeline_timeout = 10
 if (
     (params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) ||
     (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON'))
-    ) { pipeline_timeout = 19 }
+    ) { pipeline_timeout = 24 }
 
 if (params.ANALYZER_OPTS.contains('-DWITH_VALGRIND=ON'))
-    { pipeline_timeout = 48 }
+    { pipeline_timeout = 144 }
 
 if (
     ((params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) &&
