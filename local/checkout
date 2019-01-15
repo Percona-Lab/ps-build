@@ -16,6 +16,8 @@ ROOT_DIR=$(cd $(dirname $0)/..; pwd -P)/sources
 
 if [ ! -d "${ROOT_DIR}" ]; then
     git clone "${GIT_REPO:-https://github.com/percona/percona-server}" "${ROOT_DIR}"
+else
+    sudo chown -R $(id -u):$(id -g) "${ROOT_DIR}"
 fi
 
 pushd $ROOT_DIR
