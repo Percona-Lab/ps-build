@@ -26,7 +26,7 @@ pushd $ROOT_DIR
     fi
 
     git reset --hard
-    git clean -xdf
+    sudo git clean -xdf
 
     if [ -n "${BRANCH}" ]; then
         git checkout "${BRANCH}"
