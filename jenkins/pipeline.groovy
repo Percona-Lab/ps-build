@@ -151,9 +151,7 @@ pipeline {
                     # if building failed on compilation stage directory will have files owned by docker user
                     sudo git reset --hard
                     sudo git clean -xdf
-                    rm -rf sources/results
-                    sudo git -C sources reset --hard || :
-                    sudo git -C sources clean -xdf   || :
+                    sudo rm -rf sources
                     ./local/checkout
 
                     echo Build: \$(date -u "+%s")
