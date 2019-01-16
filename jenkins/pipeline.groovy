@@ -152,7 +152,7 @@ pipeline {
                 sh '''
                     git reset --hard
                     git clean -xdf
-                    rm -rf sources/results
+                    sudo rm -rf sources
                     ./local/checkout
 
                     echo Build: \$(date -u "+%s")
