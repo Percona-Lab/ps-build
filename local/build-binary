@@ -112,7 +112,6 @@ else
     export CC=gcc
     export CXX=g++
 fi
-export LSAN_OPTIONS=verbosity=2:log_threads=1:log_pointers=1
 
 # CentOS 6 and 7
 if [[ -f /opt/rh/devtoolset-7/enable ]]; then
