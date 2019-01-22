@@ -57,15 +57,7 @@ wget_loop "googletest-release-${GMOCK_VERSION}.zip" "https://github.com/google/g
 # ------------------------------------------------------------------------------
 # Set OS/Arch flags
 # ------------------------------------------------------------------------------
-if [[ "$(getconf LONG_BIT)" = "32" ]]; then
-    TARGET_ARCH="i686"
-    TARGET_CFLAGS+=" -m32 -march=i686"
-    WITH_TOKUDB=OFF
-    WITH_ROCKSDB=OFF
-else
-    TARGET_ARCH="$(uname -m)"
-fi
-
+TARGET_ARCH="$(uname -m)"
 
 # ------------------------------------------------------------------------------
 # Set Debug options
