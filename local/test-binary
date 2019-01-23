@@ -10,21 +10,74 @@
 #      TOKUDB_ENGINES_MTR = (yes no)
 #      MTR_ARGS
 #      MTR_REPEAT
-
+#
 set -o errexit
 set -o xtrace
-
+#
 WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
 mkdir -p ${WORKDIR_ABS}/PS
 tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
+
 cd ${WORKDIR_ABS}/PS/mysql-test
-TESTCASE_TIMEOUT=60
-PARALLEL=$(grep -c ^processor /proc/cpuinfo)
 TOKUDB_PLUGIN=$(find $WORKDIR_ABS -type f -name 'ha_tokudb.so')
 HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
 HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so')
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
-MTR_ARGS+=" --timestamp --non-parallel-test"
+#
+TESTCASE_TIMEOUT=60
+SUITE_TIMEOUT="9999"
+PARALLEL=$(grep -c ^processor /proc/cpuinfo)
+#
+# it's external variable from Jenkins
+MTR_ARGS+=" --test-progress --report-unstable-tests --timestamp --non-parallel-test"
+MTR_ARGS+=" --max-test-fail=0 --force --suite-timeout=${SUITE_TIMEOUT}"
+if [[ -n "${MTR_REPEAT}" ]]; then
+    MTR_ARGS+=" --repeat=${MTR_REPEAT}"
+fi
+# force mecab usage (except RHEL)
+if [[ ! -e /etc/redhat-release ]]; then
+    MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
+fi
+#
+MTR_TOKUDB_ARGS+=" --mysqld=--plugin-load=tokudb=ha_tokudb.so --big-test --max-test-fail=0"
+MTR_TOKUDB_ARGS+=" --suite=engines/iuds,engines/funcs --mysqld=--loose-tokudb_auto_analyze=0"
+MTR_TOKUDB_ARGS+=" --mysqld=--default-storage-engine=tokudb --mysqld=--default-tmp-storage-engine=tokudb"
+MTR_TOKUDB_ARGS+=" --mysqld=--loose-tokudb_analyze_in_background=false --suite-timeout=${SUITE_TIMEOUT}"
+#
+MTR_DEBUG_ARGS=" --debug-server"
+MTR_SANITIZER_ARGS=" --sanitize"
+MTR_VALGRIND_ARGS=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
+#
+if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
+    MTR_ARGS+="${MTR_DEBUG_ARGS}"
+fi
+#
+if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
+  MTR_ARGS+="${MTR_SANITIZER_ARGS}"
+  export ASAN_OPTIONS=allocator_may_return_null=true
+fi
+#
+if [[ -n "${TOKUDB_ENGINES_MTR_ARGS}" ]]; then
+  MTR_TOKUDB_ARGS+=" ${TOKUDB_ENGINES_MTR_ARGS}"
+fi
+#
+if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
+    MTR_ARGS+="${MTR_VALGRIND_ARGS}"
+    TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 2))
+    if [[ ${PARALLEL} -gt 1 ]]; then
+        PARALLEL=$((PARALLEL/3))
+    fi
+    # CentOS 6 and 7
+    if [[ -f /opt/rh/devtoolset-7/enable ]]; then
+        source /opt/rh/devtoolset-7/enable
+    fi
+else
+    EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
+    if [[ -z "${EATMYDATA}" ]]; then
+        echo "No libeatmydata.so lib found"
+        exit 1
+    fi
+fi
 #
 ##
 function process_mtr_output {
@@ -56,49 +109,12 @@ function process_mtr_output {
 }
 ##
 #
-if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
-    MTR_ARGS+=" --debug-server"
-fi
-if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
-    MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
-    TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 2))
-    if [[ ${PARALLEL} -gt 1 ]]; then
-        PARALLEL=$((PARALLEL/3))
-    fi
-    # CentOS 6 and 7
-    if [[ -f /opt/rh/devtoolset-7/enable ]]; then
-        source /opt/rh/devtoolset-7/enable
-    fi
-elif [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
-    export ASAN_OPTIONS=allocator_may_return_null=true
-else
-    EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
-    if [[ -z "${EATMYDATA}" ]]; then
-        echo "No libeatmydata.so lib found"
-        exit 1
-    fi
-fi
-
-if [[ -n "${MTR_REPEAT}" ]]; then
-    MTR_ARGS+=" --repeat=${MTR_REPEAT}"
-fi
-
-# force to use mecab everywhere (except RHEL)
-if [[ ! -e /etc/redhat-release ]]; then
-    MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
-fi
-
 status=0
 
 # Running MTR test cases
 if [[ "${DEFAULT_TESTING}" != "no" ]]; then
 	LD_PRELOAD="${EATMYDATA}" MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
-        --parallel=${PARALLEL} \
-        --result-file \
-        ${MTR_ARGS} \
-        --force \
-        --max-test-fail=0 \
-        --suite-timeout=9999 \
+        ${MTR_ARGS} --parallel=${PARALLEL} --result-file \
         --testcase-timeout=${TESTCASE_TIMEOUT} \
         | tee ${WORKDIR_ABS}/mtr.output || status=$?
     process_mtr_output MySQL "${WORKDIR_ABS}/mtr.output" "${WORKDIR_ABS}/junit.xml"
@@ -112,14 +128,8 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
     fi
 
     LD_PRELOAD="${EATMYDATA} ${JEMALLOC}" MTR_BUILD_THREAD=auto ./mtr \
-        --force \
-        --max-test-fail=0 \
-        --suite-timeout=9999 \
-        --testcase-timeout=${TESTCASE_TIMEOUT} \
-        --parallel=${PARALLEL} \
-        ${MTR_ARGS} \
-        --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
-        --suite tokudb.backup \
+          ${MTR_ARGS} --testcase-timeout=${TESTCASE_TIMEOUT} --parallel=${PARALLEL} \
+        --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" --suite tokudb.backup \
         | tee ${WORKDIR_ABS}/tokudb_hotbackup.output || true
     process_mtr_output "Percona Server - TokuDB HotBackup" "${WORKDIR_ABS}/tokudb_hotbackup.output" "${WORKDIR_ABS}/junit_tokudb_hotbackup.xml"
 fi
@@ -138,13 +148,8 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
     ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
 
     LD_PRELOAD="${EATMYDATA} ${JEMALLOC}" MTR_BUILD_THREAD=auto \
-        ./mtr --suite=engines/iuds,engines/funcs \
-            --mysqld=--default-storage-engine=tokudb --mysqld=--default-tmp-storage-engine=tokudb \
-            --suite-timeout=9999 --testcase-timeout=${TESTCASE_TIMEOUT} --parallel=${PARALLEL} --big-test --max-test-fail=0 \
-            --mysqld=--plugin-load=tokudb=ha_tokudb.so \
-            --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
-            ${TOKUDB_ENGINES_MTR_ARGS} \
-            2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
+        ./mtr ${MTR_TOKUDB_ARGS} --testcase-timeout=${TESTCASE_TIMEOUT} --parallel=${PARALLEL} \
+        2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
     process_mtr_output "Percona Server - TokuDB" "${WORKDIR_ABS}/tokudb.output" "${WORKDIR_ABS}/junit_tokudb.xml"
 fi
 
