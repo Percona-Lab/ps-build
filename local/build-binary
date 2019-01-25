@@ -108,9 +108,9 @@ else
     export CXX=g++
 fi
 
-# CentOS 6
-if [[ -f /opt/rh/devtoolset-2/enable ]]; then
-    source /opt/rh/devtoolset-2/enable
+# CentOS 6 & 7
+if [[ -f /opt/rh/devtoolset-7/enable ]]; then
+    source /opt/rh/devtoolset-7/enable
 fi
 
 
