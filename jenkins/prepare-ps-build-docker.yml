@@ -59,6 +59,7 @@
                             "ubuntu:trusty":  { build('ubuntu:trusty') },
                             "ubuntu:xenial":  { build('ubuntu:xenial') },
                             "ubuntu:bionic":  { build('ubuntu:bionic') },
+                            "ubuntu:cosmic":  { build('ubuntu:cosmic') },
                             "debian:jessie":  { build('debian:jessie') },
                             "debian:stretch": { build('debian:stretch') },
                         )

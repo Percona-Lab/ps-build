@@ -138,6 +138,7 @@
           - centos:7
           - ubuntu:xenial
           - ubuntu:bionic
+          - ubuntu:cosmic
           - debian:stretch
     builders:
     - trigger-builds:
