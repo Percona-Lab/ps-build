@@ -142,6 +142,7 @@
           - ubuntu:xenial
           - ubuntu:artful
           - ubuntu:bionic
+          - ubuntu:cosmic
           - debian:jessie
           - debian:stretch
     builders:
