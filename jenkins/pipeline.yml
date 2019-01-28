@@ -48,6 +48,7 @@
         - ubuntu:trusty
         - ubuntu:xenial
         - ubuntu:bionic
+        - ubuntu:cosmic
         - debian:jessie
         - debian:stretch
         description: OS version for compilation
