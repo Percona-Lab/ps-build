@@ -52,6 +52,10 @@ function process_mtr_output {
   sed -i.bak -e "s: \[::g" ${OUTFILE}
 }
 #
+# CentOS 6 & 7
+if [[ -f /opt/rh/devtoolset-7/enable ]]; then
+        source /opt/rh/devtoolset-7/enable
+fi
 if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     MTR_ARGS+=" --debug-server"
 fi
