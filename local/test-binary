@@ -97,10 +97,11 @@ fi
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
     MYSQLD_ENV="${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
     if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
+        unset LD_PRELOAD
         MYSQLD_ENV="$(find /opt /lib* /usr/lib* /usr/local/lib* -type f -name 'libasan.so*' | head -n1):${MYSQLD_ENV}"
     fi
 
-    LD_PRELOAD="${EATMYDATA} ${JEMALLOC}" MTR_BUILD_THREAD=auto ./mtr \
+    MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
         --suite-timeout=9999 \
