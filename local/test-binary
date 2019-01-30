@@ -23,6 +23,13 @@ TOKUDB_PLUGIN=$(find $WORKDIR_ABS -type f -name 'ha_tokudb.so')
 HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
 HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so')
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
+EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
+LIBASAN=$(find /opt /lib* /usr/lib* /usr/local/lib* -type f -name 'libasan.so*' | head -n1)
+#
+if [[ -z "${EATMYDATA}" ]]; then
+  echo "No libeatmydata.so lib found"
+  exit 1
+fi
 #
 function process_mtr_output {
 # parameters are:
@@ -56,21 +63,19 @@ function process_mtr_output {
 if [[ -f /opt/rh/devtoolset-7/enable ]]; then
         source /opt/rh/devtoolset-7/enable
 fi
+#
 if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     MTR_ARGS+=" --debug-server"
 fi
+#
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
     MTR_ARGS+=" --valgrind --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
-elif [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
-    export ASAN_OPTIONS=allocator_may_return_null=true
-else
-    EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
-    if [[ -z "${EATMYDATA}" ]]; then
-        echo "No libeatmydata.so lib found"
-        exit 1
-    fi
 fi
-
+#
+if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
+    export ASAN_OPTIONS=allocator_may_return_null=true
+fi
+#
 if [[ -n "${MTR_REPEAT}" ]]; then
     MTR_ARGS+=" --repeat=${MTR_REPEAT}"
 fi
@@ -93,41 +98,43 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
     process_mtr_output MySQL "${WORKDIR_ABS}/mtr.output" "${WORKDIR_ABS}/junit.xml"
 fi
 
-
+# we test with system jemalloc
+if [[ -z "${JEMALLOC}" ]]; then
+  echo "No jemalloc lib found"
+  exit 1
+fi
+#
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
     MYSQLD_ENV="${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
     if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
-        MYSQLD_ENV="$(find /opt /lib* /usr/lib* /usr/local/lib* -type f -name 'libasan.so*' | head -n1):${MYSQLD_ENV}"
+      MYSQLD_ENV="${LIBASAN}:${MYSQLD_ENV}"
+      LD_PRELOAD="${LIBASAN} ${JEMALLOC} ${EATMYDATA}"
+    else
+      LD_PRELOAD="${JEMALLOC} ${EATMYDATA}"
     fi
 
-    LD_PRELOAD="${EATMYDATA} ${JEMALLOC}" MTR_BUILD_THREAD=auto ./mtr \
-        --force \
-        --max-test-fail=0 \
-        --suite-timeout=9999 \
-        --testcase-timeout=450 \
-        --parallel=$(grep -c ^processor /proc/cpuinfo) \
-        ${MTR_ARGS} \
-        --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
-        --suite tokudb.backup \
-        | tee ${WORKDIR_ABS}/tokudb_hotbackup.output \
-        || true
+    MTR_BUILD_THREAD=auto ./mtr \
+      --force \
+      --max-test-fail=0 \
+      --suite-timeout=9999 \
+      --testcase-timeout=450 \
+      --parallel=$(grep -c ^processor /proc/cpuinfo) \
+      ${MTR_ARGS} \
+      --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+      --suite tokudb.backup \
+      | tee ${WORKDIR_ABS}/tokudb_hotbackup.output \
+      || true
     process_mtr_output "Percona Server - TokuDB HotBackup" "${WORKDIR_ABS}/tokudb_hotbackup.output" "${WORKDIR_ABS}/junit_tokudb_hotbackup.xml"
 fi
 
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
 if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
-    # we test with system jemalloc
-    if [[ -z "${JEMALLOC}" ]]; then
-        echo "No jemalloc lib found"
-        exit 1
-    fi
-
     # this is a workaround because mtr is looking for ha_tokudb.so in source_dir in lib/plugins/mysql when it's actually in builddir/storage/tokudb
     mkdir -p lib/mysql/plugin
     ln -s ${TOKUDB_PLUGIN}    lib/mysql/plugin/ha_tokudb.so
     ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
 
-    LD_PRELOAD="${EATMYDATA} ${JEMALLOC}" MTR_BUILD_THREAD=auto \
+    LD_PRELOAD="${JEMALLOC} ${EATMYDATA}" MTR_BUILD_THREAD=auto \
         ./mtr --suite=engines/iuds,engines/funcs \
             --mysqld=--default-storage-engine=tokudb --mysqld=--default-tmp-storage-engine=tokudb \
             --suite-timeout=9999 --testcase-timeout=450 --parallel=$(grep -c ^processor /proc/cpuinfo) --big-test --max-test-fail=0 \
