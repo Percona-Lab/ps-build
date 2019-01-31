@@ -24,7 +24,7 @@ HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
 HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so')
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
 EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
-LIBASAN=$(find /opt /lib* /usr/lib* /usr/local/lib* -type f -name 'libasan.so*' | head -n1)
+LIBASAN=$(find /usr/lib64 /usr/lib /lib* /usr/local/lib* -type f -name 'libasan.so*' | head -n1)
 #
 if [[ -z "${EATMYDATA}" ]]; then
   echo "No libeatmydata.so lib found"
@@ -74,6 +74,7 @@ fi
 #
 if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
     export ASAN_OPTIONS=allocator_may_return_null=true
+    ADD_TO_LD_PRELOAD=${LIBASAN}
 fi
 #
 if [[ -n "${MTR_REPEAT}" ]]; then
@@ -84,7 +85,7 @@ status=0
 
 # Running MTR test cases
 if [[ "${DEFAULT_TESTING}" != "no" ]]; then
-	LD_PRELOAD="${EATMYDATA}" MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
+  LD_PRELOAD="${ADD_TO_LD_PRELOAD:-} ${EATMYDATA}" MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=$(grep -c ^processor /proc/cpuinfo) \
         --result-file \
         ${MTR_ARGS} \
