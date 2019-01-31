@@ -20,8 +20,8 @@ tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz |
 cd ${WORKDIR_ABS}/PS/mysql-test
 
 TOKUDB_PLUGIN=$(find $WORKDIR_ABS -type f -name 'ha_tokudb.so')
-HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
-HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so')
+HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so' | head -n1)
+HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so'| head -n1)
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
 EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
 LIBASAN=$(find /usr/lib64 /usr/lib /lib* /usr/local/lib* -type f -name 'libasan.so*' | head -n1)
@@ -106,15 +106,9 @@ if [[ -z "${JEMALLOC}" ]]; then
 fi
 #
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
-    MYSQLD_ENV="${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
-    if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
-      MYSQLD_ENV="${LIBASAN}:${MYSQLD_ENV}"
-      LD_PRELOAD="${LIBASAN} ${JEMALLOC} ${EATMYDATA}"
-    else
-      LD_PRELOAD="${JEMALLOC} ${EATMYDATA}"
-    fi
+    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-} ${HOTBACKUP_LIB} ${JEMALLOC} ${EATMYDATA}"
 
-    MTR_BUILD_THREAD=auto ./mtr \
+    LD_PRELOAD="${EATMYDATA} ${JEMALLOC}" MTR_BUILD_THREAD=auto ./mtr \
       --force \
       --max-test-fail=0 \
       --suite-timeout=9999 \
