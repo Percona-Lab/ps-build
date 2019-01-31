@@ -35,6 +35,11 @@ if [[ -z "${EATMYDATA}" ]]; then
   echo "No libeatmydata.so lib found"
   exit 1
 fi
+# we test with system jemalloc
+if [[ -z "${JEMALLOC}" ]]; then
+  echo "No jemalloc lib found"
+  exit 1
+fi
 #
 function process_mtr_output {
 # parameters are:
@@ -88,7 +93,7 @@ status=0
 
 # Running MTR test cases
 if [[ "${DEFAULT_TESTING}" != "no" ]]; then
-  MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${EATMYDATA}"
+  MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
   MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=$(grep -c ^processor /proc/cpuinfo) \
         --result-file \
@@ -101,12 +106,6 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         || status=$?
 
     process_mtr_output MySQL "${WORKDIR_ABS}/mtr.output" "${WORKDIR_ABS}/junit.xml"
-fi
-
-# we test with system jemalloc
-if [[ -z "${JEMALLOC}" ]]; then
-  echo "No jemalloc lib found"
-  exit 1
 fi
 #
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
