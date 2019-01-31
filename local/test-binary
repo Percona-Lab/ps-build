@@ -19,13 +19,17 @@ rm -fr ${WORKDIR_ABS}/PS
 mkdir -p ${WORKDIR_ABS}/PS
 tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
 cd ${WORKDIR_ABS}/PS/mysql-test
-
+#
+# CentOS 6 & 7
+if [[ -f /opt/rh/devtoolset-7/enable ]]; then
+        source /opt/rh/devtoolset-7/enable
+fi
+#
 TOKUDB_PLUGIN=$(find $WORKDIR_ABS -type f -name 'ha_tokudb.so')
 HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so' | head -n1)
 HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so'| head -n1)
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
 EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
-LIBASAN=$(find /usr/lib64 /usr/lib /lib* /usr/local/lib* -type f -name 'libasan.so*' | head -n1)
 #
 if [[ -z "${EATMYDATA}" ]]; then
   echo "No libeatmydata.so lib found"
@@ -60,11 +64,6 @@ function process_mtr_output {
   sed -i.bak -e "s: \[::g" ${OUTFILE}
 }
 #
-# CentOS 6 & 7
-if [[ -f /opt/rh/devtoolset-7/enable ]]; then
-        source /opt/rh/devtoolset-7/enable
-fi
-#
 if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     MTR_ARGS+=" --debug-server"
 fi
@@ -75,6 +74,9 @@ fi
 #
 if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
     export ASAN_OPTIONS=allocator_may_return_null=true
+    # trying to find the proper library
+    MYSQLD=$(find ${WORKDIR_ABS}/PS -name mysqld | head -n1)
+    LIBASAN=$(ldd ${MYSQLD} | grep libasan | awk '{print $3}')
     ADD_TO_LD_PRELOAD=${LIBASAN}
 fi
 #
