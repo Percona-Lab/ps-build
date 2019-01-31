@@ -77,7 +77,7 @@ if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
     # trying to find the proper library
     MYSQLD=$(find ${WORKDIR_ABS}/PS -name mysqld | head -n1)
     LIBASAN=$(ldd ${MYSQLD} | grep libasan | awk '{print $3}')
-    ADD_TO_LD_PRELOAD=${LIBASAN}
+    ADD_TO_LD_PRELOAD="${LIBASAN}:"
 fi
 #
 if [[ -n "${MTR_REPEAT}" ]]; then
@@ -88,7 +88,7 @@ status=0
 
 # Running MTR test cases
 if [[ "${DEFAULT_TESTING}" != "no" ]]; then
-  MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-} ${EATMYDATA}"
+  MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${EATMYDATA}"
   MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=$(grep -c ^processor /proc/cpuinfo) \
         --result-file \
@@ -110,7 +110,7 @@ if [[ -z "${JEMALLOC}" ]]; then
 fi
 #
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
-    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-} ${HOTBACKUP_LIB} ${JEMALLOC} ${EATMYDATA}"
+    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
 
     MTR_BUILD_THREAD=auto ./mtr \
       --force \
@@ -133,7 +133,7 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
   [[ -e lib/mysql/plugin/ha_tokudb.so ]] || ln -s ${TOKUDB_PLUGIN} lib/mysql/plugin/ha_tokudb.so
   [[ -e lib/mysql/plugin/tokudb_backup.so ]] || ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
 
-    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-} ${JEMALLOC} ${EATMYDATA}"
+    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
     MTR_BUILD_THREAD=auto \
         ./mtr --suite=engines/iuds,engines/funcs \
             --mysqld=--default-storage-engine=tokudb --mysqld=--default-tmp-storage-engine=tokudb \
