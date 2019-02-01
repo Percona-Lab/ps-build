@@ -146,9 +146,9 @@ fi
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
 if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
   # this is a workaround because mtr is looking for ha_tokudb.so in source_dir in lib/plugins/mysql when it's actually in builddir/storage/tokudb
-  [[ -d lib/mysql/plugin ]] || mkdir -p lib/mysql/plugin
-  [[ -e lib/mysql/plugin/ha_tokudb.so ]] || ln -s ${TOKUDB_PLUGIN} lib/mysql/plugin/ha_tokudb.so
-  [[ -e lib/mysql/plugin/tokudb_backup.so ]] || ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
+  mkdir -p lib/mysql/plugin
+  ln -s ${TOKUDB_PLUGIN} lib/mysql/plugin/ha_tokudb.so
+  ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
 
     MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
     MTR_BUILD_THREAD=auto \
