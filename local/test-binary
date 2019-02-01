@@ -80,7 +80,7 @@ fi
 if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
     export ASAN_OPTIONS=allocator_may_return_null=true
 # trying to find the proper library
-    MYSQLD=$(find ${WORKDIR_ABS}/PS -name mysqld | head -n1)
+    MYSQLD=$(find ${WORKDIR_ABS}/PS -name mysqld)
     LIBASAN=$(ldd ${MYSQLD} | grep libasan | awk '{print $3}')
     ADD_TO_LD_PRELOAD="${LIBASAN}:"
 fi
