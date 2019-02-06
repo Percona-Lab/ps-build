@@ -25,12 +25,13 @@ if [[ -f /opt/rh/devtoolset-7/enable ]]; then
   source /opt/rh/devtoolset-7/enable
 fi
 #
+OPENSSL_HEADER="/usr/include/openssl/opensslv.h"
 TOKUDB_PLUGIN=$(find $WORKDIR_ABS -type f -name 'ha_tokudb.so')
 HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
 HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so')
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
 EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
-OPENSSL_VER=$(openssl version | awk '{print $2}' | sed -e 's:[a-z]::g')
+OPENSSL_VER=$(grep -o 'define SHLIB_VERSION_NUMBER .*$' ${OPENSSL_HEADER} | awk -F'"' '{print $(NF-1)}' | sed -e 's:[a-z]::g')
 #
 if [[ -z "${EATMYDATA}" ]]; then
   echo "No libeatmydata.so lib found"
