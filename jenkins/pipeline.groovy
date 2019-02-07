@@ -1,7 +1,6 @@
-if (
-    (params.MTR_ARGS.contains('--big-test')) || (params.MTR_ARGS.contains('--only-big-test'))
-    )
-    { LABEL = 'docker-32gb' }
+if (params.MTR_ARGS.contains('--big-test')) {
+    LABEL = 'docker-32gb'
+}
 
 pipeline {
     parameters {
