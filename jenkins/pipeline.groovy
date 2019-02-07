@@ -1,3 +1,7 @@
+if (params.MTR_ARGS.contains('--big-test')) {
+    LABEL = 'docker-32gb'
+}
+
 pipeline {
     parameters {
         string(
