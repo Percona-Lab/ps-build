@@ -41,9 +41,6 @@ pushd $ROOT_DIR
     if [ -n "${PERCONAFT_BRANCH}" ]; then
         git config -f .gitmodules submodule.PerconaFT.branch "${PERCONAFT_BRANCH}"
     fi
-    if [ -n "${PERCONAFT_REPO}" -o -n "${PERCONAFT_BRANCH}" ]; then
-        git submodule update --init --remote storage/tokudb/PerconaFT
-    fi
 
     if [ -n "${TOKUBACKUP_REPO}" ]; then
         git config -f .gitmodules submodule.Percona-TokuBackup.url "${TOKUBACKUP_REPO}"
@@ -51,11 +48,17 @@ pushd $ROOT_DIR
     if [ -n "${TOKUBACKUP_BRANCH}" ]; then
         git config -f .gitmodules submodule.Percona-TokuBackup.branch "${TOKUBACKUP_BRANCH}"
     fi
+# update to the pinned revisions
+    git submodule update --init
+
+# update to the submodule HEAD (may be different from pinned)
+    if [ -n "${PERCONAFT_REPO}" -o -n "${PERCONAFT_BRANCH}" ]; then
+        git submodule update --init --remote storage/tokudb/PerconaFT
+    fi
+
     if [ -n "${TOKUBACKUP_REPO}" -o -n "${TOKUBACKUP_BRANCH}" ]; then
         git submodule update --init --remote plugin/tokudb-backup-plugin/Percona-TokuBackup
     fi
-
-    git submodule update --init
 
     if [ "x${PURGE_TOKUDBBACKUP}" = "xtrue" ]; then
         rm -rf plugin/tokudb-backup-plugin/Percona-TokuBackup
