@@ -113,6 +113,10 @@ if [[ -f /opt/rh/devtoolset-7/enable ]]; then
     source /opt/rh/devtoolset-7/enable
 fi
 
+# Centos 6/i386
+if [[ $(rpm --eval %_arch) = "i386" ]] && [[ -f /opt/rh/devtoolset-2/enable ]]; then
+    source /opt/rh/devtoolset-2/enable
+fi
 
 # ------------------------------------------------------------------------------
 # Check tokudb
