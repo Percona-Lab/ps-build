@@ -3,17 +3,20 @@ pipeline_timeout = 10
 if (
     (params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) ||
     (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON'))
-    ) { pipeline_timeout = 19 }
+    ) { pipeline_timeout = 24 }
 
 if (params.ANALYZER_OPTS.contains('-DWITH_VALGRIND=ON'))
-    { pipeline_timeout = 48 }
+    { pipeline_timeout = 144 }
 
 if (
     ((params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) &&
     (params.ANALYZER_OPTS.contains('-DWITH_ASAN_SCOPE=ON')) &&
     (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON'))) ||
     ((params.MTR_ARGS.contains('--big-test')) || (params.MTR_ARGS.contains('--only-big-test')))
-    ) { LABEL = 'docker-32gb' }
+    ) {
+        LABEL = 'docker-32gb'
+        pipeline_timeout = 13
+      }
 
 pipeline {
     parameters {
@@ -42,7 +45,7 @@ pipeline {
             description: 'Tag/Branch for Percona-TokuBackup repository',
             name: 'TOKUBACKUP_BRANCH')
         choice(
-            choices: 'centos:6\ncentos:7\nubuntu:xenial\nubuntu:bionic\ndebian:stretch',
+            choices: 'centos:6\ncentos:7\nubuntu:xenial\nubuntu:bionic\nubuntu:cosmic\ndebian:stretch',
             description: 'OS version for compilation',
             name: 'DOCKER_OS')
         choice(
@@ -102,7 +105,7 @@ pipeline {
             description: 'Run each test N number of times, --repeat=N',
             name: 'MTR_REPEAT')
         choice(
-            choices: 'docker\ndocker-32gb',
+            choices: 'docker-32gb\ndocker',
             description: 'Run build on specified instance type',
             name: 'LABEL')
     }
@@ -117,9 +120,9 @@ pipeline {
     }
     stages {
         stage('Build') {
-            options { retry(3) }
             agent { label LABEL }
             steps {
+                retry(3) {
                 script {
                     currentBuild.displayName = "${BUILD_NUMBER} ${CMAKE_BUILD_TYPE}/${DOCKER_OS}"
                 }
@@ -146,9 +149,7 @@ pipeline {
                     # if building failed on compilation stage directory will have files owned by docker user
                     sudo git reset --hard
                     sudo git clean -xdf
-                    rm -rf sources/results
-                    sudo git -C sources reset --hard || :
-                    sudo git -C sources clean -xdf   || :
+                    sudo rm -rf sources
                     ./local/checkout
 
                     echo Build: \$(date -u "+%s")
@@ -182,57 +183,62 @@ pipeline {
                         exit 1
                     fi
                 '''
+                }
             }
         }
         stage('Archive Build') {
-            options { retry(3) }
             agent { label 'micro-amazon' }
             steps {
+                retry(3) {
                 deleteDir()
                 sh '''
                     aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/build.log.gz ./build.log.gz
                     gunzip build.log.gz
                 '''
                 warnings canComputeNew: false, canResolveRelativePaths: false, categoriesPattern: '', defaultEncoding: '', excludePattern: '', healthy: '', includePattern: '', messagesPattern: '', parserConfigurations: [[parserName: 'GNU C Compiler 4 (gcc)', pattern: 'build.log']], unHealthy: ''
+                }
             }
         }
         stage('Test') {
-            options { retry(3) }
             agent { label LABEL }
             steps {
+                retry(3) {
                 git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
-                sh '''
-                    sudo git reset --hard
-                    sudo git clean -xdf
-                    rm -rf sources/results
-                    sudo git -C sources reset --hard || :
-                    sudo git -C sources clean -xdf   || :
+                    withCredentials([string(credentialsId: 'MTR_VAULT_TOKEN', variable: 'MTR_VAULT_TOKEN')]) {
+                        sh '''
+                            sudo git reset --hard
+                            sudo git clean -xdf
+                            rm -rf sources/results
+                            sudo git -C sources reset --hard || :
+                            sudo git -C sources clean -xdf   || :
 
-                    until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
-                        sleep 5
-                    done
+                            until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
+                                sleep 5
+                            done
 
-                    echo Test: \$(date -u "+%s")
-                    sg docker -c "
-                        if [ \$(docker ps -q | wc -l) -ne 0 ]; then
-                            docker ps -q | xargs docker stop --time 1 || :
-                        fi
-                        ulimit -a
-                        ./docker/run-test ${DOCKER_OS}
-                    "
+                            echo Test: \$(date -u "+%s")
+                            sg docker -c "
+                                if [ \$(docker ps -q | wc -l) -ne 0 ]; then
+                                    docker ps -q | xargs docker stop --time 1 || :
+                                fi
+                                ulimit -a
+                                ./docker/run-test ${DOCKER_OS}
+                            "
 
-                    echo Archive test: \$(date -u "+%s")
-                    gzip sources/results/*.output
-                    until aws s3 sync --no-progress --acl public-read --exclude 'binary.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/; do
-                        sleep 5
-                    done
-                '''
+                            echo Archive test: \$(date -u "+%s")
+                            gzip sources/results/*.output
+                            until aws s3 sync --no-progress --acl public-read --exclude 'binary.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/; do
+                                sleep 5
+                            done
+                        '''
+                    }
+                }
             }
         }
         stage('Archive') {
-            options { retry(3) }
             agent { label 'micro-amazon' }
             steps {
+                retry(3) {
                 deleteDir()
                 sh '''
                     aws s3 sync --no-progress --exclude 'binary.tar.gz' s3://ps-build-cache/${BUILD_TAG}/ ./
@@ -245,6 +251,7 @@ pipeline {
                 '''
                 step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
                 archiveArtifacts 'build.log.gz,*.xml,*.output.gz,public_url'
+                }
             }
         }
     }
@@ -253,11 +260,6 @@ pipeline {
             sh '''
                 echo Finish: \$(date -u "+%s")
             '''
-
-            // workaround https://issues.jenkins-ci.org/browse/JENKINS-49183
-            script {
-                currentBuild.result = 'UNSTABLE'
-            }
         }
     }
 }

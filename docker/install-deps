@@ -35,6 +35,7 @@ if [ -f /usr/bin/yum ]; then
         perl-Time-HiRes libcurl-devel openldap-devel perl-Env perl-Data-Dumper protobuf-lite-devel \
         perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 lz4-devel rapidjson-devel \
         numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan \
+        libzstd-devel \
     "
 #   Percona-Server 5.6, 5.7
     if [[ ${RHVER} -eq 6 ]]; then
@@ -93,14 +94,37 @@ if [ -f /usr/bin/apt-get ]; then
         debconf debhelper fakeroot po-debconf psmisc ccache libtool sudo liblz4-dev libre2-dev \
     "
 
-    if [[ $(echo "$(lsb_release -r -s) > 18.0" | bc -l) == 1 ]] && [[ $(lsb_release -i -s) == Ubuntu ]]; then
+    DISTRIBUTOR_ID=$(lsb_release -i -s)
+    RELEASE=$(lsb_release -r -s)
+    if [[ ${DISTRIBUTOR_ID} == Ubuntu ]] && [[ $(echo "${RELEASE} >= 18.0" | bc -l) == 1 ]]; then
         PKGLIST+=" libasan5"
+    fi
+
+    # On Ubuntu install zstd only for Xenial (16.X) and higher
+    if [[ ${DISTRIBUTOR_ID} == Ubuntu ]] && [[ $(echo "${RELEASE} >= 16.0" | bc -l) == 1 ]]; then
+        if [[ $(echo "${RELEASE} >= 18.0" | bc -l) == 1 ]]; then
+            # libzstd-dev for Bionic and higher
+            PKGLIST+=" libzstd-dev"
+        else
+            # libzstd1-dev for Xenial
+            PKGLIST+=" libzstd1-dev"
+        fi
+    fi
+
+    # On Debian install zstd only for Stretch (9.X) and higher
+    if [[ ${DISTRIBUTOR_ID} == Debian ]] && [[ $(echo "${RELEASE} >= 9.0" | bc -l) == 1 ]]; then
+        PKGLIST+=" libzstd-dev"
     fi
 
     until apt-get -y install ${PKGLIST}; do
         echo "waiting"
         sleep 1
     done
+    if [[ $(lsb_release -sc)  = cosmic ]]; then
+        apt-get -y install libssl1.0-dev libcurl4-gnutls-dev
+    else
+        apt-get -y install libssl-dev
+    fi
     apt-get -y clean
 fi
 

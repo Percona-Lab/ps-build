@@ -114,8 +114,8 @@
     - choice:
         name: LABEL
         choices:
-        - docker
         - docker-32gb
+        - docker
         description: Run build on specified instance type. If "-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON" are specified above, docker-32gb is used unconditionally.
     axes:
       - axis:
@@ -132,6 +132,7 @@
           - centos:7
           - ubuntu:xenial
           - ubuntu:bionic
+          - ubuntu:cosmic
           - debian:stretch
     builders:
     - trigger-builds:

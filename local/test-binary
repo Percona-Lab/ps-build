@@ -15,15 +15,43 @@ set -o errexit
 set -o xtrace
 
 WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
+rm -fr ${WORKDIR_ABS}/PS
 mkdir -p ${WORKDIR_ABS}/PS
 tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
 cd ${WORKDIR_ABS}/PS/mysql-test
+#
+# CentOS 6 and 7
+if [[ -f /opt/rh/devtoolset-7/enable ]]; then
+  source /opt/rh/devtoolset-7/enable
+fi
+#
 TESTCASE_TIMEOUT=60
 PARALLEL=$(grep -c ^processor /proc/cpuinfo)
-TOKUDB_PLUGIN=$(find $WORKDIR_ABS -type f -name 'ha_tokudb.so')
-HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
-HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS -type f -name 'tokudb_backup.so')
+# CentOS 6 & 7
+if [[ -f /opt/rh/devtoolset-7/enable ]]; then
+        source /opt/rh/devtoolset-7/enable
+fi
+#
+OPENSSL_HEADER="/usr/include/openssl/opensslv.h"
+TOKUDB_PLUGIN=$(find $WORKDIR_ABS/PS -type f -name 'ha_tokudb.so')
+HOTBACKUP_LIB=$(find $WORKDIR_ABS/PS -type f -name 'libHotBackup.so')
+HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS/PS -type f -name 'tokudb_backup.so')
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
+EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
+OPENSSL_VER=$(grep -o 'define SHLIB_VERSION_NUMBER .*$' ${OPENSSL_HEADER} | awk -F'"' '{print $(NF-1)}' | sed -e 's:[a-z]::g')
+
+#
+if [[ -z "${EATMYDATA}" ]]; then
+  echo "No libeatmydata.so lib found"
+  exit 1
+fi
+#
+# we test with system jemalloc
+if [[ -z "${JEMALLOC}" ]]; then
+  echo "No jemalloc lib found"
+  exit 1
+fi
+#
 MTR_ARGS+=" --timestamp --non-parallel-test"
 #
 ##
@@ -34,10 +62,10 @@ function process_mtr_output {
   local OUTFILE=${3}
   egrep -o '[[:alpha:]]+(_[[:alnum:]]+)?(\.\/)?.*\[.*\].*' ${INFILE} | sort | \
   gawk 'BEGIN { print "<testsuite name=\"@@TESTSUITE@@\" tests=\"@@PASSED@@\" failures=\"@@FAILURES@@\" disabled=\"@@DISABLED@@\" skipped=\"@@SKIPPED@@\">" }
-  /\[.*pass \]/ { printf "\t<testcase name=\"%s\" time=\"%.3f\"></testcase>\n", $1" "$2, $NF/1000.0 }
-  /\[ disabled \]/ { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1" "$2 }
-  /\[ skipped \]/  { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1" "$2 }
-  /\[.*fail \]/    { printf "\t<testcase name=\"%s\"><failure/></testcase>\n", $1" "$2 }
+  /\[.*pass \]/ { printf "\t<testcase name=\"%s\" time=\"%.3f\"></testcase>\n", $1, $NF/1000.0 }
+  /\[ disabled \]/ { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1 }
+  /\[ skipped \]/  { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1 }
+  /\[.*fail \]/    { printf "\t<testcase name=\"%s\"><failure/></testcase>\n", $1 }
   END { print "</testsuite>" }' > ${OUTFILE}.tmp
   gawk '!seen[$0]++' < ${OUTFILE}.tmp > ${OUTFILE}
   rm -f ${OUTFILE}.tmp
@@ -59,60 +87,54 @@ function process_mtr_output {
 if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     MTR_ARGS+=" --debug-server"
 fi
+#
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
-    MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
-    TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 2))
-    if [[ ${PARALLEL} -gt 1 ]]; then
-        PARALLEL=$((PARALLEL/3))
-    fi
-    # CentOS 6 and 7
-    if [[ -f /opt/rh/devtoolset-7/enable ]]; then
-        source /opt/rh/devtoolset-7/enable
-    fi
-elif [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
-    export ASAN_OPTIONS=allocator_may_return_null=true
-    export LSAN_OPTIONS=verbosity=2:log_threads=1:log_pointers=1
-else
-    EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
-    if [[ -z "${EATMYDATA}" ]]; then
-        echo "No libeatmydata.so lib found"
-        exit 1
-    fi
+  MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
+  [[ ${OPENSSL_VER} < '1.0.2' ]] && export OPENSSL_ia32cap=~0x200000000000000
+  TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 2))
+  if [[ ${PARALLEL} -gt 1 ]]; then
+    PARALLEL=$((PARALLEL/3))
+  fi
 fi
-
+#
+if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
+  export ASAN_OPTIONS=allocator_may_return_null=true
+  # trying to find the proper library
+  MYSQLD=$(find ${WORKDIR_ABS}/PS -name mysqld)
+  LIBASAN=$(ldd ${MYSQLD} | grep libasan | awk '{print $3}')
+  ADD_TO_LD_PRELOAD="${LIBASAN}:"
+fi
+#
 if [[ -n "${MTR_REPEAT}" ]]; then
-    MTR_ARGS+=" --repeat=${MTR_REPEAT}"
+  MTR_ARGS+=" --repeat=${MTR_REPEAT}"
 fi
-
+#
 # force to use mecab everywhere (except RHEL)
 if [[ ! -e /etc/redhat-release ]]; then
     MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
 fi
-
+#
 status=0
-
+#
 # Running MTR test cases
 if [[ "${DEFAULT_TESTING}" != "no" ]]; then
-	LD_PRELOAD="${EATMYDATA}" MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
+  MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
+	MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${PARALLEL} \
         --result-file \
         ${MTR_ARGS} \
-        --force \
+        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
         --suite-timeout=9999 \
         --testcase-timeout=${TESTCASE_TIMEOUT} \
         | tee ${WORKDIR_ABS}/mtr.output || status=$?
     process_mtr_output MySQL "${WORKDIR_ABS}/mtr.output" "${WORKDIR_ABS}/junit.xml"
 fi
-
-
+#
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
-    MYSQLD_ENV="${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
-    if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
-        MYSQLD_ENV="$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libasan.so*' | head -n1):${MYSQLD_ENV}"
-    fi
+    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
 
-    LD_PRELOAD="${EATMYDATA} ${JEMALLOC}" MTR_BUILD_THREAD=auto ./mtr \
+    MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
         --suite-timeout=9999 \
@@ -124,25 +146,20 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         | tee ${WORKDIR_ABS}/tokudb_hotbackup.output || true
     process_mtr_output "Percona Server - TokuDB HotBackup" "${WORKDIR_ABS}/tokudb_hotbackup.output" "${WORKDIR_ABS}/junit_tokudb_hotbackup.xml"
 fi
-
+#
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
 if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
-    # we test with system jemalloc
-    if [[ -z "${JEMALLOC}" ]]; then
-        echo "No jemalloc lib found"
-        exit 1
-    fi
+  # this is a workaround because mtr is looking for ha_tokudb.so in source_dir in lib/plugins/mysql when it's actually in builddir/storage/tokudb
+  mkdir -p lib/mysql/plugin
+  ln -s ${TOKUDB_PLUGIN} lib/mysql/plugin/ha_tokudb.so
+  ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
 
-    # this is a workaround because mtr is looking for ha_tokudb.so in source_dir in lib/plugins/mysql when it's actually in builddir/storage/tokudb
-    mkdir -p lib/mysql/plugin
-    ln -s ${TOKUDB_PLUGIN}    lib/mysql/plugin/ha_tokudb.so
-    ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
-
-    LD_PRELOAD="${EATMYDATA} ${JEMALLOC}" MTR_BUILD_THREAD=auto \
+    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
+    MTR_BUILD_THREAD=auto \
         ./mtr --suite=engines/iuds,engines/funcs \
             --mysqld=--default-storage-engine=tokudb --mysqld=--default-tmp-storage-engine=tokudb \
             --suite-timeout=9999 --testcase-timeout=${TESTCASE_TIMEOUT} --parallel=${PARALLEL} --big-test --max-test-fail=0 \
-            --mysqld=--plugin-load=tokudb=ha_tokudb.so \
+            --mysqld=--plugin-load=tokudb=ha_tokudb.so --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
             2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
