@@ -100,6 +100,7 @@ if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
   MYSQLD=$(find ${WORKDIR_ABS}/PS -name mysqld)
   LIBASAN=$(ldd ${MYSQLD} | grep libasan | awk '{print $3}')
   ADD_TO_LD_PRELOAD="${LIBASAN}:"
+  MTR_ARGS+=" --sanitize"
 fi
 #
 if [[ -n "${MTR_REPEAT}" ]]; then
@@ -119,7 +120,7 @@ status=0
 # Running MTR test cases
 if [[ "${DEFAULT_TESTING}" != "no" ]]; then
   MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
-	MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
+  MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
     ${MTR_ARGS} ${MTR_COMMON_ARGS} \
     --result-file --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
     | tee ${WORKDIR_ABS}/mtr.output || status=$?
