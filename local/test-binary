@@ -21,6 +21,7 @@ tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz |
 cd ${WORKDIR_ABS}/PS/mysql-test
 TESTCASE_TIMEOUT=60
 PARALLEL=$(grep -c ^processor /proc/cpuinfo)
+
 # CentOS 6 & 7
 if [[ -f /opt/rh/devtoolset-7/enable ]]; then
     source /opt/rh/devtoolset-7/enable
@@ -51,8 +52,6 @@ if [[ -z "${JEMALLOC}" ]]; then
   exit 1
 fi
 #
-MTR_ARGS+=" --timestamp --non-parallel-test"
-#
 ##
 function process_mtr_output {
 # parameters are:
@@ -81,7 +80,6 @@ function process_mtr_output {
   sed -i.bak -e "s:@@SKIPPED@@:${SKIPPED}:g" ${OUTFILE}
   sed -i.bak -e "s: \[::g" ${OUTFILE}
 }
-##
 #
 if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     MTR_ARGS+=" --debug-server"
@@ -110,8 +108,11 @@ fi
 #
 # force to use mecab everywhere (except RHEL)
 if [[ ! -e /etc/redhat-release ]]; then
-    MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
+  MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
 fi
+#
+MTR_ARGS+=" --timestamp --non-parallel-test --force"
+MTR_COMMON_ARGS="--max-test-fail=0 --suite-timeout=9999 --testcase-timeout=${TESTCASE_TIMEOUT} --parallel=${PARALLEL}"
 #
 status=0
 #
@@ -119,30 +120,18 @@ status=0
 if [[ "${DEFAULT_TESTING}" != "no" ]]; then
   MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
 	MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
-        --parallel=${PARALLEL} \
-        --result-file \
-        ${MTR_ARGS} \
-        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
-        --max-test-fail=0 \
-        --suite-timeout=9999 \
-        --testcase-timeout=${TESTCASE_TIMEOUT} \
-        | tee ${WORKDIR_ABS}/mtr.output || status=$?
+    ${MTR_ARGS} ${MTR_COMMON_ARGS} \
+    --result-file --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+    | tee ${WORKDIR_ABS}/mtr.output || status=$?
     process_mtr_output MySQL "${WORKDIR_ABS}/mtr.output" "${WORKDIR_ABS}/junit.xml"
 fi
 #
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
     MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
-
     MTR_BUILD_THREAD=auto ./mtr \
-        --force \
-        --max-test-fail=0 \
-        --suite-timeout=9999 \
-        --testcase-timeout=${TESTCASE_TIMEOUT} \
-        --parallel=${PARALLEL} \
-        ${MTR_ARGS} \
-        --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
-        --suite tokudb.backup \
-        | tee ${WORKDIR_ABS}/tokudb_hotbackup.output || true
+      ${MTR_ARGS} ${MTR_COMMON_ARGS} \
+      --suite tokudb.backup --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+      | tee ${WORKDIR_ABS}/tokudb_hotbackup.output || true
     process_mtr_output "Percona Server - TokuDB HotBackup" "${WORKDIR_ABS}/tokudb_hotbackup.output" "${WORKDIR_ABS}/junit_tokudb_hotbackup.xml"
 fi
 #
@@ -154,14 +143,16 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
   ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
 
     MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
-    MTR_BUILD_THREAD=auto \
-        ./mtr --suite=engines/iuds,engines/funcs \
-            --mysqld=--default-storage-engine=tokudb --mysqld=--default-tmp-storage-engine=tokudb \
-            --suite-timeout=9999 --testcase-timeout=${TESTCASE_TIMEOUT} --parallel=${PARALLEL} --big-test --max-test-fail=0 \
-            --mysqld=--plugin-load=tokudb=ha_tokudb.so --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
-            --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
-            ${TOKUDB_ENGINES_MTR_ARGS} \
-            2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
+    MTR_BUILD_THREAD=auto ./mtr \
+      ${MTR_COMMON_ARGS} ${TOKUDB_ENGINES_MTR_ARGS} \
+      --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+      --suite=engines/iuds,engines/funcs \
+      --mysqld=--loose-tokudb_auto_analyze=0 \
+      --mysqld=--default-storage-engine=tokudb \
+      --mysqld=--default-tmp-storage-engine=tokudb \
+      --mysqld=--loose-tokudb_analyze_in_background=false \
+      --big-test --mysqld=--plugin-load=tokudb=ha_tokudb.so \
+      2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
     process_mtr_output "Percona Server - TokuDB" "${WORKDIR_ABS}/tokudb.output" "${WORKDIR_ABS}/junit_tokudb.xml"
 fi
 
