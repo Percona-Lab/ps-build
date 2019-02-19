@@ -147,6 +147,9 @@ pushd ${WORKDIR}
         -DWITH_ROCKSDB=${WITH_ROCKSDB} \
         -DWITH_MECAB=${WITH_MECAB} \
         -DWITH_SYSTEM_LIBS=ON \
+        -DWITH_PROTOBUF=bundled \
+        -DWITH_RAPIDJSON=bundled \
+        -DWITH_ICU=bundled \
         -DBUILD_CONFIG=mysql_release \
         -DFEATURE_SET=community \
         -DWITH_PAM=ON \
