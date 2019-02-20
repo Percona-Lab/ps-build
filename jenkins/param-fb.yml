@@ -1,0 +1,121 @@
+- job:
+    name: fb-mysql-server-8.0-param
+    project-type: matrix
+    defaults: global
+    description: |
+        Do not edit this job through the web!
+    disabled: false
+    concurrent: true
+    auth-token: psparam80
+    node: micro-amazon
+    properties:
+    - build-discarder:
+        days-to-keep: -1
+        num-to-keep: 50
+        artifact-days-to-keep: -1
+        artifact-num-to-keep: 50
+    parameters:
+    - string:
+        name: GIT_REPO
+        default: "https://github.com/facebook/mysql-5.6"
+        description: URL to repository
+    - string:
+        name: BRANCH
+        default: "fb-mysql-8.0.13"
+        description: Tag/Branch for repository
+    - choice:
+        name: JOB_CMAKE
+        choices:
+        - /usr/bin/cmake
+        description: path to cmake binary
+    - choice:
+        name: COMPILER
+        choices:
+        - default
+        description: compiler version
+    - choice:
+        name: ANALYZER_OPTS
+        choices:
+        -
+        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
+        - -DWITH_ASAN=ON
+        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
+        - -DWITH_ASAN=ON -DWITH_UBSAN=ON
+        - -DWITH_UBSAN=ON
+        - -DWITH_MSAN=ON
+        - -DWITH_VALGRIND=ON
+        description: Enable code checking
+    - string:
+        name: CMAKE_OPTS
+        default:
+        description: cmake options
+    - string:
+        name: MAKE_OPTS
+        default:
+        description: make options, like VERBOSE=1
+    - choice:
+        name: DEFAULT_TESTING
+        choices:
+        - "yes"
+        - "no"
+        description: Run mysql-test-run.pl
+    - string:
+        name: MTR_ARGS
+        default: --unit-tests-report
+        description: "mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report"
+    - string:
+        name: MTR_REPEAT
+        default: "1"
+        description: Run each test N number of times, --repeat=N
+    - choice:
+        name: LABEL
+        choices:
+        - docker-32gb
+        description: Run build on specified instance type.
+    axes:
+      - axis:
+         type: user-defined
+         name: CMAKE_BUILD_TYPE
+         values:
+          - RelWithDebInfo
+          - Debug
+      - axis:
+         type: user-defined
+         name: DOCKER_OS
+         values:
+          - centos:7
+          - ubuntu:bionic
+    builders:
+    - trigger-builds:
+      - project: fb-mysql-server-8.0-pipeline
+        current-parameters: true
+        predefined-parameters: |
+          DOCKER_OS=${DOCKER_OS}
+          CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        block: true
+        block-thresholds:
+          build-step-failure-threshold: FAILURE
+          unstable-threshold: never
+          failure-threshold: FAILURE
+    - shell: |
+        sudo find . -name "*.xml" -o -name "*.log" -delete
+    - copyartifact:
+        project: fb-mysql-server-8.0-pipeline
+        which-build: specific-build
+        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_fb_pipeline}"
+        do-not-fingerprint: true
+    - shell: |
+        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_fb_pipeline}" > PIPELINE_BUILD_NUMBER
+        gunzip build.log.gz
+    publishers:
+    - warnings:
+        workspace-file-scanners:
+        - file-pattern: 'build.log'
+          scanner: 'GNU C Compiler 4 (gcc)'
+        run-always: true
+        shouldDetectModules: false
+    - junit:
+        results: "**/*.xml"
+        keep-long-stdio: true
+    - archive:
+        artifacts: 'PIPELINE_BUILD_NUMBER'

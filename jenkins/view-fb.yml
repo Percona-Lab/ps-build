@@ -1,7 +1,7 @@
 - view:
-    name: '8.0'
+    name: '8.0-fb'
     description: |
-        percona-server-8.0 jobs
+        fb-mysql-server-8.0 jobs
         Do not edit these jobs through the web!
     view-type: list
-    regex: '[^f].*-8[.]0-.*'
+    regex: 'fb-mysql-server-8[.]0-.*'
