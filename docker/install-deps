@@ -100,7 +100,7 @@ if [ -f /usr/bin/apt-get ]; then
         PKGLIST+=" libasan5"
     fi
 
-    if [[ ${RELEASE} > "14.0" ]]; then
+    if [[ ${RELEASE} > "16.0" ]]; then
         PKGLIST+=" libre2-dev"
     fi
 
