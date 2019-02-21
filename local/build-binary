@@ -150,7 +150,7 @@ pushd ${WORKDIR}
         -DWITH_PROTOBUF=bundled \
         -DWITH_RAPIDJSON=bundled \
         -DWITH_ICU=bundled \
-	-DWITH_EDITLINE=system \
+	-DWITH_EDITLINE=bundled \
         -DBUILD_CONFIG=mysql_release \
         -DFEATURE_SET=community \
         -DWITH_PAM=ON \
