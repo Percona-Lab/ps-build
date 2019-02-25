@@ -113,7 +113,8 @@ if [[ ! -e /etc/redhat-release ]]; then
 fi
 #
 MTR_ARGS+=" --timestamp --non-parallel-test --force"
-MTR_COMMON_ARGS="--max-test-fail=0 --suite-timeout=9999 --testcase-timeout=${TESTCASE_TIMEOUT} --parallel=${PARALLEL}"
+MTR_COMMON_ARGS="--max-test-fail=0 --suite-timeout=9999 --testcase-timeout=${TESTCASE_TIMEOUT}"
+MTR_COMMON_ARGS+=" --parallel=${PARALLEL} --report-unstable-tests --test-progress"
 #
 status=0
 #
