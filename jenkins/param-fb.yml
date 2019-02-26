@@ -102,10 +102,10 @@
     - copyartifact:
         project: fb-mysql-server-8.0-pipeline
         which-build: specific-build
-        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_fb_pipeline}"
+        build-number: "${TRIGGERED_BUILD_NUMBERS_fb_mysql_server_8_0_pipeline}"
         do-not-fingerprint: true
     - shell: |
-        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_fb_pipeline}" > PIPELINE_BUILD_NUMBER
+        echo "${TRIGGERED_BUILD_NUMBERS_fb_mysql_server_8_0_pipeline}" > PIPELINE_BUILD_NUMBER
         gunzip build.log.gz
     publishers:
     - warnings:
