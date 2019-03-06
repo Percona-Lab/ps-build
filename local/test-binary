@@ -59,7 +59,7 @@ function process_mtr_output {
   local TESTSUITE=${1}
   local INFILE=${2}
   local OUTFILE=${3}
-  egrep -o '[[:alpha:]]+(_[[:alnum:]]+)?(\.\/)?.*\[.*\].*' ${INFILE} | sort | \
+  egrep -a -o '[[:alpha:]]+(_[[:alnum:]]+)?(\.\/)?.*\[ .* \].*$' ${INFILE} | sort | \
   gawk 'BEGIN { print "<testsuite name=\"@@TESTSUITE@@\" tests=\"@@PASSED@@\" failures=\"@@FAILURES@@\" disabled=\"@@DISABLED@@\" skipped=\"@@SKIPPED@@\">" }
   /\[.*pass \]/ { printf "\t<testcase name=\"%s\" time=\"%.3f\"></testcase>\n", $1, $NF/1000.0 }
   /\[ disabled \]/ { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1 }
