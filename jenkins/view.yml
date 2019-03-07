@@ -1,7 +1,8 @@
 - view:
     name: '5.7'
     description: |
-        percona-server-5.7 jobs
-        Do not edit these jobs through the web!
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdQ-3t96_P_pev5OccioxZKY5w4I2toaMuEt_1RXq6FoJjfqw/viewform?entry.691231593=ps.cd.percona.com">Customer service survey. Your opinion is important. </a> <br>
+        percona-server-5.7 jobs<br>
+        Do not edit these jobs through the web!<br>
     view-type: list
     regex: '.*-5[.]7-.*'
