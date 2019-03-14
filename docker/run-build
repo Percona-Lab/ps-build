@@ -22,8 +22,6 @@ docker run --rm \
     export ANALYZER_OPTS='${ANALYZER_OPTS}'
     export WITH_TOKUDB='${WITH_TOKUDB}'
     export WITH_ROCKSDB='${WITH_ROCKSDB}'
-    export WITH_EMBEDDED_SERVER='${WITH_EMBEDDED_SERVER}'
-    export WITH_RAPID='${WITH_RAPID}'
     export CMAKE_OPTS='${CMAKE_OPTS}'
     export MAKE_OPTS='${MAKE_OPTS}'
     export BUILD_COMMENT='${BUILD_COMMENT}'
