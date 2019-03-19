@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-set -o errexit
 set -o xtrace
+set -o errexit
 #
 DOWNLOAD_ROOT=/tmp/source_downloads
 wget_loop() {
@@ -19,14 +19,15 @@ if [ -f /usr/bin/yum ]; then
   RHVER="$(rpm --eval %rhel)"
   rpm --eval %_arch > /etc/yum/vars/basearch
 
-  until yum -y update; do
-    yum clean all
-    echo "waiting"
-    sleep 1
-  done
-#
+  if [[ ${RHVER} -eq 8 ]]; then
+    # disable subscription warning on RHEL8 Beta
+    sed -i 's:enable=1:enable=0:g' /etc/yum/pluginconf.d/subscription-manager.conf
+    # disable strict yum/dnf behaviour
+    echo 'strict=0' >> /etc/dnf/dnf.conf
+  fi
+
   PKGLIST="wget"
-#
+
   if [[ ${RHVER} -lt 8 ]]; then
     PKGLIST+=" epel-release centos-release-scl"
   fi
@@ -35,10 +36,18 @@ if [ -f /usr/bin/yum ]; then
     echo "waiting"
     sleep 1
   done
-
+#
   if [[ ${RHVER} -eq 8 ]]; then
     wget -O /etc/yum.repos.d/rhel8-beta.repo https://jenkins.percona.com/yum-repo/rhel8/rhel8-beta.repo
+    wget -O /etc/yum.repos.d/percona-dev.repo https://jenkins.percona.com/yum-repo/percona-dev.repo
   fi
+#
+  until yum -y update; do
+    yum clean all
+    echo "waiting"
+    sleep 1
+  done
+#
 
   PKGLIST=" \
     gcc-c++ gperf ncurses-devel perl readline-devel openssl-devel jemalloc unzip \
