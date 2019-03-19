@@ -21,12 +21,16 @@ if [ -f /usr/bin/yum ]; then
 
   if [[ ${RHVER} -eq 8 ]]; then
     # disable subscription warning on RHEL8 Beta
-    sed -i 's:enable=1:enable=0:g' /etc/yum/pluginconf.d/subscription-manager.conf
+    echo -e '[main]\nenabled=0\n' > /etc/yum/pluginconf.d/subscription-manager.conf
     # disable strict yum/dnf behaviour
     echo 'strict=0' >> /etc/dnf/dnf.conf
+    echo 'strict=0' >> /etc/yum/yum.conf
+    # download repo files
+    wget -O /etc/yum.repos.d/rhel8-beta.repo https://jenkins.percona.com/yum-repo/rhel8/rhel8-beta.repo
+    wget -O /etc/yum.repos.d/percona-dev.repo https://jenkins.percona.com/yum-repo/percona-dev.repo
   fi
 
-  PKGLIST="wget"
+  PKGLIST+=" wget"
 
   if [[ ${RHVER} -lt 8 ]]; then
     PKGLIST+=" epel-release centos-release-scl"
@@ -36,11 +40,6 @@ if [ -f /usr/bin/yum ]; then
     echo "waiting"
     sleep 1
   done
-#
-  if [[ ${RHVER} -eq 8 ]]; then
-    wget -O /etc/yum.repos.d/rhel8-beta.repo https://jenkins.percona.com/yum-repo/rhel8/rhel8-beta.repo
-    wget -O /etc/yum.repos.d/percona-dev.repo https://jenkins.percona.com/yum-repo/percona-dev.repo
-  fi
 #
   until yum -y update; do
     yum clean all
@@ -82,6 +81,11 @@ if [ -f /usr/bin/yum ]; then
         echo "waiting"
         sleep 1
     done
+
+    # FIXME. WORKAROUND. it's needed for libeatmydata.
+    # FIXME. it's already installed, but some files are missing for some reason
+    [[ ${RHVER} -eq 8 ]] && yum -y reinstall kernel-headers
+
     yum -y clean all
 fi
 #
