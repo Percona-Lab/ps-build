@@ -18,6 +18,7 @@ wget_loop() {
 if [ -f /usr/bin/yum ]; then
   RHVER="$(rpm --eval %rhel)"
   rpm --eval %_arch > /etc/yum/vars/basearch
+
   until yum -y update; do
     yum clean all
     echo "waiting"
@@ -34,6 +35,10 @@ if [ -f /usr/bin/yum ]; then
     echo "waiting"
     sleep 1
   done
+
+  if [[ ${RHVER} -eq 8 ]]; then
+    wget -O /etc/yum.repos.d/rhel8-beta.repo https://jenkins.percona.com/yum-repo/rhel8/rhel8-beta.repo
+  fi
 
   PKGLIST=" \
     gcc-c++ gperf ncurses-devel perl readline-devel openssl-devel jemalloc unzip \
