@@ -19,6 +19,12 @@ rm -fr ${WORKDIR_ABS}/PS
 mkdir -p ${WORKDIR_ABS}/PS/sql
 tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
 cd ${WORKDIR_ABS}/PS/mysql-test
+
+if [[ "$(lsb_release -d -s)" = *"CentOS release 6."* ]]; then
+    mkdir ./suite/keyring_vault
+    rsync -aHv /tmp/ps/plugin/keyring_vault/tests/mtr/ ./suite/keyring_vault/
+fi
+
 TESTCASE_TIMEOUT=60
 PARALLEL=$(grep -c ^processor /proc/cpuinfo)
 # CentOS 6 & 7
