@@ -28,7 +28,7 @@ if [ -f /usr/bin/yum ]; then
     # download repo files
     wget -O /etc/yum.repos.d/rhel8-beta.repo https://jenkins.percona.com/yum-repo/rhel8/rhel8-beta.repo
     wget -O /etc/yum.repos.d/percona-dev.repo https://jenkins.percona.com/yum-repo/percona-dev.repo
-    RH8PKGS="rpcgen"
+    RH8PKGS="rpcgen libtirpc-devel"
   fi
 
   PKGLIST+=" wget"
