@@ -77,6 +77,10 @@ if [ -f /usr/bin/yum ]; then
         PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel"
     fi
 #
+    if [[ ${RHVER} -eq 8 ]]; then
+        PKGLIST+=" rpcgen"
+    fi
+#
     until yum -y install ${PKGLIST}; do
         echo "waiting"
         sleep 1
