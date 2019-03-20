@@ -52,7 +52,7 @@ if [ -f /usr/bin/yum ]; then
   PKGLIST=" \
     gcc-c++ gperf ncurses-devel perl readline-devel openssl-devel jemalloc unzip \
     time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel valgrind re2-devel \
-    perl-Time-HiRes libcurl-devel openldap-devel perl-Env perl-Data-Dumper libicu-devel \
+    perl-Time-HiRes openldap-devel perl-Env perl-Data-Dumper libicu-devel \
     perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 lz4-devel \
     numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan \
     libzstd-devel libedit-devel \
@@ -68,7 +68,7 @@ if [ -f /usr/bin/yum ]; then
     fi
     #
     if [[ ${RHVER} -gt 6 ]]; then
-        PKGLIST+=" libevent-devel"
+        PKGLIST+=" libevent-devel libcurl-devel"
     fi
     #
 #   Percona-Server 8.0
