@@ -138,6 +138,11 @@ else
     WITH_MECAB="system"
 fi
 
+# Do not pass '-DWITH_KEYRING_VAULT=ON' for Centos 6
+WITH_KEYRING_VAULT='ON'
+if [[ "$(lsb_release -d -s)" = *"CentOS release 6."* ]]; then
+    WITH_KEYRING_VAULT='OFF'
+fi
 
 # ------------------------------------------------------------------------------
 # Finaly, compile!
@@ -162,7 +167,7 @@ pushd ${WORKDIR}
         -DDOWNLOAD_ROOT=${DOWNLOAD_DIR} \
         -DDOWNLOAD_BOOST=ON \
         -DWITH_BOOST=${DOWNLOAD_DIR} \
-        -DWITH_KEYRING_VAULT=ON \
+        -DWITH_KEYRING_VAULT=${WITH_KEYRING_VAULT} \
         -DCMAKE_INSTALL_PREFIX=/usr/local/$PRODUCT_FULL \
         -DMYSQL_DATADIR=/usr/local/$PRODUCT_FULL/data \
         -DCOMPILATION_COMMENT="$COMMENT" \
