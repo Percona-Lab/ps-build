@@ -51,6 +51,7 @@
         - ubuntu:cosmic
         - debian:jessie
         - debian:stretch
+        - roboxes-rhel8
         description: OS version for compilation
     - choice:
         name: JOB_CMAKE

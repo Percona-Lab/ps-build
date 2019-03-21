@@ -170,6 +170,7 @@
           - ubuntu:cosmic
           - debian:jessie
           - debian:stretch
+          - roboxes-rhel8
     builders:
     - trigger-builds:
       - project: percona-server-5.7-pipeline
