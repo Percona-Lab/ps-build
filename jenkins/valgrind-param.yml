@@ -132,6 +132,7 @@
           - ubuntu:bionic
           - ubuntu:cosmic
           - debian:stretch
+          - roboxes-rhel8
     builders:
     - trigger-builds:
       - project: percona-server-8.0-pipeline

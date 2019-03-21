@@ -62,6 +62,7 @@
                             "ubuntu:cosmic":  { build('ubuntu:cosmic') },
                             "debian:jessie":  { build('debian:jessie') },
                             "debian:stretch": { build('debian:stretch') },
+                            "rhel:8":         { build('roboxes/rhel8') },
                         )
                     }
                 }

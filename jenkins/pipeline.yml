@@ -47,6 +47,7 @@
         - ubuntu:bionic
         - ubuntu:cosmic
         - debian:stretch
+        - roboxes-rhel8
         description: OS version for compilation
     - choice:
         name: JOB_CMAKE
