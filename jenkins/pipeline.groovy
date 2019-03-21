@@ -29,7 +29,7 @@ pipeline {
             description: 'Tag/Branch for Percona-TokuBackup repository',
             name: 'TOKUBACKUP_BRANCH')
         choice(
-            choices: 'ubuntu:artful\ncentos:6\ncentos:7\ni386/centos:6\nubuntu:trusty\nubuntu:xenial\nubuntu:bionic\nubuntu:cosmic\ndebian:jessie\ndebian:stretch',
+            choices: 'ubuntu:artful\ncentos:6\ncentos:7\ni386/centos:6\nubuntu:trusty\nubuntu:xenial\nubuntu:bionic\nubuntu:cosmic\ndebian:jessie\ndebian:stretch\nroboxes-rhel8',
             description: 'OS version for compilation',
             name: 'DOCKER_OS')
         choice(
