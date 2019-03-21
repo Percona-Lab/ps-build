@@ -1,8 +1,8 @@
 #!/bin/bash
-
-set -o errexit
+#
 set -o xtrace
-
+set -o errexit
+#
 DOWNLOAD_ROOT=/tmp/source_downloads
 wget_loop() {
     local FILE="$1"
@@ -14,30 +14,50 @@ wget_loop() {
         sleep 1
     done
 }
-
+#
 if [ -f /usr/bin/yum ]; then
-    RHVER="$(rpm --eval %rhel)"
-    rpm --eval %_arch > /etc/yum/vars/basearch
-    until yum -y update; do
-        yum clean all
-        echo "waiting"
-        sleep 1
-    done
+  RHVER="$(rpm --eval %rhel)"
+  rpm --eval %_arch > /etc/yum/vars/basearch
 
-    until yum -y install wget epel-release centos-release-scl; do
-        echo "waiting"
-        sleep 1
-    done
+  if [[ ${RHVER} -eq 8 ]]; then
+    # disable subscription warning on RHEL8 Beta
+    echo -e '[main]\nenabled=0\n' > /etc/yum/pluginconf.d/subscription-manager.conf
+    # disable strict yum/dnf behaviour
+    echo 'strict=0' >> /etc/dnf/dnf.conf
+    echo 'strict=0' >> /etc/yum/yum.conf
+    # download repo files
+    wget -O /etc/yum.repos.d/rhel8-beta.repo https://jenkins.percona.com/yum-repo/rhel8/rhel8-beta.repo
+    wget -O /etc/yum.repos.d/percona-dev.repo https://jenkins.percona.com/yum-repo/percona-dev.repo
+    RH8PKGS="rpcgen libtirpc-devel"
+  fi
 
-    PKGLIST=" \
-        gcc-c++ gperf ncurses-devel perl readline-devel openssl-devel jemalloc unzip \
-        time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel valgrind re2-devel \
-        perl-Time-HiRes libcurl-devel openldap-devel perl-Env perl-Data-Dumper libicu-devel \
-        perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 lz4-devel \
-        numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan \
-        libzstd-devel libedit-devel \
+  PKGLIST+=" wget"
+
+  if [[ ${RHVER} -lt 8 ]]; then
+    PKGLIST+=" epel-release centos-release-scl"
+  fi
+#
+  until yum -y install ${PKGLIST}; do
+    echo "waiting"
+    sleep 1
+  done
+#
+  until yum -y update; do
+    yum clean all
+    echo "waiting"
+    sleep 1
+  done
+#
+
+  PKGLIST=" \
+    gcc-c++ gperf ncurses-devel perl readline-devel openssl-devel jemalloc unzip \
+    time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel valgrind re2-devel \
+    perl-Time-HiRes libcurl-devel openldap-devel perl-Env perl-Data-Dumper libicu-devel \
+    perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 lz4-devel \
+    numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan \
+    libzstd-devel libedit-devel \
     "
-#   Percona-Server 5.6, 5.7
+# Percona-Server 5.6, 5.7
     if [[ ${RHVER} -eq 6 ]]; then
         wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
         wget -O /etc/pki/rpm-gpg/RPM-GPG-KEY-cern https://raw.githubusercontent.com/cms-sw/cms-docker/master/slc6-vanilla/RPM-GPG-KEY-cern
@@ -52,17 +72,24 @@ if [ -f /usr/bin/yum ]; then
     fi
     #
 #   Percona-Server 8.0
-    PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils"
-    PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel"
-    PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel"
+    if [[ ${RHVER} -lt 8 ]]; then
+        PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils"
+        PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel"
+        PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel"
+    fi
 #
-    until yum -y install ${PKGLIST}; do
+    until yum -y install ${PKGLIST} ${RH8PKGS:-} ; do
         echo "waiting"
         sleep 1
     done
+
+    # FIXME. WORKAROUND. it's needed for libeatmydata.
+    # FIXME. it's already installed, but some files are missing for some reason
+    [[ ${RHVER} -eq 8 ]] && yum -y reinstall kernel-headers
+
     yum -y clean all
 fi
-
+#
 if [ -f /usr/bin/apt-get ]; then
     echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
