@@ -133,7 +133,7 @@
          type: user-defined
          name: DOCKER_OS
          values:
-          - ubuntu:artful
+          - ubuntu:xenial
     builders:
     - trigger-builds:
       - project: percona-server-5.6-pipeline
