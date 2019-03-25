@@ -142,9 +142,9 @@
           - i386/centos:6
           - ubuntu:trusty
           - ubuntu:xenial
-          - ubuntu:artful
           - ubuntu:bionic
           - ubuntu:cosmic
+          - ubuntu:disco
           - debian:jessie
           - debian:stretch
     builders:
