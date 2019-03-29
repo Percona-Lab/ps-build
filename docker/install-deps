@@ -83,6 +83,12 @@ if [ -f /usr/bin/yum ]; then
         sleep 1
     done
 
+    if [ "x${RHVER}" = 'x8' ]; then
+        if [ -f '/bin/python2' -a ! -f '/bin/python' ]; then
+            ln -s -f /bin/python2 /bin/python
+        fi
+    fi
+
     # FIXME. WORKAROUND. it's needed for libeatmydata.
     # FIXME. it's already installed, but some files are missing for some reason
     [[ ${RHVER} -eq 8 ]] && yum -y reinstall kernel-headers
