@@ -8,6 +8,8 @@
     concurrent: false
     auth-token: pstrunk80
     node: micro-amazon
+    triggers:
+    - timed: H 23 * * 7,1-4
     properties:
     - build-discarder:
         days-to-keep: -1
