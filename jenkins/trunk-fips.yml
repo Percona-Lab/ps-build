@@ -30,7 +30,7 @@
         description:
     - string:
         name: MTR_ARGS
-        default: main.fips
+        default: rpl.rpl_fips x.connection_fips auth_sec.fips sys_vars.ssl_fips_mode_basic
         description: "mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report"
     - string:
         name: MTR_REPEAT

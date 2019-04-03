@@ -20,6 +20,7 @@ void build(String CMAKE_BUILD_TYPE) {
             export DEFAULT_TESTING=yes
             export HOTBACKUP_TESTING=no
             export TOKUDB_ENGINES_MTR=no
+            export OPENSSL_FIPS_INSTALLED=on
             ./local/test-binary ./sources/results
 
             echo Archive test: \$(date -u "+%s")
@@ -42,7 +43,7 @@ pipeline {
             description: '',
             name: 'UPSTREAM')
         string(
-            defaultValue: 'main.fips',
+            defaultValue: 'rpl.rpl_fips x.connection_fips auth_sec.fips sys_vars.ssl_fips_mode_basic',
             description: 'mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report',
             name: 'MTR_ARGS')
         string(
