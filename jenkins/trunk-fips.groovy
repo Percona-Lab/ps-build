@@ -1,5 +1,5 @@
 void build(String CMAKE_BUILD_TYPE) {
-    node('fips-centos-7-x64') {
+    script {
         sh 'echo Prepare: \$(date -u "+%s")'
         git branch: PS_BRANCH, url: 'https://github.com/Percona-Lab/ps-build'
         sh '''
@@ -44,7 +44,7 @@ pipeline {
             name: 'UPSTREAM')
         string(
             defaultValue: 'rpl.rpl_fips x.connection_fips auth_sec.fips sys_vars.ssl_fips_mode_basic',
-            description: 'mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report',
+            description: 'mysql-test-run.pl options, for options like: --big-test --nounit-tests --unit-tests-report',
             name: 'MTR_ARGS')
         string(
             defaultValue: '1',
@@ -55,7 +55,6 @@ pipeline {
         label 'micro-amazon'
     }
     options {
-        compressBuildLog()
         skipDefaultCheckout()
         skipStagesAfterUnstable()
         disableConcurrentBuilds()
@@ -69,12 +68,14 @@ pipeline {
             parallel {
                 stage('Test RelWithDebInfo') {
                     options { retry(3) }
+                    agent { label 'fips-centos-7-x64' }
                     steps {
                         build('RelWithDebInfo')
                     }
                 }
                 stage('Test Debug') {
                     options { retry(3) }
+                    agent { label 'fips-centos-7-x64' }
                     steps {
                         build('Debug')
                     }
