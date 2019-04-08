@@ -179,7 +179,6 @@ pushd ${WORKDIR}
         -DWITH_KEYRING_VAULT=${WITH_KEYRING_VAULT} \
         -DDOWNLOAD_BOOST=ON \
         -DWITH_BOOST=${DOWNLOAD_DIR} \
-        -DWITH_KEYRING_VAULT=ON \
         -DWITH_ZLIB=system \
         -DCMAKE_INSTALL_PREFIX=/usr/local/$PRODUCT_FULL \
         -DMYSQL_DATADIR=/usr/local/$PRODUCT_FULL/data \
