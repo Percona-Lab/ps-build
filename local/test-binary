@@ -19,7 +19,7 @@ rm -fr ${WORKDIR_ABS}/PS
 mkdir -p ${WORKDIR_ABS}/PS/sql
 tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
 cd ${WORKDIR_ABS}/PS/mysql-test
-TESTCASE_TIMEOUT=60
+TESTCASE_TIMEOUT=30
 PARALLEL=$(grep -c ^processor /proc/cpuinfo)
 # CentOS 6 & 7
 if [[ -f /opt/rh/devtoolset-7/enable ]]; then
