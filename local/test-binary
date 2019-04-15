@@ -19,6 +19,7 @@ rm -fr ${WORKDIR_ABS}/PS
 mkdir -p ${WORKDIR_ABS}/PS
 tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
 cd ${WORKDIR_ABS}/PS/mysql-test
+TESTCASE_TIMEOUT=30
 #
 # CentOS 6 and 7
 if [[ -f /opt/rh/devtoolset-7/enable ]]; then
@@ -83,6 +84,7 @@ fi
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
   MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
   [[ ${OPENSSL_VER} < '1.0.2' ]] && export OPENSSL_ia32cap=~0x200000000000000
+  TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 2))
 fi
 #
 if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
@@ -114,7 +116,7 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
         --suite-timeout=9999 \
-        --testcase-timeout=450 \
+        --testcase-timeout=${TESTCASE_TIMEOUT} \
         | tee ${WORKDIR_ABS}/mtr.output \
         || status=$?
     process_mtr_output MySQL "${WORKDIR_ABS}/mtr.output" "$WORKDIR_ABS/junit.xml"
@@ -128,7 +130,7 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         --force \
         --max-test-fail=0 \
         --suite-timeout=9999 \
-        --testcase-timeout=450 \
+        --testcase-timeout=${TESTCASE_TIMEOUT} \
         --parallel=$(grep -c ^processor /proc/cpuinfo) \
         ${MTR_ARGS} \
         --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
@@ -149,7 +151,7 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
     MTR_BUILD_THREAD=auto \
         ./mtr --suite=engines/iuds,engines/funcs \
             --mysqld=--default-storage-engine=tokudb --mysqld=--default-tmp-storage-engine=tokudb \
-            --suite-timeout=9999 --testcase-timeout=450 --parallel=$(grep -c ^processor /proc/cpuinfo) --big-test --max-test-fail=0 \
+            --suite-timeout=9999 --testcase-timeout=${TESTCASE_TIMEOUT} --parallel=$(grep -c ^processor /proc/cpuinfo) --big-test --max-test-fail=0 \
             --mysqld=--plugin-load=tokudb=ha_tokudb.so --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
