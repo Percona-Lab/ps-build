@@ -8,9 +8,10 @@
     disabled: false
     concurrent: false
     auth-token: pstrunk80
-    node: micro-amazon
+    node: docker
     triggers:
-    - timed: H 23 * * 7,1-4
+    - pollscm:
+        cron: "H 23 * * 7,1-4"
     properties:
     - build-discarder:
         days-to-keep: -1
@@ -41,6 +42,11 @@
           - ubuntu:disco
           - debian:stretch
           - roboxes-rhel8
+    scm:
+    - git:
+        branches:
+        - "8.0"
+        url: "https://github.com/percona/percona-server.git"
     builders:
     - trigger-builds:
       - project: percona-server-8.0-pipeline
@@ -71,7 +77,7 @@
         run-always: true
         shouldDetectModules: false
     - junit:
-        results: "**/*.xml"
+        results: "**/junit.xml"
         keep-long-stdio: true
     - archive:
         artifacts: 'PIPELINE_BUILD_NUMBER'
