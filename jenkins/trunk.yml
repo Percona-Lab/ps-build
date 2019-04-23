@@ -3,6 +3,7 @@
     project-type: matrix
     defaults: global
     description: |
+        Do not change the parameter in this job if you run it manually!
         Do not edit this job through the web!
     disabled: false
     concurrent: false
@@ -18,141 +19,9 @@
         artifact-num-to-keep: 10
     parameters:
     - string:
-        name: GIT_REPO
-        default: "https://github.com/percona/percona-server"
-        description: URL to percona-server repository
-    - string:
-        name: BRANCH
-        default: "5.7"
-        description: Tag/Branch for percona-server repository
-    - string:
-        name: PERCONAFT_REPO
-        default:
-        description: URL to forked PerconaFT repository
-    - string:
-        name: PERCONAFT_BRANCH
-        default:
-        description: Tag/Branch for PerconaFT repository
-    - string:
-        name: TOKUBACKUP_REPO
-        default:
-        description: URL to forked Percona-TokuBackup repository
-    - string:
-        name: TOKUBACKUP_BRANCH
-        default:
-        description: Tag/Branch for Percona-TokuBackup repository
-    - choice:
-        name: JOB_CMAKE
-        choices:
-        - /usr/bin/cmake
-        description: path to cmake binary
-    - choice:
-        name: COMPILER
-        choices:
-        - default
-        description: compiler version
-    - choice:
-        name: ANALYZER_OPTS
-        choices:
-        -
-        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
-        - -DWITH_ASAN=ON
-        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
-        - -DWITH_ASAN=ON -DWITH_UBSAN=ON
-        - -DWITH_UBSAN=ON
-        - -DWITH_MSAN=ON
-        - -DWITH_VALGRIND=ON
-        description: Enable code checking
-    - choice:
-        name: WITH_TOKUDB
-        choices:
-        - "ON"
-        - "OFF"
-        description: Compile TokuDB engine
-    - choice:
-        name: WITH_ROCKSDB
-        choices:
-        - "ON"
-        - "OFF"
-        description: Compile RocksDB engine
-    - choice:
-        name: WITH_EMBEDDED_SERVER
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build embedded server
-    - choice:
-        name: WITH_RAPID
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build rapid development cycle plugins
-    - choice:
-        name: WITH_SSL
-        choices:
-        - system
-        - bundled
-        description: Type of SSL support
-    - choice:
-        name: PERFSCHEMA_OPTS
-        choices:
-        -
-        - -DWITHOUT_PERFSCHEMA_STORAGE_ENGINE=ON
-        description: Disable Performance Schema
-    - string:
-        name: CMAKE_OPTS
-        default:
-        description: cmake options
-    - string:
-        name: MAKE_OPTS
-        default:
-        description: make options, like VERBOSE=1
-    - choice:
-        name: DEFAULT_TESTING
-        choices:
-        - "yes"
-        - "no"
-        description: Run mysql-test-run.pl
-    - choice:
-        name: HOTBACKUP_TESTING
-        choices:
-        - "yes"
-        - "no"
-        description: Run mysql-test-run.pl --suite tokudb.backup
-    - choice:
-        name: TOKUDB_ENGINES_MTR
-        choices:
-        - "yes"
-        - "no"
-        description: Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb
-    - string:
-        name: TOKUDB_ENGINES_MTR_ARGS
-        default: --unit-tests-report
-        description: TokuDB specific mtr args
-    - choice:
-        name: ROCKSDB_ENGINES_MTR
-        choices:
-        - "yes"
-        - "no"
-        description: Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=rocksdb
-    - string:
-        name: ROCKSDB_ENGINES_MTR_ARGS
-        default: --unit-tests-report
-        description: RocksDB specific mtr args
-    - string:
         name: MTR_ARGS
         default: --unit-tests-report --big-test
-        description: "mysql-test-run.pl options, for options like: --big-test --nounit-tests --unit-tests-report"
-    - string:
-        name: MTR_REPEAT
-        default: "1"
-        description: Run each test N number of times, --repeat=N
-    - choice:
-        name: LABEL
-        choices:
-        - docker
-        - docker-32gb
-        description: Run build on specified instance type
+        description: "Do not change the value of this parameter."
     axes:
       - axis:
          type: user-defined
