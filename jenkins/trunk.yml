@@ -3,7 +3,7 @@
     project-type: matrix
     defaults: global
     description: |
-        Do not run this job manually!
+        Do not change the parameter in this job if you run it manually!
         Do not edit this job through the web!
     disabled: false
     concurrent: false
@@ -22,7 +22,7 @@
     - string:
         name: MTR_ARGS
         default: --unit-tests-report --big-test
-        description: "Do not change the value of this patameter. This is a trunk job and it should not be run manually."
+        description: "Do not change the value of this parameter."
     axes:
       - axis:
          type: user-defined
