@@ -73,7 +73,7 @@ if [ -f /usr/bin/yum ]; then
     #
 #   Percona-Server 8.0
     if [[ ${RHVER} -lt 8 ]]; then
-        PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils"
+        PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils cmake3"
         PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel"
         PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel"
     fi

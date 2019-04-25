@@ -67,7 +67,9 @@ fi
 if [[ "${ANALYZER_OPTS}" = *WITH_VALGRIND=ON* ]]; then
     BUILD_COMMENT+="-valgrind"
 fi
-if [[ "$(lsb_release -d -s)" = *"CentOS release 6."* ]] && [[ "${CMAKE_BUILD_TYPE}" = "RelWithDebInfo" ]]; then
+
+OS_VERSION=$(lsb_release -d -s)
+if [[ "${OS_VERSION}" = *"CentOS release 6."* ]] && [[ "${CMAKE_BUILD_TYPE}" = "RelWithDebInfo" ]]; then
     MYSQL_MAINTAINER_MODE="OFF"
 else
     # MYSQL_MAINTAINER_MODE="ON"
@@ -90,7 +92,11 @@ TOKUDB_BACKUP_VERSION="${MYSQL_VERSION}${MYSQL_VERSION_EXTRA}"
 PRODUCT_FULL="Percona-Server-${MYSQL_VERSION}-${PERCONA_SERVER_VERSION}${BUILD_COMMENT}-${TAG}$(uname -s)${DIST_NAME}.${TARGET_ARCH}${SSL_VER}"
 COMMENT="Percona Server (GPL), Release ${MYSQL_VERSION_EXTRA#-}, Revision ${REVISION:-}${BUILD_COMMENT}"
 
-if [[ "$(lsb_release -d -s)" = *"CentOS release 6."* ]]; then
+if [[ "${OS_VERSION}" = *"CentOS release 6."* ]] || [[ "${OS_VERSION}" = *"CentOS Linux release 7."* ]]; then
+    JOB_CMAKE='cmake3'
+fi
+
+if [[ "${OS_VERSION}" = *"CentOS release 6."* ]]; then
     CMAKE_OPTS+=" -DWITH_ZLIB=bundled"
 fi
 
@@ -140,7 +146,7 @@ fi
 
 # Do not pass '-DWITH_KEYRING_VAULT=ON' for Centos 6
 WITH_KEYRING_VAULT='ON'
-if [[ "$(lsb_release -d -s)" = *"CentOS release 6."* ]]; then
+if [[ "${OS_VERSION}" = *"CentOS release 6."* ]]; then
     WITH_KEYRING_VAULT='OFF'
 fi
 
