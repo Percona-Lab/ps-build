@@ -53,11 +53,16 @@ if [ -f /usr/bin/yum ]; then
     gcc-c++ gperf ncurses-devel perl readline-devel openssl-devel jemalloc unzip \
     time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel valgrind re2-devel \
     perl-Time-HiRes openldap-devel perl-Env perl-Data-Dumper libicu-devel \
-    perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 lz4-devel \
+    perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 \
     numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan \
     libzstd-devel libedit-devel \
     "
-# Percona-Server 5.6, 5.7
+
+    if [[ ${RHVER} -eq 8 ]]; then
+        PKGLIST+=" lz4"
+    fi
+
+# Percona-Server
     if [[ ${RHVER} -eq 6 ]]; then
         wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
         wget -O /etc/pki/rpm-gpg/RPM-GPG-KEY-cern https://raw.githubusercontent.com/cms-sw/cms-docker/master/slc6-vanilla/RPM-GPG-KEY-cern
@@ -75,7 +80,7 @@ if [ -f /usr/bin/yum ]; then
     if [[ ${RHVER} -lt 8 ]]; then
         PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils"
         PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel"
-        PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel"
+        PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel lz4-devel"
     fi
 #
     until yum -y install ${PKGLIST} ${RH8PKGS:-} ; do
