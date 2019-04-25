@@ -22,16 +22,6 @@
         name: MTR_ARGS
         default: --unit-tests-report --big-test
         description: "Do not change the value of this parameter."
-    - string:
-        name: MTR_REPEAT
-        default: "1"
-        description: Run each test N number of times, --repeat=N
-    - choice:
-        name: LABEL
-        choices:
-        - docker
-        - docker-32gb
-        description: Run build on specified instance type
     axes:
       - axis:
          type: user-defined
