@@ -10,7 +10,8 @@
     auth-token: pstrunk56
     node: micro-amazon
     triggers:
-    - timed: H 23 * * 1-5
+    - pollscm:
+        cron: "H 23 * * 7,1-4"
     properties:
     - build-discarder:
         days-to-keep: -1
