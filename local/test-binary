@@ -108,6 +108,11 @@ if [[ ! -e /etc/redhat-release ]]; then
     MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
 fi
 #
+
+if [[ $MTR_ARGS == *"--big-test"* ]] || [[ $MTR_ARGS == *"--only-big-test"* ]]; then
+    TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 2))
+fi
+
 status=0
 #
 # Running MTR test cases
