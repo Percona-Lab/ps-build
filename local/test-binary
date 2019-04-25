@@ -19,6 +19,8 @@ rm -fr ${WORKDIR_ABS}/PS
 mkdir -p ${WORKDIR_ABS}/PS
 tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
 cd ${WORKDIR_ABS}/PS/mysql-test
+TESTCASE_TIMEOUT=30
+
 #
 # CentOS 6 & 7
 if [[ -f /opt/rh/devtoolset-7/enable ]]; then
@@ -83,6 +85,7 @@ fi
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
     MTR_ARGS+=" --valgrind --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
     [[ ${OPENSSL_VER} < '1.0.2' ]] && export OPENSSL_ia32cap=~0x200000000000000
+    TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 15))
 fi
 #
 if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
@@ -97,6 +100,10 @@ if [[ -n "${MTR_REPEAT}" ]]; then
     MTR_ARGS+=" --repeat=${MTR_REPEAT}"
 fi
 
+if [[ "${MTR_ARGS}" == *"--big-test"* ]]; then
+    TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 15))
+fi
+
 status=0
 
 # Running MTR test cases
@@ -109,7 +116,7 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
         --suite-timeout=9999 \
-        --testcase-timeout=450 \
+        --testcase-timeout=${TESTCASE_TIMEOUT} \
         | tee ${WORKDIR_ABS}/mtr.output \
         || status=$?
 
@@ -123,7 +130,7 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
       --force \
       --max-test-fail=0 \
       --suite-timeout=9999 \
-      --testcase-timeout=450 \
+      --testcase-timeout=${TESTCASE_TIMEOUT} \
       --parallel=$(grep -c ^processor /proc/cpuinfo) \
       ${MTR_ARGS} \
       --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
