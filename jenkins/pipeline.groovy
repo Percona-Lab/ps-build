@@ -1,3 +1,7 @@
+if (params.MTR_ARGS.contains('--big-test')) {
+    LABEL = 'docker-32gb'
+}
+
 pipeline {
     parameters {
         string(
@@ -94,7 +98,7 @@ pipeline {
             description: 'Run each test N number of times, --repeat=N',
             name: 'MTR_REPEAT')
         choice(
-            choices: 'docker-32gb\ndocker',
+            choices: 'docker\ndocker-32gb',
             description: 'Run build on specified instance type',
             name: 'LABEL')
     }
