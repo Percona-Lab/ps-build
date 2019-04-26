@@ -54,7 +54,7 @@ if [ -f /usr/bin/yum ]; then
     time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel valgrind re2-devel \
     perl-Time-HiRes openldap-devel perl-Env perl-Data-Dumper libicu-devel \
     perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 \
-    numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan \
+    numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan lz4-devel \
     libzstd-devel libedit-devel \
     "
 
@@ -80,7 +80,7 @@ if [ -f /usr/bin/yum ]; then
     if [[ ${RHVER} -lt 8 ]]; then
         PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils"
         PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel"
-        PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel lz4-devel"
+        PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel"
     fi
 #
     until yum -y install ${PKGLIST} ${RH8PKGS:-} ; do
