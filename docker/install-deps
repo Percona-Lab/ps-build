@@ -59,7 +59,7 @@ if [ -f /usr/bin/yum ]; then
     "
 
     if [[ ${RHVER} -eq 8 ]]; then
-        PKGLIST+=" lz4"
+        PKGLIST+=" lz4 perl-Memoize"
     fi
 
 # Percona-Server
