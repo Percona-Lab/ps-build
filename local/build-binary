@@ -94,6 +94,11 @@ COMMENT="Percona Server (GPL), Release ${MYSQL_VERSION_EXTRA#-}, Revision ${REVI
 
 if [[ "${OS_VERSION}" = *"CentOS release 6."* ]] || [[ "${OS_VERSION}" = *"CentOS Linux release 7."* ]]; then
     JOB_CMAKE='cmake3'
+    CMAKE_OPTS+=" -DWITH_LIBEVENT=bundled"
+fi
+
+if [[ "${OS_VERSION}" = *"Ubuntu 16.04."* ]] || [[ "${OS_VERSION}" = *"Debian GNU/Linux 9."* ]] ; then
+    CMAKE_OPTS+=" -DWITH_LIBEVENT=bundled"
 fi
 
 if [[ "${OS_VERSION}" = *"CentOS release 6."* ]]; then
