@@ -102,6 +102,11 @@ fi
 if [[ -n "${MTR_REPEAT}" ]]; then
   MTR_ARGS+=" --repeat=${MTR_REPEAT}"
 fi
+
+if [[ "${MTR_ARGS}" == *"--suite=max_parts"* ]]; then
+    TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 3))
+fi
+
 #
 # force to use mecab everywhere (except RHEL)
 if [[ ! -e /etc/redhat-release ]]; then

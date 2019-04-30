@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-8.0-trunk
+    name: percona-server-8.0-trunk-max-parts
     project-type: matrix
     defaults: global
     description: |
@@ -9,19 +9,20 @@
     concurrent: false
     auth-token: pstrunk80
     node: docker
-    triggers:
-    - pollscm:
-        cron: "H 23 * * 7,1-4"
     properties:
     - build-discarder:
         days-to-keep: -1
         num-to-keep: 10
         artifact-days-to-keep: -1
         artifact-num-to-keep: 10
+    triggers:
+    - reverse:
+        jobs: 'percona-server-8.0-trunk'
+        result: 'unstable'
     parameters:
     - string:
         name: MTR_ARGS
-        default: --unit-tests-report --big-test
+        default: --unit-tests-report --big-test --suite=max_parts
         description: "Do not change the value of this parameter."
     axes:
       - axis:
