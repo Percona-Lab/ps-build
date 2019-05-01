@@ -63,6 +63,7 @@ TARGET_ARCH="$(uname -m)"
 # ------------------------------------------------------------------------------
 if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     BUILD_COMMENT+="-debug"
+    CMAKE_OPTS+=" -DDEBUG_EXTNAME=OFF"
 fi
 if [[ "${ANALYZER_OPTS}" = *WITH_VALGRIND=ON* ]]; then
     BUILD_COMMENT+="-valgrind"
