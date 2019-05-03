@@ -94,7 +94,7 @@ if [ -f /usr/bin/yum ]; then
 
     yum -y clean all
 
-#   this is workaround for jen-1096 as soon as the issue is fixed we need to remove it 
+#   this is workaround for https://bugs.mysql.com/bug.php?id=95222 as soon as the issue is fixed we need to remove it 
     if [ -f '/anaconda-post.log' ]; then
         rm /anaconda-post.log
     fi
