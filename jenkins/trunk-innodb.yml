@@ -1,0 +1,88 @@
+- job:
+    name: percona-server-8.0-trunk-innodb
+    project-type: matrix
+    defaults: global
+    description: |
+        Do not change the parameter in this job if you run it manually!
+        Do not edit this job through the web!
+    disabled: false
+    concurrent: false
+    auth-token: pstrunk80
+    node: docker
+    properties:
+    - build-discarder:
+        days-to-keep: -1
+        num-to-keep: 10
+        artifact-days-to-keep: -1
+        artifact-num-to-keep: 10
+    triggers:
+    - reverse:
+        jobs: 'percona-server-8.0-trunk-max-parts'
+        result: 'unstable'
+    parameters:
+    - string:
+        name: MTR_ARGS
+        default: --unit-tests-report --big-test --suite=innodb,innodb_zip,innodb_fts,innodb_gis,innodb_undo --mysqld=--innodb-sync-debug=1
+        description: "Do not change the value of this parameter."
+    axes:
+      - axis:
+         type: user-defined
+         name: CMAKE_BUILD_TYPE
+         values:
+          - Debug
+      - axis:
+         type: user-defined
+         name: DOCKER_OS
+         values:
+          - centos:6
+          - centos:7
+          - ubuntu:xenial
+          - ubuntu:bionic
+          - ubuntu:cosmic
+          - ubuntu:disco
+          - debian:stretch
+          - roboxes-rhel8
+      - axis:
+         name: label
+         type: slave
+         values:
+          - docker
+    scm:
+    - git:
+        branches:
+        - "8.0"
+        url: "https://github.com/percona/percona-server.git"
+    builders:
+    - trigger-builds:
+      - project: percona-server-8.0-pipeline
+        current-parameters: true
+        predefined-parameters: |
+          DOCKER_OS=${DOCKER_OS}
+          CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        block: true
+        block-thresholds:
+          build-step-failure-threshold: FAILURE
+          unstable-threshold: never
+          failure-threshold: FAILURE
+    - shell: |
+        sudo find . -name "*.xml" -o -name "*.log" -delete
+    - copyartifact:
+        project: percona-server-8.0-pipeline
+        which-build: specific-build
+        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}"
+        do-not-fingerprint: true
+    - shell: |
+        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}" > PIPELINE_BUILD_NUMBER
+        gunzip build.log.gz
+    publishers:
+    - warnings:
+        workspace-file-scanners:
+        - file-pattern: 'build.log'
+          scanner: 'GNU C Compiler 4 (gcc)'
+        run-always: true
+        shouldDetectModules: false
+    - junit:
+        results: "**/junit.xml"
+        keep-long-stdio: true
+    - archive:
+        artifacts: 'PIPELINE_BUILD_NUMBER'
