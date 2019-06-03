@@ -115,8 +115,8 @@ if [[ "$COMPILER" != "default" ]]; then
 fi
 
 # CentOS 6 and 7
-if [[ -f /opt/rh/devtoolset-7/enable ]]; then
-    source /opt/rh/devtoolset-7/enable
+if [[ -f /opt/rh/devtoolset-8/enable ]]; then
+    source /opt/rh/devtoolset-8/enable
 fi
 
 # Centos 6/i386
