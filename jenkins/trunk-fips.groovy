@@ -7,7 +7,7 @@ void build(String CMAKE_BUILD_TYPE) {
             git clean -xdf
             rm -rf sources/results
         '''
-        copyArtifacts filter: 'PIPELINE_BUILD_NUMBER', projectName: "${UPSTREAM_JOBNAME}/CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE},DOCKER_OS=centos:7", selector: specific(UPSTREAM_NUMBER)
+        copyArtifacts filter: 'PIPELINE_BUILD_NUMBER', projectName: "${UPSTREAM_JOBNAME}/CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE},DOCKER_OS=centos:7,label=docker", selector: specific(UPSTREAM_NUMBER)
         sh """
             PIPELINE_BUILD_NUMBER=\$(cat PIPELINE_BUILD_NUMBER)
             until aws s3 cp --no-progress s3://ps-build-cache/jenkins-percona-server-${PS_BRANCH}-pipeline-\${PIPELINE_BUILD_NUMBER}/binary.tar.gz ./sources/results/binary.tar.gz; do
