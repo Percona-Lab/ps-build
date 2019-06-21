@@ -72,6 +72,14 @@ pipeline {
             choices: 'OFF\nON',
             description: 'Compile RocksDB engine',
             name: 'WITH_ROCKSDB')
+        choice(
+            choices: 'ON\nOFF',
+            description: 'Whether to build MySQL Router',
+            name: 'WITH_ROUTER')
+        choice(
+            choices: 'ON\nOFF',
+            description: 'Whether to build with support for X Plugin',
+            name: 'WITH_MYSQLX')
         string(
             defaultValue: '',
             description: 'cmake options',
