@@ -72,6 +72,18 @@
         - "OFF"
         - "ON"
         description: DONT ENABLE IT, YOU WILL GET ENDLESS JOB!!
+    - choice:
+        name: WITH_ROUTER
+        choices:
+        - "OFF"
+        - "ON"
+        description: Whether to build MySQL Router
+    - choice:
+        name: WITH_MYSQLX
+        choices:
+        - "ON"
+        - "OFF"
+        description: Whether to build with support for X Plugin
     - string:
         name: CMAKE_OPTS
         default:
