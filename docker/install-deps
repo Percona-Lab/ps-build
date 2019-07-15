@@ -162,6 +162,11 @@ if [ -f /usr/bin/apt-get ]; then
         PKGLIST+=" libzstd-dev libsys-meminfo-perl"
     fi
 
+    # For Debian buster install libre2-dev
+    if [[ "${DISTRIBUTOR_ID}" == Debian ]] && [[ "${RELEASE}" >= "10" ]]; then
+        PKGLIST+=" libre2-dev"
+    fi
+
     until apt-get -y install ${PKGLIST}; do
         echo "waiting"
         sleep 1

@@ -48,6 +48,7 @@
         - ubuntu:cosmic
         - ubuntu:disco
         - debian:stretch
+        - debian:buster
         - roboxes-rhel8
         description: OS version for compilation
     - choice:

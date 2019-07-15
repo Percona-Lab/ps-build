@@ -145,6 +145,7 @@
           - ubuntu:cosmic
           - ubuntu:disco
           - debian:stretch
+          - debian:buster
           - roboxes-rhel8
     builders:
     - trigger-builds:
