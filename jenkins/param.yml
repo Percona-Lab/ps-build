@@ -172,6 +172,7 @@
           - ubuntu:disco
           - debian:jessie
           - debian:stretch
+          - debian:buster
           - roboxes-rhel8
     builders:
     - trigger-builds:
