@@ -163,7 +163,7 @@ if [ -f /usr/bin/apt-get ]; then
     fi
 
     # For Debian buster install libre2-dev
-    if [[ "${DISTRIBUTOR_ID}" == Debian ]] && [[ "${RELEASE}" >= "10" ]]; then
+    if [[ ${DISTRIBUTOR_ID} == Debian ]] && [[ $(echo "${RELEASE} >= 10" | bc -l) == 1 ]]; then
         PKGLIST+=" libre2-dev"
     fi
 
