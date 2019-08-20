@@ -18,7 +18,7 @@
     triggers:
     - reverse:
         jobs: 'percona-server-8.0-trunk'
-        result: 'unstable'
+        result: 'failure'
     parameters:
     - string:
         name: MTR_ARGS
