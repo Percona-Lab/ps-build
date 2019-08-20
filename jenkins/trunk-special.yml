@@ -18,7 +18,7 @@
     triggers:
     - reverse:
         jobs: 'percona-server-8.0-trunk-max-parts'
-        result: 'unstable'
+        result: 'failure'
     parameters:
     - string:
         name: MTR_ARGS
