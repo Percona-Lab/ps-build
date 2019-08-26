@@ -51,7 +51,7 @@ if [[ -z "${JEMALLOC}" ]]; then
   exit 1
 fi
 #
-MTR_ARGS+=" --timestamp --non-parallel-test"
+MTR_ARGS+=" --timestamp --non-parallel-test --report-unstable-tests"
 #
 ##
 function process_mtr_output {
