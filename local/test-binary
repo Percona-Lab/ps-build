@@ -81,7 +81,7 @@ function process_mtr_output {
   sed -i.bak -e "s:@@SKIPPED@@:${SKIPPED}:g" ${OUTFILE}
   sed -i.bak -e "s: \[::g" ${OUTFILE}
 }
-##
+
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
   MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
   [[ ${OPENSSL_VER} < '1.0.2' ]] && export OPENSSL_ia32cap=~0x200000000000000
@@ -90,7 +90,11 @@ if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
     PARALLEL=$((PARALLEL/3))
   fi
 fi
-#
+
+if [[ "${ANALYZER_OPTS}" == *WITH_*SAN*=ON* ]]; then
+    MTR_ARGS+=" --sanitize"
+fi
+
 if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
   export ASAN_OPTIONS=allocator_may_return_null=true
   # trying to find the proper library
@@ -98,7 +102,7 @@ if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
   LIBASAN=$(ldd ${MYSQLD} | grep libasan | awk '{print $3}')
   ADD_TO_LD_PRELOAD="${LIBASAN}:"
 fi
-#
+
 if [[ -n "${MTR_REPEAT}" ]]; then
   MTR_ARGS+=" --repeat=${MTR_REPEAT}"
 fi
