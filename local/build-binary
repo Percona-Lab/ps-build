@@ -196,4 +196,10 @@ pushd ${WORKDIR}
     make DESTDIR=${INSTALL_DIR} install > make_install.log
 popd
 
+# Copy all needed data for unit tests
+cp -r ${WORKDIR}/unittest/gunit/*  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+cp -r ${WORKDIR}/runtime_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+mkdir ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/plugin_output_directory
+cp -r ${WORKDIR}/plugin_output_directory/*-t ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/plugin_output_directory/
+
 tar -C ${INSTALL_DIR}/usr/local --owner=0 --group=0 -czf "${WORKDIR}/$PRODUCT_FULL.tar.gz" $PRODUCT_FULL
