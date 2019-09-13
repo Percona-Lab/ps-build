@@ -104,13 +104,6 @@ pipeline {
             sh '''
                 echo Finish: \$(date -u "+%s")
             '''
-
-            // workaround https://issues.jenkins-ci.org/browse/JENKINS-49183
-            script {
-                if (currentBuild.result == "FAILURE") {
-                    currentBuild.result = 'UNSTABLE'
-                }
-            }
         }
     }
 }
