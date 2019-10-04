@@ -140,12 +140,12 @@
          values:
           - centos:6
           - centos:7
+          - centos:8
           - ubuntu:xenial
           - ubuntu:bionic
           - ubuntu:disco
           - debian:stretch
           - debian:buster
-          - roboxes-rhel8
     builders:
     - trigger-builds:
       - project: percona-server-8.0-pipeline
