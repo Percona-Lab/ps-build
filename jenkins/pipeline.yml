@@ -43,12 +43,12 @@
         choices:
         - centos:6
         - centos:7
+        - centos:8
         - ubuntu:xenial
         - ubuntu:bionic
         - ubuntu:disco
         - debian:stretch
         - debian:buster
-        - roboxes-rhel8
         description: OS version for compilation
     - choice:
         name: JOB_CMAKE
