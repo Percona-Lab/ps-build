@@ -92,7 +92,7 @@
         choices:
         - "yes"
         - "no"
-        description: Run mysql-test-run.pl --suite tokudb.backup
+        description: Run mysql-test-run.pl --suite tokudb_backup
     - choice:
         name: TOKUDB_ENGINES_MTR
         choices:

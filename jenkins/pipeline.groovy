@@ -94,7 +94,7 @@ pipeline {
             name: 'DEFAULT_TESTING')
         choice(
             choices: 'yes\nno',
-            description: 'Run mysql-test-run.pl --suite tokudb.backup',
+            description: 'Run mysql-test-run.pl --suite tokudb_backup',
             name: 'HOTBACKUP_TESTING')
         choice(
             choices: 'yes\nno',

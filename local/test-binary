@@ -154,7 +154,7 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         --parallel=${PARALLEL} \
         ${MTR_ARGS} \
         --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
-        --suite tokudb.backup \
+        --suite tokudb_backup \
         | tee ${WORKDIR_ABS}/tokudb_hotbackup.output || true
     process_mtr_output "Percona Server - TokuDB HotBackup" "${WORKDIR_ABS}/tokudb_hotbackup.output" "${WORKDIR_ABS}/junit_tokudb_hotbackup.xml"
 fi
