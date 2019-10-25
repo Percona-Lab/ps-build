@@ -165,4 +165,14 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
     process_mtr_output "Percona Server - TokuDB" "${WORKDIR_ABS}/tokudb.output" "${WORKDIR_ABS}/junit_tokudb.xml"
 fi
 
+# if all tests are disabled, run only one small test to prevent test stage issue and perform simle test of binary file
+if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] && [[ "${DEFAULT_TESTING}" = 'no' ]] ; then
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force \
+        --max-test-fail=0 \
+        main.1st \
+        | tee ${WORKDIR_ABS}/small.output || true
+    process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/small.output" "${WORKDIR_ABS}/small.xml"
+fi
+
 exit $status
