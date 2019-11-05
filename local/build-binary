@@ -206,6 +206,7 @@ popd
 # Copy all needed data for unit tests
 cp -r ${WORKDIR}/unittest/gunit/*  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/runtime_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+cp -r ${WORKDIR}/library_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 mkdir ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/plugin_output_directory
 cp -r ${WORKDIR}/plugin_output_directory/*-t ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/plugin_output_directory/
 

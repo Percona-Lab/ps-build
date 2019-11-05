@@ -21,6 +21,7 @@ tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz |
 
 ln -sf ${WORKDIR_ABS}/PS/runtime_output_directory ${WORKDIR_ABS}/runtime_output_directory
 ln -sf ${WORKDIR_ABS}/PS/plugin_output_directory ${WORKDIR_ABS}/plugin_output_directory
+ln -sf ${WORKDIR_ABS}/PS/library_output_directory ${WORKDIR_ABS}/library_output_directory
 
 cd ${WORKDIR_ABS}/PS/mysql-test
 TESTCASE_TIMEOUT=30
