@@ -27,6 +27,7 @@ void build(String CMAKE_BUILD_TYPE) {
             rm -rf ./sources/results/PS
             rm -rf ./sources/results/runtime_output_directory
             rm -rf ./sources/results/plugin_output_directory
+            rm -rf ./sources/results/library_output_directory
             gzip sources/results/*.output
             until aws s3 sync --no-progress --acl public-read --exclude 'binary.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/${CMAKE_BUILD_TYPE}/; do
                 sleep 5
