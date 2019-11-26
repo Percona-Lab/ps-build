@@ -23,27 +23,33 @@ pipeline {
         string(
             defaultValue: 'https://github.com/percona/percona-server',
             description: 'URL to percona-server repository',
-            name: 'GIT_REPO')
+            name: 'GIT_REPO',
+            trim: true)
         string(
             defaultValue: '8.0',
             description: 'Tag/Branch for percona-server repository',
-            name: 'BRANCH')
+            name: 'BRANCH',
+            trim: true)
         string(
             defaultValue: '',
             description: 'URL to forked PerconaFT repository',
-            name: 'PERCONAFT_REPO')
+            name: 'PERCONAFT_REPO',
+            trim: true)
         string(
             defaultValue: '',
             description: 'Tag/Branch for PerconaFT repository',
-            name: 'PERCONAFT_BRANCH')
+            name: 'PERCONAFT_BRANCH',
+            trim: true)
         string(
             defaultValue: '',
             description: 'URL to forked Percona-TokuBackup repository',
-            name: 'TOKUBACKUP_REPO')
+            name: 'TOKUBACKUP_REPO',
+            trim: true)
         string(
             defaultValue: '',
             description: 'Tag/Branch for Percona-TokuBackup repository',
-            name: 'TOKUBACKUP_BRANCH')
+            name: 'TOKUBACKUP_BRANCH',
+            trim: true)
         choice(
             choices: 'centos:6\ncentos:7\nubuntu:xenial\nubuntu:bionic\nubuntu:disco\ndebian:stretch\ndebian:buster\nroboxes-rhel8',
             description: 'OS version for compilation',
