@@ -60,6 +60,7 @@
                             "ubuntu:xenial":  { build('ubuntu:xenial') },
                             "ubuntu:bionic":  { build('ubuntu:bionic') },
                             "ubuntu:disco":   { build('ubuntu:disco') },
+                            "ubuntu:focal":   { build('ubuntu:focal') },
                             "debian:jessie":  { build('debian:jessie') },
                             "debian:stretch": { build('debian:stretch') },
                             "debian:buster":  { build('debian:buster') },
