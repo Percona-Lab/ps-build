@@ -114,9 +114,11 @@ if [ -f /usr/bin/apt-get ]; then
     done
 
     DIST=$(lsb_release -sc)
-    echo "deb http://jenkins.percona.com/apt-repo/ ${DIST} main" > /etc/apt/sources.list.d/percona-dev.list
-    wget -q -O - http://jenkins.percona.com/apt-repo/8507EFA5.pub | apt-key add -
-    wget -q -O - http://jenkins.percona.com/apt-repo/CD2EFD2A.pub | apt-key add -
+    if [[ ${DIST} != 'focal' ]]; then
+        echo "deb http://jenkins.percona.com/apt-repo/ ${DIST} main" > /etc/apt/sources.list.d/percona-dev.list
+        wget -q -O - http://jenkins.percona.com/apt-repo/8507EFA5.pub | apt-key add -
+        wget -q -O - http://jenkins.percona.com/apt-repo/CD2EFD2A.pub | apt-key add -
+    fi
 
     until apt-get update; do
         sleep 1
