@@ -167,7 +167,7 @@
           - i386/centos:6
           - ubuntu:xenial
           - ubuntu:bionic
-          - ubuntu:disco
+          - ubuntu:focal
           - debian:jessie
           - debian:stretch
           - debian:buster
