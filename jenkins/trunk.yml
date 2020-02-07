@@ -39,7 +39,7 @@
           - centos:8
           - ubuntu:xenial
           - ubuntu:bionic
-          - ubuntu:disco
+          - ubuntu:focal
           - debian:stretch
           - debian:buster
       - axis:
