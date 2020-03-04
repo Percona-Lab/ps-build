@@ -146,8 +146,8 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         --max-test-fail=0 \
         --suite-timeout=9999 \
         --testcase-timeout=${TESTCASE_TIMEOUT} \
-        | tee ${WORKDIR_ABS}/mtr.output || status=$?
-    process_mtr_output MySQL "${WORKDIR_ABS}/mtr.output" "${WORKDIR_ABS}/junit.xml"
+        --junit-output=${WORKDIR_ABS}/junit.xml \
+        || true
 fi
 #
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
@@ -162,8 +162,8 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         ${MTR_ARGS} \
         --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --suite tokudb_backup \
-        | tee ${WORKDIR_ABS}/tokudb_hotbackup.output || true
-    process_mtr_output "Percona Server - TokuDB HotBackup" "${WORKDIR_ABS}/tokudb_hotbackup.output" "${WORKDIR_ABS}/junit_tokudb_hotbackup.xml"
+        --junit-output=${WORKDIR_ABS}/junit_tokudb_hotbackup.xml \
+        || true
 fi
 #
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
@@ -181,8 +181,7 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             --mysqld=--plugin-load=tokudb=ha_tokudb.so --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
-            2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
-    process_mtr_output "Percona Server - TokuDB" "${WORKDIR_ABS}/tokudb.output" "${WORKDIR_ABS}/junit_tokudb.xml"
+            --junit-output=${WORKDIR_ABS}/junit_tokudb.xml || true
 fi
 
 # if all tests are disabled, run only one small test to prevent test stage issue and perform simle test of binary file
@@ -191,8 +190,7 @@ if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] &
         --force \
         --max-test-fail=0 \
         main.1st \
-        | tee ${WORKDIR_ABS}/small.output || true
-    process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/small.output" "${WORKDIR_ABS}/small.xml"
+        --junit-output=${WORKDIR_ABS}/small.xml || true
 fi
 
 if [[ "${CI_FS_MTR}" = 'yes' ]]; then
