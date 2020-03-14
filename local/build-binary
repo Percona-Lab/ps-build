@@ -202,6 +202,8 @@ pushd ${WORKDIR}
 popd
 
 # Copy all needed data for unit tests
+cp ${WORKDIR}/scripts/mysqld_safe ${WORKDIR}/runtime_output_directory/
+
 cp -r ${WORKDIR}/unittest/gunit/*  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/runtime_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/library_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
