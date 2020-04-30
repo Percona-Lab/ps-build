@@ -93,6 +93,9 @@ if [ -f /usr/bin/yum ]; then
         sleep 1
     done
 
+    if [[ ${RHVER} -eq 8 ]]; then
+        ln -fs /usr/bin/python2 /usr/bin/python
+    fi
 
 #   this is workaround for https://bugs.mysql.com/bug.php?id=95222 as soon as the issue is fixed we need to remove it 
     if [ -f '/anaconda-post.log' ]; then
@@ -178,6 +181,10 @@ if [ -f /usr/bin/apt-get ]; then
     done
 
     apt-get -y clean
+
+    if [[ ${DIST} == 'focal' ]]; then
+        ln -fs /usr/bin/python3 /usr/bin/python
+    fi
 fi
 
 if [ ! -f /usr/local/lib/libeatmydata.so ]; then
