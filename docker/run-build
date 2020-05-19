@@ -32,14 +32,17 @@ docker run --rm \
     export TAG='${TAG}'
     export DIST_NAME='${DIST_NAME}'
     export SSL_VER='${SSL_VER}'
+    export IS_FB='${IS_FB}'
+    export ZSTD_VERSION='${ZSTD_VERSION}'
 
     mkdir  /tmp/results
     cp -r /tmp/source_downloads /tmp/results/source_downloads
-    sudo chown mysql:mysql /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util || :
+    sudo chown mysql:mysql /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/include || :
+    sudo chown -R mysql:mysql /tmp/ps/rocksdb/util /tmp/ps/zstd-* || :
     bash -x /tmp/scripts/build-binary /tmp/results /tmp/ps
 
     sudo rm -rf /tmp/ps/results
     sudo mkdir /tmp/ps/results
     sudo mv /tmp/results/*.tar.gz /tmp/ps/results/
-    sudo chown -R $(id -u):$(id -g) /tmp/ps/results /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util
+    sudo chown -R $(id -u):$(id -g) /tmp/ps/results /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb
 "

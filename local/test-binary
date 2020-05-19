@@ -21,7 +21,6 @@ tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz |
 cd ${WORKDIR_ABS}/PS/mysql-test
 TESTCASE_TIMEOUT=30
 
-#
 # CentOS 6 & 7
 if [[ -f /opt/rh/devtoolset-7/enable ]]; then
     source /opt/rh/devtoolset-7/enable
@@ -102,6 +101,11 @@ fi
 
 if [[ "${MTR_ARGS}" == *"--big-test"* ]]; then
     TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 15))
+fi
+
+if [[ "${IS_FB}" == 'yes' ]]; then
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$WORKDIR_ABS/PS/zstd/lib"
+    ADD_TO_LD_PRELOAD+="$WORKDIR_ABS/PS/zstd/lib/libzstd.so.1.3.4:"
 fi
 
 status=0

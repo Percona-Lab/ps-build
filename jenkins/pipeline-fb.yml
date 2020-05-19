@@ -1,0 +1,90 @@
+- job:
+    name: fb-mysql-server-5.6-pipeline
+    project-type: pipeline
+    description: |
+        Do not edit this job through the web!
+    concurrent: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/Percona-Lab/ps-build
+            branches:
+            - "5.6"
+            wipe-workspace: false
+      lightweight-checkout: true
+      script-path: jenkins/pipeline-fb.groovy
+    parameters:
+    - string:
+        name: GIT_REPO
+        default: "https://github.com/facebook/mysql-5.6"
+        description: URL to repository
+    - string:
+        name: BRANCH
+        default: "fb-mysql-5.6.35"
+        description: Tag/Branch for repository
+    - choice:
+        name: IS_FB
+        choices:
+        - "yes"
+        - "no"
+        description: Is FB build
+    - string:
+        name: ZSTD_VERSION
+        default: "1.3.4"
+        description: zstd version
+    - choice:
+        name: DOCKER_OS
+        choices:
+        - centos:7
+        - ubuntu:bionic
+        description: OS version for compilation
+    - choice:
+        name: JOB_CMAKE
+        choices:
+        - /usr/bin/cmake
+        description: path to cmake binary
+    - choice:
+        name: COMPILER
+        choices:
+        - default
+        description: compiler version
+    - choice:
+        name: CMAKE_BUILD_TYPE
+        choices:
+        - RelWithDebInfo
+        - Debug
+        description: Type of build to produce
+    - choice:
+        name: ANALYZER_OPTS
+        choices:
+        -
+        - -DWITH_ASAN=ON
+        - -DWITH_VALGRIND=ON
+        description: Enable code checking
+    - string:
+        name: CMAKE_OPTS
+        default:
+        description: cmake options
+    - string:
+        name: MAKE_OPTS
+        default:
+        description: make options, like VERBOSE=1
+    - choice:
+        name: DEFAULT_TESTING
+        choices:
+        - "yes"
+        - "no"
+        description: Run mysql-test-run.pl
+    - string:
+        name: MTR_ARGS
+        default: --unit-tests-report
+        description: "mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report"
+    - string:
+        name: MTR_REPEAT
+        default: "1"
+        description: Run each test N number of times, --repeat=N
+    - choice:
+        name: LABEL
+        choices:
+        - docker-32gb
+        description: Run build on specified instance type

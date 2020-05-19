@@ -19,7 +19,6 @@ if [ ! -d "${ROOT_DIR}" ]; then
 fi
 
 pushd $ROOT_DIR
-
     if [ -n "${GIT_REPO}" ]; then
         git remote set-url origin "${GIT_REPO}"
         git fetch --all
@@ -64,4 +63,7 @@ pushd $ROOT_DIR
         rm -rf plugin/tokudb-backup-plugin/Percona-TokuBackup
         mkdir plugin/tokudb-backup-plugin/Percona-TokuBackup
     fi
+
+    wget https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}.tar.gz
+    tar zxpf v${ZSTD_VERSION}.tar.gz
 popd
