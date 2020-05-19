@@ -24,6 +24,7 @@ docker run --rm \
     export TOKUDB_ENGINES_MTR_ARGS='${TOKUDB_ENGINES_MTR_ARGS}'
     export MTR_ARGS='${MTR_ARGS}'
     export MTR_REPEAT='${MTR_REPEAT}'
+    export IS_FB='${IS_FB}'
 
     mkdir /tmp/results
     cp /tmp/ps/results/*.tar.gz /tmp/results
