@@ -81,8 +81,8 @@ if [ -f /usr/bin/yum ]; then
 #   Percona-Server 8.0
     if [[ ${RHVER} -lt 8 ]]; then
         PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils cmake3"
-        PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel"
-        PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel"
+        PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel boost-devel"
+        PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel devtoolset-7-libatomic-devel"
         PKGLIST+=" devtoolset-8-gcc-c++ devtoolset-8-binutils"
         PKGLIST+=" devtoolset-8-libasan-devel devtoolset-8-libubsan-devel"
         PKGLIST+=" devtoolset-8-valgrind devtoolset-8-valgrind-devel perl-Digest-Perl-MD5 libedit-devel"
@@ -158,7 +158,7 @@ if [ -f /usr/bin/apt-get ]; then
 
         if [[ $(echo "${RELEASE} >= 18.0" | bc -l) == 1 ]]; then
             # libzstd-dev for Bionic and higher
-            PKGLIST+=" libzstd-dev"
+            PKGLIST+=" libzstd-dev libboost-dev libatomic1"
         else
             # libzstd1-dev for Xenial
             PKGLIST+=" libzstd1-dev"
