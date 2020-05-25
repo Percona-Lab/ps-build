@@ -64,6 +64,8 @@ pushd $ROOT_DIR
         mkdir plugin/tokudb-backup-plugin/Percona-TokuBackup
     fi
 
-    wget https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}.tar.gz
-    tar zxpf v${ZSTD_VERSION}.tar.gz
+    if [ "x${IS_FB}" = 'xyes' ]; then
+        wget https://github.com/facebook/zstd/archive/v${ZSTD_VERSION}.tar.gz
+        tar zxpf v${ZSTD_VERSION}.tar.gz
+    fi
 popd
