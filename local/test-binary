@@ -152,7 +152,8 @@ fi
 #
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
     MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
-
+    ls -al
+    chmod +x mysql-test-run.pl
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
