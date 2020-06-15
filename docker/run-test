@@ -41,6 +41,7 @@ docker run --rm \
     export VAULT_V2_PROD_ADDRESS='https://127.0.0.1:9500'
     export VAULT_V1_DEV_TOKEN='${VAULT_V1_DEV_TOKEN}'
     export VAULT_V2_DEV_TOKEN='${VAULT_V2_DEV_TOKEN}'
+    export DOCKER_OS='${DOCKER_OS}'
 
     cp /tmp/ps/results/*.tar.gz /tmp/results
 
