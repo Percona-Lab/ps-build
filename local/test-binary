@@ -10,6 +10,7 @@
 #      TOKUDB_ENGINES_MTR = (yes no)
 #      MTR_ARGS
 #      MTR_REPEAT
+#      DOCKER_OS
 
 set -o errexit
 set -o xtrace
@@ -147,6 +148,7 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         --suite-timeout=9999 \
         --testcase-timeout=${TESTCASE_TIMEOUT} \
         --junit-output=${WORKDIR_ABS}/junit.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" \
         || true
 fi
 #
@@ -181,7 +183,8 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             --mysqld=--plugin-load=tokudb=ha_tokudb.so --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
-            --junit-output=${WORKDIR_ABS}/junit_tokudb.xml || true
+            --junit-output=${WORKDIR_ABS}/junit_tokudb.xml \
+            --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
 fi
 
 # if all tests are disabled, run only one small test to prevent test stage issue and perform simle test of binary file
@@ -190,7 +193,8 @@ if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] &
         --force \
         --max-test-fail=0 \
         main.1st \
-        --junit-output=${WORKDIR_ABS}/small.xml || true
+        --junit-output=${WORKDIR_ABS}/small.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
 fi
 
 if [[ "${CI_FS_MTR}" = 'yes' ]]; then
