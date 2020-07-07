@@ -203,7 +203,10 @@ popd
 
 # Copy all needed data for unit tests
 cp ${WORKDIR}/scripts/mysqld_safe ${WORKDIR}/runtime_output_directory/
-
+cp ${WORKDIR}/scripts/mysqldumpslow ${WORKDIR}/runtime_output_directory/
+if [ -f ${WORKDIR}/storage/tokudb/PerconaFT/tools/tokuftdump ]; then
+    cp ${WORKDIR}/storage/tokudb/PerconaFT/tools/tokuftdump ${WORKDIR}/runtime_output_directory/
+fi
 cp -r ${WORKDIR}/unittest/gunit/*  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/runtime_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/library_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
