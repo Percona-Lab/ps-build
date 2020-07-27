@@ -141,7 +141,6 @@
           - ubuntu:xenial
           - ubuntu:bionic
           - ubuntu:disco
-          - debian:jessie
           - debian:stretch
     builders:
     - trigger-builds:
