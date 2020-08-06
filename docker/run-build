@@ -24,6 +24,7 @@ docker run --rm \
     export WITH_ROCKSDB='${WITH_ROCKSDB}'
     export WITH_ROUTER='${WITH_ROUTER}'
     export WITH_MYSQLX='${WITH_MYSQLX}'
+    export WITH_BORINGSSL='${WITH_BORINGSSL}'
     export CMAKE_OPTS='${CMAKE_OPTS}'
     export MAKE_OPTS='${MAKE_OPTS}'
     export BUILD_COMMENT='${BUILD_COMMENT}'
