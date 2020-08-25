@@ -91,7 +91,10 @@ if [[ ${WITH_BORINGSSL} == "true" ]]; then
         cp crypto/libcrypto.a ${WORKDIR}/boringssl_bin/lib/libcrypto_pic.a
         cp ssl/libssl.a ${WORKDIR}/boringssl_bin/lib/libssl_pic.a
         cp -r ../include ${WORKDIR}/boringssl_bin/
-        CMAKE_OPTS+=" -DWITH_SSL=system -DCMAKE_PREFIX_PATH=${WORKDIR}/boringssl_bin"        
+        CMAKE_OPTS+=" -DWITH_SSL=system -DCMAKE_PREFIX_PATH=${WORKDIR}/boringssl_bin"
+    else
+        echo "BoringSSL compilation failed."
+        exit 1
     fi
 fi
 
