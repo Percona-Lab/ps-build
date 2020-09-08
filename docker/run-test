@@ -7,10 +7,15 @@ ROOT_DIR=$(cd $(dirname $0)/../sources; pwd -P)
 SCRIPTS_DIR=$(cd $(dirname $0)/../local; pwd -P)
 SOURCE_IMAGE=${1:-centos:7}
 
+if [[ -d /mnt/mtr_disk_dir ]] && [[ ${ENABLE_TESTS_ON_CI_FS} == "yes" ]] && [[ "${CMAKE_BUILD_TYPE}" == "RelWithDebInfo" ]]; then
+    CI_FS_DOCKER_FLAG=" --mount type=bind,source=/mnt/mtr_disk_dir,destination=/tmp/mtr_disk_dir"
+fi
+
 docker run --rm \
     --security-opt seccomp=unconfined \
     --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
+    ${CI_FS_DOCKER_FLAG} \
     perconalab/ps-build:${SOURCE_IMAGE//[:\/]/-} \
     sh -c "
     set -o errexit
@@ -25,6 +30,8 @@ docker run --rm \
     export MTR_ARGS='${MTR_ARGS}'
     export MTR_REPEAT='${MTR_REPEAT}'
     export MTR_VAULT_TOKEN='${MTR_VAULT_TOKEN}'
+    export MTR_ARGS_CI='${MTR_ARGS_CI}'
+    export ENABLE_TESTS_ON_CI_FS='${ENABLE_TESTS_ON_CI_FS}'
 
     mkdir /tmp/results
     cp /tmp/ps/results/*.tar.gz /tmp/results

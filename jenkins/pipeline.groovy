@@ -119,6 +119,14 @@ pipeline {
             description: 'Run each test N number of times, --repeat=N',
             name: 'MTR_REPEAT')
         choice(
+            choices: 'no\nyes',
+            description: 'Runs CI MTR tests on case-insensitive fs',
+            name: 'ENABLE_TESTS_ON_CI_FS')
+        string(
+            defaultValue: '--do-test=_ci',
+            description: 'Test case which will run when ENABLE_TESTS_ON_CI_FS is checked',
+            name: 'MTR_ARGS_CI')
+        choice(
             choices: 'docker-32gb\ndocker',
             description: 'Run build on specified instance type',
             name: 'LABEL')
@@ -215,6 +223,23 @@ pipeline {
                         warnings canComputeNew: false, canResolveRelativePaths: false, categoriesPattern: '', defaultEncoding: '', excludePattern: '', healthy: '', includePattern: '', messagesPattern: '', parserConfigurations: [[parserName: 'GNU C Compiler 4 (gcc)', pattern: 'build.log']], unHealthy: ''
                     }
                 }
+            }
+        }
+        stage('Prepare case-insensitive fs') {
+            when {
+                expression { params.ENABLE_TESTS_ON_CI_FS == 'yes' && params.CMAKE_BUILD_TYPE == 'RelWithDebInfo' }
+            }
+            agent { label LABEL }
+            steps {
+                sh '''
+                    if [[ ! -f /mnt/mtr_disk.img ]] && [[ ! -z \$(mount | grep /mnt/mtr_disk_dir) ]]; then
+                        sudo dd if=/dev/zero of=/mnt/mtr_disk.img bs=1G count=10
+                        sudo /sbin/mkfs.vfat /mnt/mtr_disk.img
+                        sudo mkdir -p /mnt/mtr_disk_dir
+                        
+                        sudo mount -o loop -o uid=27 -o gid=27 /mnt/mtr_disk.img /mnt/mtr_disk_dir
+                    fi
+                '''
             }
         }
         stage('Test') {
