@@ -142,11 +142,11 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
   MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${PARALLEL} \
         --result-file \
+        --suite-timeout=9999 \
+        --testcase-timeout=${TESTCASE_TIMEOUT} \
         ${MTR_ARGS} \
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
-        --suite-timeout=9999 \
-        --testcase-timeout=${TESTCASE_TIMEOUT} \
         --junit-output=${WORKDIR_ABS}/junit.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" \
         || true
