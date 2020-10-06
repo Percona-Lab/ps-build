@@ -195,16 +195,19 @@ if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] &
     process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/small.output" "${WORKDIR_ABS}/small.xml"
 fi
 
-if [[ "${ENABLE_TESTS_ON_CI_FS}" = 'yes' ]] && [[ "${CMAKE_BUILD_TYPE}" = "RelWithDebInfo" ]]; then
-    sudo mkdir -p /mnt/ps_mtr_tempdir /tmp/mtr_disk_dir/mtr
-    sudo chown -R 27:27 /mnt/ps_mtr_tempdir /tmp/mtr_disk_dir 
- 
+if [[ "${ENABLE_TESTS_ON_CI_FS}" = 'yes' ]]; then
+
+    CI_TESTS=""
+    for CI_TESTS_TMP in $(grep --exclude="*.inc" --exclude="*.log" -rl . -e include/have_case_insensitive_file_system.inc | awk -F '/' '{print $NF}' | sed 's/.test//g'); do
+        CI_TESTS+=" $CI_TESTS_TMP"
+    done
+
     MTR_BUILD_THREAD=auto ./mtr \
-        --force \
+        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
-        --tmpdir="/mnt/ps_mtr_tempdir/" \
-        --vardir="/tmp/mtr_disk_dir/mtr/" \
-        ${MTR_ARGS_CI} \
+        --tmpdir="/tmp/ps_mtr_tempdir_${CMAKE_BUILD_TYPE}" \
+        --vardir="/tmp/mtr_disk_dir_${CMAKE_BUILD_TYPE}/mtr" \
+        $CI_TESTS \
         | tee ${WORKDIR_ABS}/ci_fs.output || true
     process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/ci_fs.output" "${WORKDIR_ABS}/ci_fs.xml"
 fi

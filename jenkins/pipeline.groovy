@@ -119,13 +119,9 @@ pipeline {
             description: 'Run each test N number of times, --repeat=N',
             name: 'MTR_REPEAT')
         choice(
-            choices: 'no\nyes',
+            choices: 'yes\nnno',
             description: 'Runs CI MTR tests on case-insensitive fs',
             name: 'ENABLE_TESTS_ON_CI_FS')
-        string(
-            defaultValue: '--do-test=_ci',
-            description: 'Test case which will run when ENABLE_TESTS_ON_CI_FS is checked',
-            name: 'MTR_ARGS_CI')
         choice(
             choices: 'docker-32gb\ndocker',
             description: 'Run build on specified instance type',
@@ -227,17 +223,16 @@ pipeline {
         }
         stage('Prepare case-insensitive fs') {
             when {
-                expression { params.ENABLE_TESTS_ON_CI_FS == 'yes' && params.CMAKE_BUILD_TYPE == 'RelWithDebInfo' }
+                expression { params.ENABLE_TESTS_ON_CI_FS == 'yes' }
             }
             agent { label LABEL }
             steps {
                 sh '''
-                    if [[ ! -f /mnt/mtr_disk.img ]] && [[ ! -z \$(mount | grep /mnt/mtr_disk_dir) ]]; then
-                        sudo dd if=/dev/zero of=/mnt/mtr_disk.img bs=1G count=10
-                        sudo /sbin/mkfs.vfat /mnt/mtr_disk.img
-                        sudo mkdir -p /mnt/mtr_disk_dir
-                        
-                        sudo mount -o loop -o uid=27 -o gid=27 /mnt/mtr_disk.img /mnt/mtr_disk_dir
+                    if [[ ! -f /mnt/mtr_disk_\$CMAKE_BUILD_TYPE.img ]] && [[ -z \$(mount | grep /mnt/mtr_disk_dir_\$CMAKE_BUILD_TYPE) ]]; then
+                        sudo dd if=/dev/zero of=/mnt/mtr_disk_\$CMAKE_BUILD_TYPE.img bs=1G count=10
+                        sudo /sbin/mkfs.vfat /mnt/mtr_disk_\$CMAKE_BUILD_TYPE.img
+                        sudo mkdir -p /mnt/mtr_disk_dir_\$CMAKE_BUILD_TYPE
+                        sudo mount -o loop -o uid=27 -o gid=27 -o umask=003 -o check=r /mnt/mtr_disk_\$CMAKE_BUILD_TYPE.img /mnt/mtr_disk_dir_\$CMAKE_BUILD_TYPE
                     fi
                 '''
             }

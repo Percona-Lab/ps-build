@@ -7,8 +7,8 @@ ROOT_DIR=$(cd $(dirname $0)/../sources; pwd -P)
 SCRIPTS_DIR=$(cd $(dirname $0)/../local; pwd -P)
 SOURCE_IMAGE=${1:-centos:7}
 
-if [[ -d /mnt/mtr_disk_dir ]] && [[ ${ENABLE_TESTS_ON_CI_FS} == "yes" ]] && [[ "${CMAKE_BUILD_TYPE}" == "RelWithDebInfo" ]]; then
-    CI_FS_DOCKER_FLAG=" --mount type=bind,source=/mnt/mtr_disk_dir,destination=/tmp/mtr_disk_dir"
+if [[ -d /mnt/mtr_disk_dir_${CMAKE_BUILD_TYPE} ]]; then
+    CI_FS_DOCKER_FLAG="--mount type=bind,source=/mnt/mtr_disk_dir_${CMAKE_BUILD_TYPE},destination=/tmp/mtr_disk_dir_${CMAKE_BUILD_TYPE}"
 fi
 
 docker run --rm \
@@ -33,7 +33,9 @@ docker run --rm \
     export MTR_ARGS_CI='${MTR_ARGS_CI}'
     export ENABLE_TESTS_ON_CI_FS='${ENABLE_TESTS_ON_CI_FS}'
 
-    mkdir /tmp/results
+    mkdir /tmp/results /tmp/ps_mtr_tempdir_${CMAKE_BUILD_TYPE}
+    sudo chown -R 27:27 /tmp/ps_mtr_tempdir_${CMAKE_BUILD_TYPE}
+
     cp /tmp/ps/results/*.tar.gz /tmp/results
 
     bash -x /tmp/scripts/test-binary /tmp/results

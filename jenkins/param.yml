@@ -126,13 +126,9 @@
     - choice:
         name: ENABLE_TESTS_ON_CI_FS
         choices:
-        - "no"
         - "yes"
+        - "no"
         description: Runs CI MTR tests on case-insensitive fs
-    - string:
-        name: MTR_ARGS_CI
-        default: --do-test=_ci
-        description: "Test case which will run when ENABLE_TESTS_ON_CI_FS is checked"
     - choice:
         name: LABEL
         choices:
