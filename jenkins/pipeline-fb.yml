@@ -26,6 +26,7 @@
         name: DOCKER_OS
         choices:
         - centos:7
+        - centos:8
         - ubuntu:bionic
         description: OS version for compilation
     - choice:
