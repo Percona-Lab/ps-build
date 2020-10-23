@@ -61,7 +61,7 @@ if [ -f /usr/bin/yum ]; then
     "
 
     if [[ ${RHVER} -eq 8 ]]; then
-        PKGLIST+=" lz4 perl-Memoize perl-open valgrind-devel libubsan rpcgen libtirpc-devel golang libunwind-devel"
+        PKGLIST+=" lz4 perl-Memoize perl-open valgrind-devel libubsan rpcgen libtirpc-devel golang libunwind-devel python2 python3"
     fi
 
     if [[ ${RHVER} -eq 7 ]]; then
@@ -98,7 +98,7 @@ if [ -f /usr/bin/yum ]; then
     done
 
     if [[ ${RHVER} -eq 8 ]]; then
-        ln -fs /usr/bin/python2 /usr/bin/python
+        ln -fs /usr/bin/python3 /usr/bin/python
     fi
 
 #   this is workaround for https://bugs.mysql.com/bug.php?id=95222 as soon as the issue is fixed we need to remove it 
