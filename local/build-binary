@@ -145,10 +145,6 @@ if [[ "${OS_VERSION}" = *"Ubuntu 16.04."* ]] || [[ "${OS_VERSION}" = *"Debian GN
     CMAKE_OPTS+=" -DWITH_LIBEVENT=bundled"
 fi
 
-if [[ "${OS_VERSION}" = *"CentOS release 6."* ]]; then
-    CMAKE_OPTS+=" -DWITH_ZLIB=bundled"
-fi
-
 # ------------------------------------------------------------------------------
 # Set compile options
 # ------------------------------------------------------------------------------
@@ -219,6 +215,8 @@ pushd ${WORKDIR}
         -DFEATURE_SET=community \
         -DWITH_PAM=ON \
         -DWITH_NUMA=ON \
+        -DWITH_ZLIB=bundled \
+        -DWITH_ZSTD=bundled \
         -DWITH_INNODB_MEMCACHED=ON \
         -DENABLE_DOWNLOADS=ON \
         -DDOWNLOAD_ROOT=${DOWNLOAD_DIR} \
