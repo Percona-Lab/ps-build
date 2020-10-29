@@ -57,7 +57,7 @@ if [ -f /usr/bin/yum ]; then
     perl-Time-HiRes openldap-devel perl-Env perl-Data-Dumper libicu-devel perl-Sys-MemInfo \
     perl-JSON MySQL-python perl-Digest perl-Digest-MD5 \
     numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan lz4-devel \
-    libzstd-devel tzdata zstd mysql-devel python3-pip python3-devel \
+    libzstd-devel tzdata zstd mysql-devel \
     "
 
     if [[ ${RHVER} -eq 8 ]]; then
@@ -66,6 +66,10 @@ if [ -f /usr/bin/yum ]; then
 
     if [[ ${RHVER} -eq 7 ]]; then
         PKGLIST+=" go-toolset-7 libunwind-devel"
+    fi
+
+    if [[ ${RHVER} != 6 ]]; then
+        PKGLIST+=" python3-pip python3-devel"
     fi
 
 # Percona-Server
@@ -101,8 +105,10 @@ if [ -f /usr/bin/yum ]; then
         ln -fs /usr/bin/python3 /usr/bin/python
     fi
 
-    # Install mysqlclient by pip as there's no candidate in repositories
-    pip3 install mysqlclient
+    if [[ ${RHVER} != 6 ]]; then
+        # Install mysqlclient by pip as there's no candidate in repositories
+        pip3 install mysqlclient
+    fi
 
 #   this is workaround for https://bugs.mysql.com/bug.php?id=95222 as soon as the issue is fixed we need to remove it 
     if [ -f '/anaconda-post.log' ]; then
