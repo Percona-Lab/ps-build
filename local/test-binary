@@ -175,4 +175,94 @@ if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] &
     process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/small.output" "${WORKDIR_ABS}/small.xml"
 fi
 
+if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
+    if [ -f /usr/bin/yum ]; then
+        sudo mkdir /run/supervisor
+        supervisorconfigpath=/etc/supervisord.d/vault.ini
+    else
+        supervisorconfigpath=/etc/supervisor/conf.d/vault.conf
+    fi
+    sudo sed -i "s@devtoken1@${VAULT_V1_DEV_TOKEN}@g; s@devtoken2@${VAULT_V2_DEV_TOKEN}@g" $supervisorconfigpath
+    sudo supervisord
+
+    # Required to initialize everything
+    sleep 5
+
+    if [[ ! -z $(supervisorctl status | grep FAILED) ]]; then
+        echo Some process have failed:
+        supervisorctl status
+        exit 1
+    fi
+
+    VAULT_V1_PROD_KEYS="$(/usr/local/bin/vault.0.9.6 operator init -address='http://127.0.0.1:9300')"
+    VAULT_V2_PROD_KEYS="$(/usr/local/bin/vault.1.5.4 operator init -address='http://127.0.0.1:9500')"
+
+    VAULT_V1_PROD_UNSEAL_KEYS=$(echo "$VAULT_V1_PROD_KEYS" | grep 'Unseal Key' | awk -F ':' '{print $2}')
+    VAULT_V2_PROD_UNSEAL_KEYS=$(echo "$VAULT_V2_PROD_KEYS" | grep 'Unseal Key' | awk -F ':' '{print $2}')
+    VAULT_V1_PROD_TOKEN=$(echo "$VAULT_V1_PROD_KEYS" | grep 'Initial Root Token' | awk -F ':' '{print $2}' | xargs)
+    VAULT_V2_PROD_TOKEN=$(echo "$VAULT_V2_PROD_KEYS" | grep 'Initial Root Token' | awk -F ':' '{print $2}' | xargs)
+
+    for key in $VAULT_V1_PROD_UNSEAL_KEYS; do
+        /usr/local/bin/vault.0.9.6 operator unseal -address='http://127.0.0.1:9300' $key
+        sleep 1
+    done
+    
+    for key in $VAULT_V2_PROD_UNSEAL_KEYS; do
+        /usr/local/bin/vault.1.5.4 operator unseal -address='http://127.0.0.1:9500' $key
+        sleep 1
+    done
+
+    echo "Running tests with Hashicorp Vault in Dev mode"
+    MTR_VAULT_ADDRESS=${VAULT_V1_DEV_ADDRESS} \
+    MTR_VAULT_TOKEN=${VAULT_V1_DEV_TOKEN} \
+    MTR_VAULT_VERSION=1 \
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force \
+        --max-test-fail=0 \
+        --parallel=$(nproc) \
+        --retry=0 \
+        --suite=keyring_vault \
+        | tee ${WORKDIR_ABS}/keyring_vault_dev_v1.output || true
+    process_mtr_output "Percona Server - Keyring Vault Dev V1" "${WORKDIR_ABS}/keyring_vault_dev_v1.output.output" "${WORKDIR_ABS}/keyring_vault_dev_v1.output.xml"
+
+    MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
+    MTR_VAULT_TOKEN=${VAULT_V2_DEV_TOKEN} \
+    MTR_VAULT_VERSION=2 \
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force \
+        --max-test-fail=0 \
+        --parallel=$(nproc) \
+        --retry=0 \
+        --suite=keyring_vault \
+        | tee ${WORKDIR_ABS}/keyring_vault_dev_v2.output || true
+    process_mtr_output "Percona Server - Keyring Vault Dev V2" "${WORKDIR_ABS}/keyring_vault_dev_v2.output.output" "${WORKDIR_ABS}/keyring_vault_dev_v2.output.xml"
+
+
+    echo "Running tests with Hashicorp Vault in Production mode"
+    MTR_VAULT_ADDRESS=${VAULT_V1_PROD_ADDRESS} \
+    MTR_VAULT_TOKEN=${VAULT_V1_PROD_TOKEN} \
+    MTR_VAULT_VERSION=1 \
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force \
+        --max-test-fail=0 \
+        --parallel=$(nproc) \
+        --retry=0 \
+        --suite=keyring_vault \
+        | tee ${WORKDIR_ABS}/keyring_vault_prod_v1.output || true
+    process_mtr_output "Percona Server - Keyring Vault PROD V1" "${WORKDIR_ABS}/keyring_vault_prod_v1.output.output" "${WORKDIR_ABS}/keyring_vault_prod_v1.output.xml"
+
+    MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
+    MTR_VAULT_TOKEN=${VAULT_V2_PROD_TOKEN} \
+    MTR_VAULT_VERSION=2 \
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force \
+        --max-test-fail=0 \
+        --parallel=$(nproc) \
+        --retry=0 \
+        --suite=keyring_vault \
+        | tee ${WORKDIR_ABS}/keyring_vault_prod_v2.output || true
+    process_mtr_output "Percona Server - Keyring Vault PROD V2" "${WORKDIR_ABS}/keyring_vault_prod_v2.output.output" "${WORKDIR_ABS}/keyring_vault_prod_v2.output.xml"
+
+fi
+
 exit $status
