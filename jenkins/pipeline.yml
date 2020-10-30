@@ -141,6 +141,12 @@
         default: "1"
         description: Run each test N number of times, --repeat=N
     - choice:
+        name: KEYRING_VAULT_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run mtr --suite=keyring_vault
+    - choice:
         name: LABEL
         choices:
         - docker-32gb

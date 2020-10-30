@@ -16,6 +16,7 @@ docker run --rm \
     set -o errexit
     set -o xtrace
 
+    mkdir /tmp/results
     export CMAKE_BUILD_TYPE='${CMAKE_BUILD_TYPE}'
     export ANALYZER_OPTS='${ANALYZER_OPTS}'
     export DEFAULT_TESTING='${DEFAULT_TESTING}'
@@ -25,8 +26,14 @@ docker run --rm \
     export MTR_ARGS='${MTR_ARGS}'
     export MTR_REPEAT='${MTR_REPEAT}'
     export MTR_VAULT_TOKEN='${MTR_VAULT_TOKEN}'
+    export KEYRING_VAULT_MTR='${KEYRING_VAULT_MTR}'
+    export VAULT_V1_DEV_ADDRESS=http://127.0.0.1:9200
+    export VAULT_V1_PROD_ADDRESS=https://127.0.0.1:9300
+    export VAULT_V2_DEV_ADDRESS=http://127.0.0.1:9400
+    export VAULT_V2_PROD_ADDRESS=https://127.0.0.1:9500
+    export VAULT_V1_DEV_TOKEN=${VAULT_V1_DEV_TOKEN}
+    export VAULT_V2_DEV_TOKEN=${VAULT_V2_DEV_TOKEN}
 
-    mkdir /tmp/results
     cp /tmp/ps/results/*.tar.gz /tmp/results
 
     bash -x /tmp/scripts/test-binary /tmp/results
