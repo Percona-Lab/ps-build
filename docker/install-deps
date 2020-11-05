@@ -190,7 +190,7 @@ if [ -f /usr/bin/apt-get ]; then
 
     apt-get -y clean
 
-    if [[ ${DIST} == 'focal' ]]; then
+    if [[ ${DIST} == 'focal' ]] || [[ ${DIST} == 'buster' ]] || [[ ${DIST} == 'bionic' ]]; then
         ln -fs /usr/bin/python3 /usr/bin/python
     fi
 fi
