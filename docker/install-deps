@@ -190,9 +190,10 @@ if [ -f /usr/bin/apt-get ]; then
 
     apt-get -y clean
 
-    if [[ ${DIST} == 'focal' ]] || [[ ${DIST} == 'buster' ]] || [[ ${DIST} == 'bionic' ]]; then
-        ln -fs /usr/bin/python3 /usr/bin/python
+    if [[ -L /usr/bin/python ]]; then
+        rm /usr/bin/python
     fi
+    ln -fs /usr/bin/python3 /usr/bin/python
 fi
 
 if [ ! -f /usr/local/lib/libeatmydata.so ]; then
