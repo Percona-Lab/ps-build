@@ -196,7 +196,13 @@ if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] &
 fi
 
 if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
-    sudo mkdir /run/supervisor
+    if [ -f /usr/bin/yum ]; then
+        sudo mkdir /run/supervisor
+        supervisorconfigpath=/etc/supervisord.d/vault.ini
+    else
+        supervisorconfigpath=/etc/supervisor/conf.d/vault.conf
+    fi
+    sed -i "s@devtoken1@${VAULT_V1_DEV_TOKEN}@g; s@devtoken2@${VAULT_V2_DEV_TOKEN}@g" $supervisorconfigpath
     sudo supervisord
 
     # Required to initialize everything
@@ -226,9 +232,29 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         sleep 1
     done
 
+    # Dev
+    export VAULT_TOKEN=${VAULT_V1_DEV_TOKEN}
+    sudo -E /usr/local/bin/vault.0.9.6 policy write -address=http://127.0.0.1:9200 mtr /etc/vault.d-0.9.6-dev/policy/mtr.hcl
+    VAULT_V1_DEV_MTR_TOKEN=$(/usr/local/bin/vault.0.9.6 token create -address=http://127.0.0.1:9200 -policy=mtr | grep token | head -n1 | awk '{print $2}')
+
+    export VAULT_TOKEN=${VAULT_V2_DEV_TOKEN}
+    sudo -E /usr/local/bin/vault.1.5.4 policy write -address=http://127.0.0.1:9400 mtr /etc/vault.d-1.5.4-dev/policy/mtr.hcl
+    VAULT_V2_DEV_MTR_TOKEN=$(/usr/local/bin/vault.1.5.4 token create -address=http://127.0.0.1:9400 -policy=mtr | grep token | head -n1 | awk '{print $2}')
+
+    # Prod
+    export VAULT_TOKEN=${VAULT_V1_PROD_TOKEN}
+    sudo -E /usr/local/bin/vault.0.9.6 policy write -address=http://127.0.0.1:9300 mtr /etc/vault.d-0.9.6-prod/policy/mtr.hcl
+    VAULT_V1_PROD_MTR_TOKEN=$(/usr/local/bin/vault.0.9.6 token create -address=http://127.0.0.1:9300 -policy=mtr | grep token | head -n1 | awk '{print $2}')
+
+    export VAULT_TOKEN=${VAULT_V2_PROD_TOKEN}
+    sudo -E /usr/local/bin/vault.1.5.4 policy write -address=http://127.0.0.1:9500 mtr /etc/vault.d-1.5.4-prod/policy/mtr.hcl
+    VAULT_V2_PROD_MTR_TOKEN=$(/usr/local/bin/vault.1.5.4 token create -address=http://127.0.0.1:9500 -policy=mtr | grep token | head -n1 | awk '{print $2}')
+
+    unset VAULT_TOKEN
+
     echo "Running tests with Hashicorp Vault in Dev mode"
     MTR_VAULT_ADDRESS=${VAULT_V1_DEV_ADDRESS} \
-    MTR_VAULT_TOKEN=${VAULT_V1_DEV_TOKEN} \
+    MTR_VAULT_TOKEN=${VAULT_V1_DEV_MTR_TOKEN} \
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
@@ -237,7 +263,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     process_mtr_output "Percona Server - Keyring Vault Dev V1" "${WORKDIR_ABS}/keyring_vault_dev_v1.output.output" "${WORKDIR_ABS}/keyring_vault_dev_v1.output.xml"
 
     MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
-    MTR_VAULT_TOKEN=${VAULT_V2_DEV_TOKEN} \
+    MTR_VAULT_TOKEN=${VAULT_V2_DEV_MTR_TOKEN} \
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
@@ -248,7 +274,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
 
     echo "Running tests with Hashicorp Vault in Production mode"
     MTR_VAULT_ADDRESS=${VAULT_V1_PROD_ADDRESS} \
-    MTR_VAULT_TOKEN=${VAULT_V1_PROD_TOKEN} \
+    MTR_VAULT_TOKEN=${VAULT_V1_PROD_MTR_TOKEN} \
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
@@ -257,7 +283,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     process_mtr_output "Percona Server - Keyring Vault PROD V1" "${WORKDIR_ABS}/keyring_vault_prod_v1.output.output" "${WORKDIR_ABS}/keyring_vault_prod_v1.output.xml"
 
     MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
-    MTR_VAULT_TOKEN=${VAULT_V2_PROD_TOKEN} \
+    MTR_VAULT_TOKEN=${VAULT_V2_PROD_MTR_TOKEN} \
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \

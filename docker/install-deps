@@ -236,6 +236,31 @@ for VER in 0.9.6 1.5.4; do
 
     useradd -m --system --home /etc/vault.d-$VER-dev --shell /bin/false vault-$VER-dev
     useradd -m --system --home /etc/vault.d-$VER-prod --shell /bin/false vault-$VER-prod
+
+    mkdir /etc/vault.d-$VER-dev/policy
+    mkdir /etc/vault.d-$VER-prod/policy
+    chown vault-$VER-dev:vault-$VER-dev /etc/vault.d-$VER-dev/policy
+    chown vault-$VER-prod:vault-$VER-prod /etc/vault.d-$VER-prod/policy
+
+cat <<-EOF | tee /etc/vault.d-$VER-dev/policy/mtr.hcl
+path "/*" {
+  capabilities = ["list"]
+}
+
+path "/cicd/ut_tests/*" {
+  capabilities = ["create", "read", "delete", "update", "list"]
+}
+EOF
+
+cat <<-EOF | tee /etc/vault.d-$VER-prod/policy/mtr.hcl
+path "/*" {
+  capabilities = ["list"]
+}
+
+path "/cicd/ut_tests/*" {
+  capabilities = ["create", "read", "delete", "update", "list"]
+}
+EOF
 done
 
 cat <<-EOF | tee /etc/vault.d-0.9.6-prod/config.hcl
@@ -275,6 +300,8 @@ storage "consul" {
 api_addr = "http://127.0.0.1:9500"
 cluster_addr = "https://127.0.0.1:9501"
 EOF
+
+
 
 # Consul setup
 # Consul is stronly adviced to use as a backend for Vault in production mode
