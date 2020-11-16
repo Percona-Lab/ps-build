@@ -1,6 +1,7 @@
 FROM centos:7
 
 COPY install-deps /tmp/install-deps
+COPY vault_supervisord.ini /tmp/vault_supervisord.ini
 RUN /tmp/install-deps
 
 RUN echo "mysql ALL=(ALL:ALL) NOPASSWD:ALL" >> /etc/sudoers \
