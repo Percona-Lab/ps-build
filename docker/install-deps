@@ -224,11 +224,14 @@ wget_loop 'boost_1_67_0.tar.gz' 'http://downloads.sourceforge.net/boost/boost/1.
 wget_loop 'googletest-release-1.8.0.zip' 'https://github.com/google/googletest/archive/release-1.8.0.zip'
 
 # Download Hashicorp Vault
-wget_loop "vault_0.9.6.zip" "https://releases.hashicorp.com/vault/0.9.6/vault_0.9.6_linux_amd64.zip"
-wget_loop "vault_1.5.4.zip" "https://releases.hashicorp.com/vault/1.5.4/vault_1.5.4_linux_amd64.zip"
+LATEST_V1_VERSION=0.9.6
+LATEST_V2_VERSION=1.5.4
+
+wget_loop "vault_v1.zip" "https://releases.hashicorp.com/vault/$LATEST_V1_VERSION/vault_${LATEST_V1_VERSION}_linux_amd64.zip"
+wget_loop "vault_v2.zip" "https://releases.hashicorp.com/vault/$LATEST_V2_VERSION/vault_${LATEST_V2_VERSION}_linux_amd64.zip"
 
 # Vault setup
-for VER in 0.9.6 1.5.4; do
+for VER in v1 v2; do
     unzip /tmp/source_downloads/vault_$VER.zip && install vault /usr/local/bin/vault.$VER && rm vault /tmp/source_downloads/vault_$VER.zip 
     if [[ -f /usr/bin/yum ]]; then
         setcap cap_ipc_lock= /usr/local/bin/vault.$VER
@@ -245,7 +248,7 @@ for VER in 0.9.6 1.5.4; do
     chown vault-$VER-prod:vault-$VER-prod /etc/vault.d-$VER-prod/policy
 done
 
-cat <<-EOF | tee /etc/vault.d-0.9.6-prod/config.hcl
+cat <<-EOF | tee /etc/vault.d-v1-prod/config.hcl
 disable_cache = true
 disable_mlock = true
 
@@ -264,7 +267,7 @@ api_addr = "http://127.0.0.1:9300"
 cluster_addr = "https://127.0.0.1:9301"
 EOF
 
-cat <<-EOF | tee /etc/vault.d-1.5.4-prod/config.hcl
+cat <<-EOF | tee /etc/vault.d-v2-prod/config.hcl
 disable_cache = true
 disable_mlock = true
 
