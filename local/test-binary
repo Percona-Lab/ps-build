@@ -194,8 +194,8 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         exit 1
     fi
 
-    VAULT_V1_PROD_KEYS="$(/usr/local/bin/vault.0.9.6 operator init -address='http://127.0.0.1:9300')"
-    VAULT_V2_PROD_KEYS="$(/usr/local/bin/vault.1.5.4 operator init -address='http://127.0.0.1:9500')"
+    VAULT_V1_PROD_KEYS="$(/usr/local/bin/vault.v1 operator init -address='http://127.0.0.1:9300')"
+    VAULT_V2_PROD_KEYS="$(/usr/local/bin/vault.v2 operator init -address='http://127.0.0.1:9500')"
 
     VAULT_V1_PROD_UNSEAL_KEYS=$(echo "$VAULT_V1_PROD_KEYS" | grep 'Unseal Key' | awk -F ':' '{print $2}')
     VAULT_V2_PROD_UNSEAL_KEYS=$(echo "$VAULT_V2_PROD_KEYS" | grep 'Unseal Key' | awk -F ':' '{print $2}')
@@ -203,12 +203,12 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     VAULT_V2_PROD_TOKEN=$(echo "$VAULT_V2_PROD_KEYS" | grep 'Initial Root Token' | awk -F ':' '{print $2}' | xargs)
 
     for key in $VAULT_V1_PROD_UNSEAL_KEYS; do
-        /usr/local/bin/vault.0.9.6 operator unseal -address='http://127.0.0.1:9300' $key
+        /usr/local/bin/vault.v1 operator unseal -address='http://127.0.0.1:9300' $key
         sleep 1
     done
     
     for key in $VAULT_V2_PROD_UNSEAL_KEYS; do
-        /usr/local/bin/vault.1.5.4 operator unseal -address='http://127.0.0.1:9500' $key
+        /usr/local/bin/vault.v2 operator unseal -address='http://127.0.0.1:9500' $key
         sleep 1
     done
 
