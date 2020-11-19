@@ -196,6 +196,19 @@ if [ -f /usr/bin/apt-get ]; then
         rm /usr/bin/python
     fi
     ln -fs /usr/bin/python3 /usr/bin/python
+
+    function set_proper_python_for_supervisor {
+        for file in /usr/bin/supervisord /usr/bin/supervisorctl; do
+            sed -i 's:#!/usr/bin/python:#!/usr/bin/python2:g' $file
+        done
+    }
+
+    if [[ ${DISTRIBUTOR_ID} == Ubuntu ]] && [[ ${DIST} != 'focal' ]]; then
+        set_proper_python_for_supervisor
+    elif [[ ${DISTRIBUTOR_ID} == Debian ]] && [[ ${DIST} != 'buster' ]]; then
+        set_proper_python_for_supervisor
+    fi
+
     mv /tmp/vault_supervisord.ini /etc/supervisor/conf.d/vault.conf
 fi
 
