@@ -177,7 +177,9 @@ fi
 
 if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     if [ -f /usr/bin/yum ]; then
-        sudo mkdir /run/supervisor
+        if [[ ! -d /run/supervisor ]]; then
+            sudo mkdir /run/supervisor
+        fi
         supervisorconfigpath=/etc/supervisord.d/vault.ini
     else
         supervisorconfigpath=/etc/supervisor/conf.d/vault.conf
@@ -188,9 +190,9 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     # Required to initialize everything
     sleep 5
 
-    if [[ ! -z $(supervisorctl status | grep FAILED) ]]; then
+    if [[ ! -z $(sudo supervisorctl status | grep FAILED) ]]; then
         echo Some process have failed:
-        supervisorctl status
+        sudo supervisorctl status
         exit 1
     fi
 
