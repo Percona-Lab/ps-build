@@ -225,7 +225,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --retry=0 \
         --suite=keyring_vault \
         | tee ${WORKDIR_ABS}/keyring_vault_dev_v1.output || true
-    process_mtr_output "Percona Server - Keyring Vault Dev V1" "${WORKDIR_ABS}/keyring_vault_dev_v1.output.output" "${WORKDIR_ABS}/keyring_vault_dev_v1.output.xml"
+    process_mtr_output "Percona Server - Keyring Vault Dev V1" "${WORKDIR_ABS}/keyring_vault_dev_v1.output" "${WORKDIR_ABS}/keyring_vault_dev_v1.xml"
 
     MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
     MTR_VAULT_TOKEN=${VAULT_V2_DEV_TOKEN} \
@@ -237,7 +237,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --retry=0 \
         --suite=keyring_vault \
         | tee ${WORKDIR_ABS}/keyring_vault_dev_v2.output || true
-    process_mtr_output "Percona Server - Keyring Vault Dev V2" "${WORKDIR_ABS}/keyring_vault_dev_v2.output.output" "${WORKDIR_ABS}/keyring_vault_dev_v2.output.xml"
+    process_mtr_output "Percona Server - Keyring Vault Dev V2" "${WORKDIR_ABS}/keyring_vault_dev_v2.output" "${WORKDIR_ABS}/keyring_vault_dev_v2.xml"
 
 
     echo "Running tests with Hashicorp Vault in Production mode"
@@ -251,7 +251,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --retry=0 \
         --suite=keyring_vault \
         | tee ${WORKDIR_ABS}/keyring_vault_prod_v1.output || true
-    process_mtr_output "Percona Server - Keyring Vault PROD V1" "${WORKDIR_ABS}/keyring_vault_prod_v1.output.output" "${WORKDIR_ABS}/keyring_vault_prod_v1.output.xml"
+    process_mtr_output "Percona Server - Keyring Vault PROD V1" "${WORKDIR_ABS}/keyring_vault_prod_v1.output" "${WORKDIR_ABS}/keyring_vault_prod_v1.xml"
 
     MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
     MTR_VAULT_TOKEN=${VAULT_V2_PROD_TOKEN} \
@@ -263,7 +263,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --retry=0 \
         --suite=keyring_vault \
         | tee ${WORKDIR_ABS}/keyring_vault_prod_v2.output || true
-    process_mtr_output "Percona Server - Keyring Vault PROD V2" "${WORKDIR_ABS}/keyring_vault_prod_v2.output.output" "${WORKDIR_ABS}/keyring_vault_prod_v2.output.xml"
+    process_mtr_output "Percona Server - Keyring Vault PROD V2" "${WORKDIR_ABS}/keyring_vault_prod_v2.output" "${WORKDIR_ABS}/keyring_vault_prod_v2.xml"
 
 fi
 
