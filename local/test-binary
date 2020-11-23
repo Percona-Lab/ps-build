@@ -31,6 +31,10 @@ if [[ $(rpm --eval %_arch) = "i386" ]] && [[ -f /opt/rh/devtoolset-2/enable ]]; 
     source /opt/rh/devtoolset-2/enable
 fi
 
+if [ -f /usr/bin/yum ]; then
+    RHVER="$(rpm --eval %rhel)"
+fi
+
 OPENSSL_HEADER="/usr/include/openssl/opensslv.h"
 TOKUDB_PLUGIN=$(find $WORKDIR_ABS -type f -name 'ha_tokudb.so')
 HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
@@ -175,9 +179,8 @@ if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] &
     process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/small.output" "${WORKDIR_ABS}/small.xml"
 fi
 
-if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
+if [[ ${RHVER} != 6 ]] && [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     if [ -f /usr/bin/yum ]; then
-        RHVER="$(rpm --eval %rhel)"
         if [[ ${RHVER} -eq 7 ]]; then
             source /opt/rh/httpd24/enable
         fi
