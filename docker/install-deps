@@ -65,7 +65,7 @@ if [ -f /usr/bin/yum ]; then
     fi
 
     if [[ ${RHVER} -eq 7 ]]; then
-        PKGLIST+=" go-toolset-7 libunwind-devel"
+        PKGLIST+=" go-toolset-7 libunwind-devel httpd24-curl"
     fi
 
     if [[ ${RHVER} != 6 ]]; then
