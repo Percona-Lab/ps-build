@@ -177,6 +177,10 @@ fi
 
 if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     if [ -f /usr/bin/yum ]; then
+        RHVER="$(rpm --eval %rhel)"
+        if [[ ${RHVER} -eq 7 ]]; then
+            source /opt/rh/httpd24/enable
+        fi
         if [[ ! -d /run/supervisor ]]; then
             sudo mkdir /run/supervisor
         fi
