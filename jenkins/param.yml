@@ -146,6 +146,12 @@
         default: "1"
         description: Run each test N number of times, --repeat=N
     - choice:
+        name: KEYRING_VAULT_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run mtr --suite=keyring_vault
+    - choice:
         name: LABEL
         choices:
         - docker
@@ -164,13 +170,13 @@
          values:
           - centos:6
           - centos:7
+          - centos:8
           - i386/centos:6
           - ubuntu:xenial
           - ubuntu:bionic
           - ubuntu:focal
           - debian:stretch
           - debian:buster
-          - roboxes-rhel8
     builders:
     - trigger-builds:
       - project: percona-server-5.7-pipeline

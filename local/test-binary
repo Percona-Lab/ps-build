@@ -31,6 +31,10 @@ if [[ $(rpm --eval %_arch) = "i386" ]] && [[ -f /opt/rh/devtoolset-2/enable ]]; 
     source /opt/rh/devtoolset-2/enable
 fi
 
+if [ -f /usr/bin/yum ]; then
+    RHVER="$(rpm --eval %rhel)"
+fi
+
 OPENSSL_HEADER="/usr/include/openssl/opensslv.h"
 TOKUDB_PLUGIN=$(find $WORKDIR_ABS -type f -name 'ha_tokudb.so')
 HOTBACKUP_LIB=$(find $WORKDIR_ABS -type f -name 'libHotBackup.so')
@@ -175,9 +179,14 @@ if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] &
     process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/small.output" "${WORKDIR_ABS}/small.xml"
 fi
 
-if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
+if [[ ${RHVER} != 6 ]] && [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     if [ -f /usr/bin/yum ]; then
-        sudo mkdir /run/supervisor
+        if [[ ${RHVER} -eq 7 ]]; then
+            source /opt/rh/httpd24/enable
+        fi
+        if [[ ! -d /run/supervisor ]]; then
+            sudo mkdir /run/supervisor
+        fi
         supervisorconfigpath=/etc/supervisord.d/vault.ini
     else
         supervisorconfigpath=/etc/supervisor/conf.d/vault.conf
@@ -188,9 +197,9 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     # Required to initialize everything
     sleep 5
 
-    if [[ ! -z $(supervisorctl status | grep FAILED) ]]; then
+    if [[ ! -z $(sudo supervisorctl status | grep FAILED) ]]; then
         echo Some process have failed:
-        supervisorctl status
+        sudo supervisorctl status
         exit 1
     fi
 
@@ -223,7 +232,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --retry=0 \
         --suite=keyring_vault \
         | tee ${WORKDIR_ABS}/keyring_vault_dev_v1.output || true
-    process_mtr_output "Percona Server - Keyring Vault Dev V1" "${WORKDIR_ABS}/keyring_vault_dev_v1.output.output" "${WORKDIR_ABS}/keyring_vault_dev_v1.output.xml"
+    process_mtr_output "Percona Server - Keyring Vault Dev V1" "${WORKDIR_ABS}/keyring_vault_dev_v1.output" "${WORKDIR_ABS}/keyring_vault_dev_v1.xml"
 
     MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
     MTR_VAULT_TOKEN=${VAULT_V2_DEV_TOKEN} \
@@ -235,7 +244,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --retry=0 \
         --suite=keyring_vault \
         | tee ${WORKDIR_ABS}/keyring_vault_dev_v2.output || true
-    process_mtr_output "Percona Server - Keyring Vault Dev V2" "${WORKDIR_ABS}/keyring_vault_dev_v2.output.output" "${WORKDIR_ABS}/keyring_vault_dev_v2.output.xml"
+    process_mtr_output "Percona Server - Keyring Vault Dev V2" "${WORKDIR_ABS}/keyring_vault_dev_v2.output" "${WORKDIR_ABS}/keyring_vault_dev_v2.xml"
 
 
     echo "Running tests with Hashicorp Vault in Production mode"
@@ -249,7 +258,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --retry=0 \
         --suite=keyring_vault \
         | tee ${WORKDIR_ABS}/keyring_vault_prod_v1.output || true
-    process_mtr_output "Percona Server - Keyring Vault PROD V1" "${WORKDIR_ABS}/keyring_vault_prod_v1.output.output" "${WORKDIR_ABS}/keyring_vault_prod_v1.output.xml"
+    process_mtr_output "Percona Server - Keyring Vault PROD V1" "${WORKDIR_ABS}/keyring_vault_prod_v1.output" "${WORKDIR_ABS}/keyring_vault_prod_v1.xml"
 
     MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
     MTR_VAULT_TOKEN=${VAULT_V2_PROD_TOKEN} \
@@ -261,7 +270,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --retry=0 \
         --suite=keyring_vault \
         | tee ${WORKDIR_ABS}/keyring_vault_prod_v2.output || true
-    process_mtr_output "Percona Server - Keyring Vault PROD V2" "${WORKDIR_ABS}/keyring_vault_prod_v2.output.output" "${WORKDIR_ABS}/keyring_vault_prod_v2.output.xml"
+    process_mtr_output "Percona Server - Keyring Vault PROD V2" "${WORKDIR_ABS}/keyring_vault_prod_v2.output" "${WORKDIR_ABS}/keyring_vault_prod_v2.xml"
 
 fi
 
