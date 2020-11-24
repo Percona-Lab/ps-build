@@ -57,7 +57,7 @@ if [ -f /usr/bin/yum ]; then
     perl-Time-HiRes openldap-devel perl-Env perl-Data-Dumper libicu-devel perl-Sys-MemInfo \
     perl-JSON MySQL-python perl-Digest perl-Digest-MD5 \
     numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan lz4-devel \
-    libzstd-devel tzdata zstd mysql-devel perl-DBI perl-DBD-mysql jq supervisor \
+    libzstd-devel tzdata zstd mysql-devel perl-DBI perl-DBD-mysql jq \
     "
 
     if [[ ${RHVER} -eq 8 ]]; then
@@ -65,11 +65,11 @@ if [ -f /usr/bin/yum ]; then
     fi
 
     if [[ ${RHVER} -eq 7 ]]; then
-        PKGLIST+=" go-toolset-7 libunwind-devel"
+        PKGLIST+=" go-toolset-7 libunwind-devel httpd24-curl"
     fi
 
     if [[ ${RHVER} != 6 ]]; then
-        PKGLIST+=" python3-pip python3-devel"
+        PKGLIST+=" python3-pip python3-devel supervisor"
     fi
 
 # Percona-Server
@@ -114,7 +114,9 @@ if [ -f /usr/bin/yum ]; then
     if [ -f '/anaconda-post.log' ]; then
         rm /anaconda-post.log
     fi
-    mv /tmp/vault_supervisord.ini /etc/supervisord.d/vault.ini
+    if [[ -d /etc/supervisord.d ]]; then
+        mv /tmp/vault_supervisord.ini /etc/supervisord.d/vault.ini
+    fi
 fi
 
 if [ -f /usr/bin/apt-get ]; then
@@ -196,6 +198,19 @@ if [ -f /usr/bin/apt-get ]; then
         rm /usr/bin/python
     fi
     ln -fs /usr/bin/python3 /usr/bin/python
+
+    function set_proper_python_for_supervisor {
+        for file in /usr/bin/supervisord /usr/bin/supervisorctl; do
+            sed -i 's:#!/usr/bin/python:#!/usr/bin/python2:g' $file
+        done
+    }
+
+    if [[ ${DISTRIBUTOR_ID} == Ubuntu ]] && [[ ${DIST} != 'focal' ]]; then
+        set_proper_python_for_supervisor
+    elif [[ ${DISTRIBUTOR_ID} == Debian ]] && [[ ${DIST} != 'buster' ]]; then
+        set_proper_python_for_supervisor
+    fi
+
     mv /tmp/vault_supervisord.ini /etc/supervisor/conf.d/vault.conf
 fi
 
