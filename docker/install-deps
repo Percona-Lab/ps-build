@@ -270,7 +270,9 @@ disable_mlock = true
 listener "tcp" {
   address          = "127.0.0.1:9300"
   cluster_address  = "127.0.0.1:9301"
-  tls_disable      = "true"
+  tls_disable      = "false"
+  tls_cert_file    = "/etc/vault.d-v1-prod/fullchain.pem"
+  tls_key_file     = "/etc/vault.d-v1-prod/privkey.pem" 
 }
 
 storage "consul" {
@@ -278,7 +280,7 @@ storage "consul" {
   path    = "vault-0-prod/"
 }
 
-api_addr = "http://127.0.0.1:9300"
+api_addr = "https://127.0.0.1:9300"
 cluster_addr = "https://127.0.0.1:9301"
 EOF
 
@@ -289,7 +291,9 @@ disable_mlock = true
 listener "tcp" {
   address          = "127.0.0.1:9500"
   cluster_address  = "127.0.0.1:9501"
-  tls_disable      = "true"
+  tls_disable      = "false"
+  tls_cert_file    = "/etc/vault.d-v2-prod/fullchain.pem"
+  tls_key_file     = "/etc/vault.d-v2-prod/privkey.pem" 
 }
 
 storage "consul" {
@@ -297,7 +301,7 @@ storage "consul" {
   path    = "vault-1-prod/"
 }
 
-api_addr = "http://127.0.0.1:9500"
+api_addr = "https://127.0.0.1:9500"
 cluster_addr = "https://127.0.0.1:9501"
 EOF
 
