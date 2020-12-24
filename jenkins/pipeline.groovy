@@ -110,6 +110,10 @@ pipeline {
             defaultValue: '',
             description: 'TokuDB specific mtr args',
             name: 'TOKUDB_ENGINES_MTR_ARGS')
+        choice(
+            choices: 'yes\nno',
+            description: 'Run case-insensetive MTR tests',
+            name: 'CI_FS_MTR')
         string(
             defaultValue: '--unit-tests-report',
             description: 'mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report',
@@ -239,6 +243,15 @@ pipeline {
                                 until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
                                     sleep 5
                                 done
+
+                                if [[ \$CI_FS_MTR == 'yes' ]]; then
+                                    if [[ ! -f /mnt/ci_disk_\$CMAKE_BUILD_TYPE.img ]] && [[ -z \$(mount | grep /mnt/ci_disk_dir_\$CMAKE_BUILD_TYPE) ]]; then
+                                        sudo dd if=/dev/zero of=/mnt/ci_disk_\$CMAKE_BUILD_TYPE.img bs=1G count=10
+                                        sudo /sbin/mkfs.vfat /mnt/ci_disk_\$CMAKE_BUILD_TYPE.img
+                                        sudo mkdir -p /mnt/ci_disk_dir_\$CMAKE_BUILD_TYPE
+                                        sudo mount -o loop -o uid=27 -o gid=27 -o check=r /mnt/ci_disk_\$CMAKE_BUILD_TYPE.img /mnt/ci_disk_dir_\$CMAKE_BUILD_TYPE
+                                    fi                                
+                                fi
 
                                 echo Test: \$(date -u "+%s")
                                 sg docker -c "

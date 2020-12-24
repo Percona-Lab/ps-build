@@ -132,6 +132,12 @@
         name: TOKUDB_ENGINES_MTR_ARGS
         default:
         description: TokuDB specific mtr args
+    - choice:
+        name: CI_FS_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run case-insensetive MTR tests
     - string:
         name: MTR_ARGS
         default: --unit-tests-report

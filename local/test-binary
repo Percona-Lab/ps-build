@@ -195,4 +195,22 @@ if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] &
     process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/small.output" "${WORKDIR_ABS}/small.xml"
 fi
 
+if [[ "${CI_FS_MTR}" = 'yes' ]]; then
+    CI_TESTS=""
+    for CI_TESTS_TMP in $(grep --exclude="*.inc" --exclude="*.log" -rl . -e include/have_case_insensitive_file_system.inc | awk -F '/' '{print $NF}' | sed 's/.test//g'); do
+        CI_TESTS+=" $CI_TESTS_TMP"
+    done
+
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+        --max-test-fail=0 \
+        --parallel=$(nproc) \
+        --retry=0 \
+        --tmpdir="/tmp/ps_mtr_tempdir" \
+        --vardir="/tmp/ci_disk_dir" \
+        ${CI_TESTS} \
+        | tee ${WORKDIR_ABS}/ci_fs.output || true
+    process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/ci_fs.output" "${WORKDIR_ABS}/ci_fs.xml"
+fi
+
 exit $status
