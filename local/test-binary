@@ -206,6 +206,7 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --max-test-fail=0 \
         --parallel=$(nproc) \
         --retry=0 \
+        --big-test \
         --tmpdir="/tmp/ps_mtr_tempdir" \
         --vardir="/tmp/ci_disk_dir" \
         ${CI_TESTS} \
