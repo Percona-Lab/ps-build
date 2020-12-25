@@ -52,16 +52,12 @@
                 stage('Build') {
                     steps {
                         parallel(
-                            "i386/centos:6":  { build('i386/centos:6') },
-                            "centos:6":       { build('centos:6') },
-                            "centos:7":       { build('centos:7') },
-                            "centos:8":       { build('centos:8') },
-                            "ubuntu:artful":  { build('ubuntu:artful') },
-                            "ubuntu:xenial":  { build('ubuntu:xenial') },
+                            "centos:7":  { build('centos:7') },
+                            "centos:8":  { build('centos:8') },
                             "ubuntu:bionic":  { build('ubuntu:bionic') },
-                            "ubuntu:focal":   { build('ubuntu:focal') },
-                            "debian:jessie":  { build('debian:jessie') },
-                            "debian:stretch": { build('debian:stretch') },
+                            "ubuntu:xenial":  { build('ubuntu:xenial') },
+                            "ubuntu:focal":  { build('ubuntu:focal') },
+                            "debian:stretch":  { build('debian:stretch') },
                             "debian:buster":  { build('debian:buster') },
                         )
                     }
