@@ -152,6 +152,12 @@
         - "no"
         description: Run mtr --suite=keyring_vault
     - choice:
+        name: CI_FS_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run case-insensetive MTR tests
+    - choice:
         name: LABEL
         choices:
         - docker
