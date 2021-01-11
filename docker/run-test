@@ -7,16 +7,21 @@ ROOT_DIR=$(cd $(dirname $0)/../sources; pwd -P)
 SCRIPTS_DIR=$(cd $(dirname $0)/../local; pwd -P)
 SOURCE_IMAGE=${1:-centos:7}
 
+if [[ ${CI_FS_MTR} == 'yes' ]]; then
+    CI_FS_DOCKER_FLAG="--mount type=bind,source=/mnt/ci_disk_dir_${CMAKE_BUILD_TYPE},destination=/tmp/ci_disk_dir"
+fi
+
 docker run --rm \
     --security-opt seccomp=unconfined \
     --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
+    ${CI_FS_DOCKER_FLAG} \
     perconalab/ps-build:${SOURCE_IMAGE//[:\/]/-} \
     sh -c "
     set -o errexit
     set -o xtrace
 
-    mkdir /tmp/results
+    mkdir /tmp/results /tmp/ps_mtr_tempdir
     export CMAKE_BUILD_TYPE='${CMAKE_BUILD_TYPE}'
     export ANALYZER_OPTS='${ANALYZER_OPTS}'
     export DEFAULT_TESTING='${DEFAULT_TESTING}'
@@ -27,6 +32,7 @@ docker run --rm \
     export ROCKSDB_ENGINES_MTR_ARGS='${ROCKSDB_ENGINES_MTR_ARGS}'
     export MTR_ARGS='${MTR_ARGS}'
     export MTR_REPEAT='${MTR_REPEAT}'
+    export CI_FS_MTR='${CI_FS_MTR}'
     export MTR_VAULT_TOKEN='${MTR_VAULT_TOKEN}'
     export KEYRING_VAULT_MTR='${KEYRING_VAULT_MTR}'
     export VAULT_V1_DEV_ADDRESS='http://127.0.0.1:9200'
