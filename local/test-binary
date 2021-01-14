@@ -59,35 +59,6 @@ fi
 #
 MTR_ARGS+=" --timestamp --report-unstable-tests"
 #
-##
-function process_mtr_output {
-# parameters are:
-  local TESTSUITE=${1}
-  local INFILE=${2}
-  local OUTFILE=${3}
-  egrep -a -o '[[:alpha:]]+(_[[:alnum:]]+)?(\.\/)?.*\[ .* \].*$' ${INFILE} | sort | \
-  gawk 'BEGIN { print "<testsuite name=\"@@TESTSUITE@@\" tests=\"@@PASSED@@\" failures=\"@@FAILURES@@\" disabled=\"@@DISABLED@@\" skipped=\"@@SKIPPED@@\">" }
-  /\[.*pass \]/ { printf "\t<testcase name=\"%s\" time=\"%.3f\"></testcase>\n", $1, $NF/1000.0 }
-  /\[ disabled \]/ { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1 }
-  /\[ skipped \]/  { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1 }
-  /\[.*fail \]/    { printf "\t<testcase name=\"%s\"><failure/></testcase>\n", $1 }
-  END { print "</testsuite>" }' > ${OUTFILE}.tmp
-  gawk '!seen[$0]++' < ${OUTFILE}.tmp > ${OUTFILE}
-  rm -f ${OUTFILE}.tmp
-#
-  PASSED=$(grep -c 'time=' ${OUTFILE} ||:)
-  FAILURES=$(grep -c '<failure/>' ${OUTFILE} ||:)
-  DISABLED=$(grep -c '\[ disabled \]' ${INFILE} ||:)
-  SKIPPED=$(grep -c '\[ skipped \]' ${INFILE} ||:)
-#
-  sed -i.bak -e "s:@@TESTSUITE@@:${TESTSUITE}:g" ${OUTFILE}
-  sed -i.bak -e "s:@@PASSED@@:${PASSED}:g" ${OUTFILE}
-  sed -i.bak -e "s:@@FAILURES@@:${FAILURES}:g" ${OUTFILE}
-  sed -i.bak -e "s:@@DISABLED@@:${DISABLED}:g" ${OUTFILE}
-  sed -i.bak -e "s:@@SKIPPED@@:${SKIPPED}:g" ${OUTFILE}
-  sed -i.bak -e "s: \[::g" ${OUTFILE}
-}
-
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
   MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
   [[ ${OPENSSL_VER} < '1.0.2' ]] && export OPENSSL_ia32cap=~0x200000000000000
