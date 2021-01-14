@@ -31,7 +31,7 @@ docker run --rm \
     export MTR_REPEAT='${MTR_REPEAT}'
     export MTR_VAULT_TOKEN='${MTR_VAULT_TOKEN}'
     export CI_FS_MTR='${CI_FS_MTR}'
-    export DOCKER_OS='${DOCKER_OS}'
+    export DOCKER_OS='${DOCKER_OS//:/-}'
 
     mkdir /tmp/results /tmp/ps_mtr_tempdir
     cp /tmp/ps/results/*.tar.gz /tmp/results
