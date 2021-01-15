@@ -101,7 +101,7 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
         --junit-output=${WORKDIR_ABS}/junit.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.main" \
         || true
 fi
 #
@@ -118,7 +118,7 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
       --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
       --suite tokudb.backup \
       --junit-output=${WORKDIR_ABS}/junit_tokudb_hotbackup.xml \
-      --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" \
+      --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb_hotbackup" \
       || true
 fi
 
@@ -138,7 +138,7 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
             --junit-output=${WORKDIR_ABS}/junit_tokudb.xml \
-            --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
+            --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb" || true
 fi
 
 # if all tests are disabled, run only one small test to prevent test stage issue and perform simle test of binary file
@@ -148,7 +148,7 @@ if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] &
         --max-test-fail=0 \
         main.1st \
         --junit-output=${WORKDIR_ABS}/small.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.small" || true
 fi
 
 exit $status
