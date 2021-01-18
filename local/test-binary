@@ -212,8 +212,7 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --tmpdir="/tmp/ps_mtr_tempdir" \
         --vardir="/tmp/ci_disk_dir" \
         ${CI_TESTS} \
-        | tee ${WORKDIR_ABS}/ci_fs.output || true
-    process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/ci_fs.output" "${WORKDIR_ABS}/ci_fs.xml"
+        --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml || true
 fi
 
 exit $status
