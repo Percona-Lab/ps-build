@@ -165,7 +165,7 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --suite tokudb_backup \
         --junit-output=${WORKDIR_ABS}/junit_tokudb_hotbackup.xml \
-        || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
 fi
 #
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
@@ -216,7 +216,8 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --tmpdir="/tmp/ps_mtr_tempdir" \
         --vardir="/tmp/ci_disk_dir" \
         ${CI_TESTS} \
-        --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml || true
+        --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
 fi
 
 exit $status
