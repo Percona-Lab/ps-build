@@ -147,7 +147,7 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --suite tokudb.backup \
         --junit-output=${WORKDIR_ABS}/junit_tokudb_hotbackup.xml \
-        || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
 fi
 
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
@@ -194,7 +194,8 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --tmpdir="/tmp/ps_mtr_tempdir" \
         --vardir="/tmp/ci_disk_dir" \
         ${CI_TESTS} \
-        --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml || true
+        --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
 fi
 
 if [[ ${RHVER} != 6 ]] && [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
@@ -262,7 +263,8 @@ if [[ ${RHVER} != 6 ]] && [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --parallel=$(nproc) \
         --retry=0 \
         --suite=keyring_vault \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v1.xml || true
+        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v1.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
 
     MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
     MTR_VAULT_TOKEN=${VAULT_V2_DEV_TOKEN} \
@@ -273,7 +275,8 @@ if [[ ${RHVER} != 6 ]] && [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --parallel=$(nproc) \
         --retry=0 \
         --suite=keyring_vault \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v2.xml || true
+        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v2.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
 
     echo "Running tests with Hashicorp Vault in Production mode"
     MTR_VAULT_ADDRESS=${VAULT_V1_PROD_ADDRESS} \
@@ -286,7 +289,8 @@ if [[ ${RHVER} != 6 ]] && [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --parallel=$(nproc) \
         --retry=0 \
         --suite=keyring_vault \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v1.xml || true
+        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v1.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
 
     MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
     MTR_VAULT_TOKEN=${VAULT_V2_PROD_TOKEN} \
@@ -298,7 +302,8 @@ if [[ ${RHVER} != 6 ]] && [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         --parallel=$(nproc) \
         --retry=0 \
         --suite=keyring_vault \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v2.xml || true
+        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v2.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}" || true
 fi
 
 exit $status
