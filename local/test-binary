@@ -119,8 +119,7 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
         --junit-output=${WORKDIR_ABS}/junit.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.main" \
-        || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.main" || true
 fi
 #
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
