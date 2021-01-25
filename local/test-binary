@@ -169,109 +169,69 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true
 fi
 
-if [[ ${RHVER} != 6 ]] && [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
+if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[ ${DOCKER_OS} != 'i386/centos-6' ]]; then
     if [ -f /usr/bin/yum ]; then
-        if [[ ${RHVER} -eq 7 ]]; then
+        if [[ -f /opt/rh/httpd24/enable ]]; then
             source /opt/rh/httpd24/enable
         fi
-        if [[ ! -d /run/supervisor ]]; then
-            sudo mkdir /run/supervisor
-        fi
-        supervisorconfigpath=/etc/supervisord.d/vault.ini
-    else
-        supervisorconfigpath=/etc/supervisor/conf.d/vault.conf
     fi
-    sudo sed -i "s@devtoken1@${VAULT_V1_DEV_TOKEN}@g; s@devtoken2@${VAULT_V2_DEV_TOKEN}@g" $supervisorconfigpath
-
-    # Prepare CAs and certs for both vaults
-    echo subjectAltName = IP:127.0.0.1 > /tmp/extfile.cnf
-    for VER in v1 v2; do
-        sudo openssl genrsa -out /etc/vault.d-$VER-prod/ca.key 2048
-        sudo openssl req -new -x509 -nodes -days 31 -subj "/CN=VAULT CA" -key /etc/vault.d-$VER-prod/ca.key -out /etc/vault.d-$VER-prod/ca.pem
-        sudo openssl req -newkey rsa:2048 -subj "/CN=VAULT CERT" -nodes -keyout /etc/vault.d-$VER-prod/privkey.pem -out /etc/vault.d-$VER-prod/server-req.pem
-        sudo openssl x509 -req -in /etc/vault.d-$VER-prod/server-req.pem -days 31 -CA /etc/vault.d-$VER-prod/ca.pem -CAkey /etc/vault.d-$VER-prod/ca.key -set_serial 01 -out /etc/vault.d-$VER-prod/fullchain.pem -extfile /tmp/extfile.cnf
-        cat /etc/vault.d-$VER-prod/ca.pem | sudo tee -a /etc/vault.d-$VER-prod/fullchain.pem
-        sudo chown -R vault-$VER-prod:vault-$VER-prod /etc/vault.d-$VER-prod
-        sudo install --owner=mysql /etc/vault.d-$VER-prod/ca.pem ${WORKDIR_ABS}/PS/mysql-test/vault-$VER-ca.pem
-    done
-
-    sudo supervisord
-
-    # Required to initialize everything
-    sleep 5
-
-    if [[ ! -z $(sudo supervisorctl status | grep FAILED) ]]; then
-        echo Some process have failed:
-        sudo supervisorctl status
-        exit 1
-    fi
-
-    VAULT_V1_PROD_KEYS="$(/usr/local/bin/vault.v1 operator init -address='https://127.0.0.1:9300' -ca-cert=${WORKDIR_ABS}/PS/mysql-test/vault-v1-ca.pem)"
-    VAULT_V2_PROD_KEYS="$(/usr/local/bin/vault.v2 operator init -address='https://127.0.0.1:9500' -ca-cert=${WORKDIR_ABS}/PS/mysql-test/vault-v2-ca.pem)"
-
-    VAULT_V1_PROD_UNSEAL_KEYS=$(echo "$VAULT_V1_PROD_KEYS" | grep 'Unseal Key' | awk -F ':' '{print $2}')
-    VAULT_V2_PROD_UNSEAL_KEYS=$(echo "$VAULT_V2_PROD_KEYS" | grep 'Unseal Key' | awk -F ':' '{print $2}')
-    VAULT_V1_PROD_TOKEN=$(echo "$VAULT_V1_PROD_KEYS" | grep 'Initial Root Token' | awk -F ':' '{print $2}' | xargs)
-    VAULT_V2_PROD_TOKEN=$(echo "$VAULT_V2_PROD_KEYS" | grep 'Initial Root Token' | awk -F ':' '{print $2}' | xargs)
-
-    for key in $VAULT_V1_PROD_UNSEAL_KEYS; do
-        /usr/local/bin/vault.v1 operator unseal -address='https://127.0.0.1:9300' -ca-cert=${WORKDIR_ABS}/PS/mysql-test/vault-v1-ca.pem $key
-        sleep 1
-    done
-    
-    for key in $VAULT_V2_PROD_UNSEAL_KEYS; do
-        /usr/local/bin/vault.v2 operator unseal -address='https://127.0.0.1:9500' -ca-cert=${WORKDIR_ABS}/PS/mysql-test/vault-v2-ca.pem $key
-        sleep 1
-    done
 
     echo "Running tests with Hashicorp Vault in Dev mode"
     MTR_VAULT_ADDRESS=${VAULT_V1_DEV_ADDRESS} \
-    MTR_VAULT_TOKEN=${VAULT_V1_DEV_TOKEN} \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_DEV_TOKEN} \
+    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_DEV_MTR_TOKEN} \
     MTR_VAULT_VERSION=1 \
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
         --parallel=$(nproc) \
         --retry=0 \
+        --big-test \
         --suite=keyring_vault \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v1.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1" || true
 
     MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
-    MTR_VAULT_TOKEN=${VAULT_V2_DEV_TOKEN} \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_DEV_TOKEN} \
+    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_DEV_MTR_TOKEN} \
     MTR_VAULT_VERSION=2 \
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
         --parallel=$(nproc) \
         --retry=0 \
+        --big-test \
         --suite=keyring_vault \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v2.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v2" || true
 
     echo "Running tests with Hashicorp Vault in Production mode"
     MTR_VAULT_ADDRESS=${VAULT_V1_PROD_ADDRESS} \
-    MTR_VAULT_TOKEN=${VAULT_V1_PROD_TOKEN} \
-    MTR_VAULT_CA="${WORKDIR_ABS}/PS/mysql-test/vault-v1-ca.pem" \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_PROD_ROOT_TOKEN} \
+    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_PROD_MTR_TOKEN} \
+    MTR_VAULT_CA="${WORKDIR_ABS}/vault-prod-v1-ca.pem" \
     MTR_VAULT_VERSION=1 \
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
         --parallel=$(nproc) \
         --retry=0 \
+        --big-test \
         --suite=keyring_vault \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v1.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v1" || true
 
     MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
-    MTR_VAULT_TOKEN=${VAULT_V2_PROD_TOKEN} \
-    MTR_VAULT_CA="${WORKDIR_ABS}/PS/mysql-test/vault-v2-ca.pem" \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_PROD_ROOT_TOKEN} \
+    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_PROD_MTR_TOKEN} \
+    MTR_VAULT_CA="${WORKDIR_ABS}/vault-prod-v2-ca.pem" \
     MTR_VAULT_VERSION=2 \
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
         --parallel=$(nproc) \
         --retry=0 \
+        --big-test \
         --suite=keyring_vault \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v2.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
