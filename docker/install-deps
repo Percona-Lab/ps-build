@@ -51,7 +51,7 @@ if [ -f /usr/bin/yum ]; then
       PKGLIST+=" libedit-devel"
   fi
 
-  if [[ ${RHVER} -lt 8 ]]; then
+  if [[ ${RHVER} -lt 8 ]] && [[ "$(rpm --eval %{_arch})" == "x86_64" ]]; then
     until yum -y install centos-release-scl; do
       echo "waiting"
       sleep 1

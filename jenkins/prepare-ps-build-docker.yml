@@ -52,6 +52,7 @@
                 stage('Build') {
                     steps {
                         parallel(
+                            "i386/centos:6":  { build('i386/centos:6') },
                             "centos:6":  { build('centos:6') },
                             "centos:7":  { build('centos:7') },
                             "centos:8":  { build('centos:8') },
