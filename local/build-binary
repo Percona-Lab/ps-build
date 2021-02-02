@@ -72,19 +72,14 @@ if [[ ${WITH_BORINGSSL} == "true" ]]; then
     cd boringssl_sources/bin
     if [[ -f /etc/redhat-release ]]; then
         RHVER="$(rpm --eval %rhel)"
-        case "${RHVER}" in
-            7|8)
-                if [[ ${RHVER} == 7 ]]; then
-                    source /opt/rh/go-toolset-7/enable
-                fi
-                source /opt/rh/devtoolset-8/enable
-                BORING_SSL_CMAKE=/usr/bin/cmake3
-            ;;
-            6) echo "Unsupported CentOS version" && exit 1 ;;
-        esac
+        if [[ ${RHVER} == 7 ]]; then
+            source /opt/rh/go-toolset-7/enable
+        fi
+        BORING_SSL_CMAKE=/usr/bin/cmake3
     else
         BORING_SSL_CMAKE=/usr/bin/cmake
     fi
+    export GOCACHE="/tmp/boring_ssl_cache"
     ${BORING_SSL_CMAKE} .. -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_C_FLAGS="-fPIC"
     if make -j$(nproc); then
         mkdir -p ${WORKDIR}/boringssl_bin/lib
@@ -96,6 +91,7 @@ if [[ ${WITH_BORINGSSL} == "true" ]]; then
         echo "BoringSSL compilation failed."
         exit 1
     fi
+    unset GOCACHE
 fi
 
 # ------------------------------------------------------------------------------
