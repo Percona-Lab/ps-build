@@ -81,7 +81,7 @@ if [ -f /usr/bin/yum ]; then
     "
 
     if [[ ${RHVER} -eq 8 ]]; then
-        PKGLIST+=" lz4 perl-Memoize perl-open valgrind-devel libubsan rpcgen libtirpc-devel golang libunwind-devel python2 python3"
+        PKGLIST+=" lz4 perl-Memoize perl-open valgrind-devel libubsan rpcgen libtirpc-devel golang libunwind-devel python2 python3 libatomic"
     fi
 
     if [[ ${RHVER} -eq 7 ]]; then
