@@ -113,7 +113,7 @@ if [ -f /usr/bin/yum ]; then
         PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel devtoolset-7-libatomic-devel"
         PKGLIST+=" devtoolset-8-gcc-c++ devtoolset-8-binutils"
         PKGLIST+=" devtoolset-8-libasan-devel devtoolset-8-libubsan-devel"
-        PKGLIST+=" devtoolset-8-valgrind devtoolset-8-valgrind-devel perl-Digest-Perl-MD5 libedit-devel"
+        PKGLIST+=" devtoolset-8-valgrind devtoolset-8-valgrind-devel devtoolset-8-libatomic-devel perl-Digest-Perl-MD5 libedit-devel"
     fi
 
     until yum -y install ${PKGLIST} ; do
