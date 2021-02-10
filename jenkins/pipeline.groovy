@@ -124,6 +124,16 @@ pipeline {
             choices: 'yes\nno',
             description: 'Run mtr --suite=keyring_vault',
             name: 'KEYRING_VAULT_MTR')
+        string(
+            defaultValue: '0.9.6',
+            description: 'Specifies version of Hashicorp Vault for V1 tests',
+            name: 'KEYRING_VAULT_V1_VERSION'
+        )
+        string(
+            defaultValue: '1.6.2',
+            description: 'Specifies version of Hashicorp Vault for V2 tests',
+            name: 'KEYRING_VAULT_V2_VERSION'
+        )
         choice(
             choices: 'yes\nno',
             description: 'Run case-insensetive MTR tests',

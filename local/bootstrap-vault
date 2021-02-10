@@ -81,14 +81,6 @@ cat <<-EOF | tee /tmp/vault.d-${ALIAS}-prod/policies/mtr.hcl
 path "mtr/*" {
   capabilities = ["create", "read", "update", "delete", "list"]
 }
-
-path "sys/mounts" {
-    capabilities = ["read", "list"]
-}
-
-path "sys/mounts/*" {
-    capabilities = ["read", "list"]
-}
 EOF
     return
 }
@@ -98,14 +90,6 @@ function prepare_dev_env {
 cat <<-EOF | tee /tmp/vault.d-${ALIAS}-dev/policies/mtr.hcl
 path "mtr/*" {
   capabilities = ["create", "read", "update", "delete", "list"]
-}
-
-path "sys/mounts" {
-    capabilities = ["read", "list"]
-}
-
-path "sys/mounts/*" {
-    capabilities = ["read", "list"]
 }
 EOF
 }

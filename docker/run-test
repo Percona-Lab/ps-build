@@ -17,20 +17,19 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]] && [[ ${DOCKER_OS} != 'centos:6' ]] && 
     fi
 
     # Bootstrap dev mode vault instances
-    BOOTSTRAP_DEV_V1="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=dev --version="0.9.6" --alias=v1 --port="9200" --devtoken=${VAULT_V1_DEV_TOKEN})"
+    BOOTSTRAP_DEV_V1="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=dev --version="${KEYRING_VAULT_V1_VERSION}" --alias=v1 --port="9200" --devtoken=${VAULT_V1_DEV_TOKEN})"
     export VAULT_V1_DEV_MTR_TOKEN=$(echo "$BOOTSTRAP_DEV_V1" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
 
-    BOOTSTRAP_DEV_V2="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=dev --version="1.5.4" --alias=v2 --port="9400" --devtoken=${VAULT_V2_DEV_TOKEN})"
+    BOOTSTRAP_DEV_V2="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=dev --version="${KEYRING_VAULT_V2_VERSION}" --alias=v2 --port="9400" --devtoken=${VAULT_V2_DEV_TOKEN})"
     export VAULT_V2_DEV_MTR_TOKEN=$(echo "$BOOTSTRAP_DEV_V2" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
 
     # Bootstrap prod mode vault instances
-    BOOTSTRAP_PROD_V1="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=prod --version="0.9.6" --alias=v1 --port="9300")"
+    BOOTSTRAP_PROD_V1="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=prod --version="${KEYRING_VAULT_V1_VERSION}" --alias=v1 --port="9300")"
     export VAULT_V1_PROD_ROOT_TOKEN=$(echo "$BOOTSTRAP_PROD_V1" | grep "Production token" | awk -F ':' '{print $2}' | xargs)
     export VAULT_V1_PROD_MTR_TOKEN=$(echo "$BOOTSTRAP_PROD_V1" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
     sudo install --owner=27 --group=27 /tmp/vault.d-v1-prod/ssl/ca.pem $ROOT_DIR/vault-prod-v1-ca.pem
 
-
-    BOOTSTRAP_PROD_V2="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=prod --version="1.5.4" --alias=v2 --port="9500")"
+    BOOTSTRAP_PROD_V2="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=prod --version="${KEYRING_VAULT_V2_VERSION}" --alias=v2 --port="9500")"
     export VAULT_V2_PROD_ROOT_TOKEN=$(echo "$BOOTSTRAP_PROD_V2" | grep "Production token" | awk -F ':' '{print $2}' | xargs)
     export VAULT_V2_PROD_MTR_TOKEN=$(echo "$BOOTSTRAP_PROD_V2" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
     sudo install --owner=27 --group=27 /tmp/vault.d-v2-prod/ssl/ca.pem $ROOT_DIR/vault-prod-v2-ca.pem
