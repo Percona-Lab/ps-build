@@ -11,11 +11,38 @@ if [[ ${CI_FS_MTR} == 'yes' ]]; then
     CI_FS_DOCKER_FLAG="--mount type=bind,source=/mnt/ci_disk_dir_${CMAKE_BUILD_TYPE},destination=/tmp/ci_disk_dir"
 fi
 
+if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]] && [[ ${DOCKER_OS} != 'centos:6' ]] && [[ ${DOCKER_OS} != 'i386/centos:6' ]]; then
+    if [[ $(docker network list | grep bridge-vault) != *bridge-vault* ]]; then
+        docker network create bridge-vault
+    fi
+
+    # Bootstrap dev mode vault instances
+    BOOTSTRAP_DEV_V1="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=dev --version="${KEYRING_VAULT_V1_VERSION}" --alias=v1 --port="9200" --devtoken=${VAULT_V1_DEV_TOKEN})"
+    export VAULT_V1_DEV_MTR_TOKEN=$(echo "$BOOTSTRAP_DEV_V1" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
+
+    BOOTSTRAP_DEV_V2="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=dev --version="${KEYRING_VAULT_V2_VERSION}" --alias=v2 --port="9400" --devtoken=${VAULT_V2_DEV_TOKEN})"
+    export VAULT_V2_DEV_MTR_TOKEN=$(echo "$BOOTSTRAP_DEV_V2" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
+
+    # Bootstrap prod mode vault instances
+    BOOTSTRAP_PROD_V1="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=prod --version="${KEYRING_VAULT_V1_VERSION}" --alias=v1 --port="9300")"
+    export VAULT_V1_PROD_ROOT_TOKEN=$(echo "$BOOTSTRAP_PROD_V1" | grep "Production token" | awk -F ':' '{print $2}' | xargs)
+    export VAULT_V1_PROD_MTR_TOKEN=$(echo "$BOOTSTRAP_PROD_V1" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
+    sudo install --owner=27 --group=27 /tmp/vault.d-v1-prod/ssl/ca.pem $ROOT_DIR/vault-prod-v1-ca.pem
+
+    BOOTSTRAP_PROD_V2="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=prod --version="${KEYRING_VAULT_V2_VERSION}" --alias=v2 --port="9500")"
+    export VAULT_V2_PROD_ROOT_TOKEN=$(echo "$BOOTSTRAP_PROD_V2" | grep "Production token" | awk -F ':' '{print $2}' | xargs)
+    export VAULT_V2_PROD_MTR_TOKEN=$(echo "$BOOTSTRAP_PROD_V2" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
+    sudo install --owner=27 --group=27 /tmp/vault.d-v2-prod/ssl/ca.pem $ROOT_DIR/vault-prod-v2-ca.pem
+
+    VAULT_DOCKER_FLAG="--network bridge-vault"
+fi
+
 docker run --rm \
     --security-opt seccomp=unconfined \
     --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
     ${CI_FS_DOCKER_FLAG} \
+    ${VAULT_DOCKER_FLAG} \
     perconalab/ps-build:${SOURCE_IMAGE//[:\/]/-} \
     sh -c "
     set -o errexit
@@ -35,14 +62,22 @@ docker run --rm \
     export CI_FS_MTR='${CI_FS_MTR}'
     export MTR_VAULT_TOKEN='${MTR_VAULT_TOKEN}'
     export KEYRING_VAULT_MTR='${KEYRING_VAULT_MTR}'
-    export VAULT_V1_DEV_ADDRESS='http://127.0.0.1:9200'
-    export VAULT_V1_PROD_ADDRESS='https://127.0.0.1:9300'
-    export VAULT_V2_DEV_ADDRESS='http://127.0.0.1:9400'
-    export VAULT_V2_PROD_ADDRESS='https://127.0.0.1:9500'
+    export VAULT_V1_DEV_ADDRESS='http://vault-dev-v1:9200'
+    export VAULT_V2_DEV_ADDRESS='http://vault-dev-v2:9400'
+    export VAULT_V1_PROD_ADDRESS='https://vault-prod-v1:9300'
+    export VAULT_V2_PROD_ADDRESS='https://vault-prod-v2:9500'
     export VAULT_V1_DEV_TOKEN='${VAULT_V1_DEV_TOKEN}'
     export VAULT_V2_DEV_TOKEN='${VAULT_V2_DEV_TOKEN}'
+    export VAULT_V1_DEV_MTR_TOKEN='${VAULT_V1_DEV_MTR_TOKEN}'
+    export VAULT_V2_DEV_MTR_TOKEN='${VAULT_V2_DEV_MTR_TOKEN}'
+    export VAULT_V1_PROD_ROOT_TOKEN='${VAULT_V1_PROD_ROOT_TOKEN}'
+    export VAULT_V2_PROD_ROOT_TOKEN='${VAULT_V2_PROD_ROOT_TOKEN}'
+    export VAULT_V1_PROD_MTR_TOKEN='${VAULT_V1_PROD_MTR_TOKEN}'
+    export VAULT_V2_PROD_MTR_TOKEN='${VAULT_V2_PROD_MTR_TOKEN}'
+
     export DOCKER_OS='${DOCKER_OS//:/-}'
 
+    mv /tmp/ps/*.pem /tmp/results || true
     cp /tmp/ps/results/*.tar.gz /tmp/results
 
     bash -x /tmp/scripts/test-binary /tmp/results

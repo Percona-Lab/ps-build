@@ -169,6 +169,14 @@
         - "yes"
         - "no"
         description: Run mtr --suite=keyring_vault
+    - string:
+        name: KEYRING_VAULT_V1_VERSION
+        default: "0.9.6"
+        description: Specifies version of Hashicorp Vault for V1 tests
+    - string:
+        name: KEYRING_VAULT_V2_VERSION
+        default: "1.6.2"
+        description: Specifies version of Hashicorp Vault for V2 tests
     - choice:
         name: CI_FS_MTR
         choices:

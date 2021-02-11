@@ -124,6 +124,16 @@ pipeline {
             choices: 'yes\nno',
             description: 'Run mtr --suite=keyring_vault',
             name: 'KEYRING_VAULT_MTR')
+        string(
+            defaultValue: '0.9.6',
+            description: 'Specifies version of Hashicorp Vault for V1 tests',
+            name: 'KEYRING_VAULT_V1_VERSION'
+        )
+        string(
+            defaultValue: '1.6.2',
+            description: 'Specifies version of Hashicorp Vault for V2 tests',
+            name: 'KEYRING_VAULT_V2_VERSION'
+        )
         choice(
             choices: 'yes\nno',
             description: 'Run case-insensetive MTR tests',
@@ -240,6 +250,8 @@ pipeline {
                                 sleep 5
                             done
 
+                            sudo yum -y install jq
+
                             if [[ \$CI_FS_MTR == 'yes' ]]; then
                                 if [[ ! -f /mnt/ci_disk_\$CMAKE_BUILD_TYPE.img ]] && [[ -z \$(mount | grep /mnt/ci_disk_dir_\$CMAKE_BUILD_TYPE) ]]; then
                                     sudo dd if=/dev/zero of=/mnt/ci_disk_\$CMAKE_BUILD_TYPE.img bs=1G count=10
@@ -253,6 +265,7 @@ pipeline {
                             sg docker -c "
                                 if [ \$(docker ps -q | wc -l) -ne 0 ]; then
                                     docker ps -q | xargs docker stop --time 1 || :
+                                    docker rm --force consul vault-prod-v{1..2} vault-dev-v{1..2} || :
                                 fi
                                 ulimit -a
                                 ./docker/run-test ${DOCKER_OS}

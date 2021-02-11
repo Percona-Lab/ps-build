@@ -1,0 +1,140 @@
+#!/bin/bash
+
+usage () {
+    cat <<EOF
+Usage: $0 [OPTIONS]
+    The following options may be given :
+        --mode              Specify in which mode Vault will run
+        --version           Specify version of Vault
+        --port              Specify Port of Vault
+        --devtoken          Specify desired ROOT token for Vault in DEV mode
+        --alias             Specify version alias
+        --help) usage ;;
+Example $0 --mode=dev --version=0.9.6
+EOF
+        exit 1
+}
+
+parse_arguments() {
+    pick_args=
+    if test "$1" = PICK-ARGS-FROM-ARGV
+    then
+        pick_args=1
+        shift
+    fi
+
+    for arg do
+        val=$(echo "$arg" | sed -e 's;^--[^=]*=;;')
+        case "$arg" in
+            # these get passed explicitly to mysqld
+            --mode=*) MODE="$val" ;;
+            --version=*) VERSION="$val" ;;
+            --port=*) PORT="$val" ;;
+            --devtoken=*) DEVTOKEN="$val" ;;
+            --alias=*) ALIAS="$val" ;;
+            --help) usage ;;
+            *) usage ;;
+        esac
+    done
+}
+
+function prepare_consul {
+    docker run -d --name=consul --hostname=consul --net bridge-vault -e 'CONSUL_LOCAL_CONFIG={"skip_leave_on_interrupt": true}' consul agent -server -bind=0.0.0.0 -client=0.0.0.0 -alt-domain=consul -retry-join=127.0.0.1 -bootstrap-expect=1
+    return
+}
+
+function prepare_prod_env {
+    local cluster_addr_port=${1:-}
+    mkdir -p /tmp/vault.d-${ALIAS}-prod/ /tmp/vault.d-${ALIAS}-prod/policies /tmp/vault.d-${ALIAS}-prod/ssl
+
+    # Generate SSL CA and CRT + KEY for TLS
+    echo subjectAltName = DNS:vault-prod-${ALIAS} > /tmp/extfile.cnf
+    openssl genrsa -out /tmp/vault.d-${ALIAS}-prod/ssl/ca.key 2048
+    openssl req -new -x509 -nodes -days 31 -subj "/CN=VAULT CA" -key /tmp/vault.d-${ALIAS}-prod/ssl/ca.key -out /tmp/vault.d-${ALIAS}-prod/ssl/ca.pem
+    openssl req -newkey rsa:2048 -subj "/CN=VAULT CERT" -nodes -keyout /tmp/vault.d-${ALIAS}-prod/ssl/privkey.pem -out /tmp/vault.d-${ALIAS}-prod/ssl/server-req.pem
+    openssl x509 -req -in /tmp/vault.d-${ALIAS}-prod/ssl/server-req.pem -days 31 -CA /tmp/vault.d-${ALIAS}-prod/ssl/ca.pem -CAkey /tmp/vault.d-${ALIAS}-prod/ssl/ca.key -set_serial 01 -out /tmp/vault.d-${ALIAS}-prod/ssl/fullchain.pem -extfile /tmp/extfile.cnf
+    cat /tmp/vault.d-${ALIAS}-prod/ssl/ca.pem | tee -a /tmp/vault.d-${ALIAS}-prod/ssl/fullchain.pem
+
+    # Place config files
+cat <<-EOF | tee /tmp/vault.d-${ALIAS}-prod/config.hcl
+disable_cache = true
+disable_mlock = true
+
+listener "tcp" {
+  address          = "vault-prod-${ALIAS}:${PORT}"
+  cluster_address  = "vault-prod-${ALIAS}:${cluster_addr_port}"
+  tls_disable      = "false"
+  tls_cert_file    = "/etc/vault.d/ssl/fullchain.pem"
+  tls_key_file     = "/etc/vault.d/ssl/privkey.pem" 
+}
+
+storage "consul" {
+  address = "consul:8500"
+  path    = "vault-${ALIAS}-prod/"
+}
+
+api_addr = "https://vault-prod-${ALIAS}:${PORT}"
+cluster_addr = "https://vault-prod-${ALIAS}:${cluster_addr_port}"
+EOF
+
+cat <<-EOF | tee /tmp/vault.d-${ALIAS}-prod/policies/mtr.hcl
+path "mtr/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+EOF
+    return
+}
+
+function prepare_dev_env {
+    mkdir -p /tmp/vault.d-${ALIAS}-dev/ /tmp/vault.d-${ALIAS}-dev/policies
+cat <<-EOF | tee /tmp/vault.d-${ALIAS}-dev/policies/mtr.hcl
+path "mtr/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+EOF
+}
+
+function main {
+    if [[ ${MODE} == "prod" ]]; then
+        if [[ $(docker ps -f 'name=consul') != *consul* ]]; then
+            if ! prepare_consul; then
+                echo "Consul bootstrap failed."
+                exit 1
+            fi
+        fi
+        prepare_prod_env $(($(echo ${PORT}) + 1))
+        docker run --cap-add=IPC_LOCK -d --name=vault-prod-${ALIAS} --hostname=vault-prod-${ALIAS} --net bridge-vault -v /tmp/vault.d-${ALIAS}-prod:/etc/vault.d vault:${VERSION} server -config=/etc/vault.d/config.hcl
+        sleep 10
+        VAULT_PROD_KEYS="$(docker exec -e VAULT_ADDR="https://vault-prod-${ALIAS}:${PORT}" -e VAULT_CACERT="/etc/vault.d/ssl/ca.pem" -t vault-prod-${ALIAS} vault operator init -format=json)"
+        VAULT_PROD_UNSEAL_KEYS=$(echo "$VAULT_PROD_KEYS" | jq '.unseal_keys_b64' | awk -F '"' '{print $2}' | xargs)
+        VAULT_PROD_TOKEN=$(echo "$VAULT_PROD_KEYS" | jq -r '.root_token')
+
+        for key in $VAULT_PROD_UNSEAL_KEYS; do
+            docker exec -e VAULT_ADDR="https://vault-prod-${ALIAS}:${PORT}" -e VAULT_CACERT="/etc/vault.d/ssl/ca.pem" -t vault-prod-${ALIAS} vault operator unseal "$key"
+            sleep 1
+        done
+
+        docker exec -e VAULT_TOKEN=${VAULT_PROD_TOKEN} -e VAULT_ADDR="https://vault-prod-${ALIAS}:${PORT}" -e VAULT_CACERT="/etc/vault.d/ssl/ca.pem" -t vault-prod-${ALIAS} vault policy write mtr /etc/vault.d/policies/mtr.hcl
+        MTR_TOKEN_TMP=$(docker exec -e VAULT_TOKEN=${VAULT_PROD_TOKEN} -e VAULT_ADDR="https://vault-prod-${ALIAS}:${PORT}" -e VAULT_CACERT="/etc/vault.d/ssl/ca.pem" -t vault-prod-${ALIAS} vault token create -no-default-policy -format=json -policy=mtr)
+        VAULT_MTR_TOKEN=$(echo $MTR_TOKEN_TMP | jq -r '.auth.client_token')
+        echo "Production token: ${VAULT_PROD_TOKEN}"
+        echo "MTR token: ${VAULT_MTR_TOKEN}"
+    else
+        prepare_dev_env
+        docker run --cap-add=IPC_LOCK -d --name=vault-dev-${ALIAS} --hostname=vault-dev-${ALIAS} --net bridge-vault -v /tmp/vault.d-${ALIAS}-dev:/etc/vault.d vault:${VERSION} server -dev -dev-listen-address=vault-dev-${ALIAS}:${PORT} -dev-root-token-id=${DEVTOKEN}
+        sleep 3
+        docker exec -e VAULT_TOKEN=${DEVTOKEN} -e VAULT_ADDR="http://vault-dev-${ALIAS}:${PORT}" -t vault-dev-${ALIAS} vault policy write mtr /etc/vault.d/policies/mtr.hcl
+        MTR_TOKEN_TMP=$(docker exec -e VAULT_TOKEN=${DEVTOKEN} -e VAULT_ADDR="http://vault-dev-${ALIAS}:${PORT}" -t vault-dev-${ALIAS} vault token create -no-default-policy -format=json -policy=mtr)
+        VAULT_MTR_TOKEN=$(echo $MTR_TOKEN_TMP | jq -r '.auth.client_token')
+        echo "MTR token: ${VAULT_MTR_TOKEN}"
+    fi
+}
+
+MODE=dev
+VERSION=0.9.6
+DEVTOKEN="devtoken"
+ALIAS=v1
+PORT="9200"
+parse_arguments PICK-ARGS-FROM-ARGV "$@"
+
+main
