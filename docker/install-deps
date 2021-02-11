@@ -99,7 +99,7 @@ if [ -f /usr/bin/yum ]; then
         PKGLIST+=" devtoolset-2-gcc-c++ devtoolset-2-binutils"
         PKGLIST+=" devtoolset-2-libasan-devel"
         PKGLIST+=" devtoolset-2-valgrind devtoolset-2-valgrind-devel"
-        PKGLIST+=" libevent2-devel"
+        PKGLIST+=" libevent2-devel python-argparse"
     fi
 
     if [[ ${RHVER} -gt 6 ]]; then
