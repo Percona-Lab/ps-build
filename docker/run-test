@@ -16,7 +16,7 @@ docker run --rm \
     --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
     ${CI_FS_DOCKER_FLAG} \
-    perconalab/ps-build:${SOURCE_IMAGE//[:\/]/-} \
+    public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE//[:\/]/-} \
     sh -c "
     set -o errexit
     set -o xtrace
