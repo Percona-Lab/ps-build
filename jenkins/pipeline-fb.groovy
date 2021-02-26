@@ -1,4 +1,4 @@
-pipeline_timeout = 13
+pipeline_timeout = 24
 
 if (
     (params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) ||
