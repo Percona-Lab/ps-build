@@ -200,6 +200,10 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
     for CI_TESTS_TMP in $(grep --exclude="*.inc" --exclude="*.log" -rl . -e include/have_case_insensitive_file_system.inc | awk -F '/' '{print $NF}' | sed 's/.test//g'); do
         CI_TESTS+=" $CI_TESTS_TMP"
     done
+    # Requested in PS-7602
+    if [[ ${CMAKE_BUILD_TYPE} = 'Debug' ]]; then
+        CI_TESTS+=" information_schema.i_s_schema_definition_debug"
+    fi
 
     MTR_BUILD_THREAD=auto ./mtr \
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
