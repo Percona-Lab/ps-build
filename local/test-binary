@@ -162,8 +162,8 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --parallel=$(nproc) \
         --retry=0 \
         --big-test \
-        --tmpdir="/tmp/ps_mtr_tempdir" \
-        --vardir="/tmp/ci_disk_dir" \
+        --tmpdir="/tmp/ci_disk_dir/tmpdir" \
+        --vardir="/tmp/ci_disk_dir/vardir" \
         ${CI_TESTS} \
         --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true

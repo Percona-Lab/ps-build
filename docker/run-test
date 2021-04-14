@@ -48,7 +48,7 @@ docker run --rm \
     set -o errexit
     set -o xtrace
 
-    mkdir /tmp/results /tmp/ps_mtr_tempdir
+    mkdir /tmp/results
     export CMAKE_BUILD_TYPE='${CMAKE_BUILD_TYPE}'
     export ANALYZER_OPTS='${ANALYZER_OPTS}'
     export DEFAULT_TESTING='${DEFAULT_TESTING}'
