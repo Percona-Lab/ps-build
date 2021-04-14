@@ -77,7 +77,7 @@ if [ -f /usr/bin/yum ]; then
     perl-Time-HiRes openldap-devel perl-Env perl-Data-Dumper libicu-devel perl-Sys-MemInfo \
     perl-JSON MySQL-python perl-Digest perl-Digest-MD5 \
     numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan lz4-devel \
-    libzstd-devel tzdata zstd mysql-devel perl-DBI perl-DBD-mysql jq openssl perl-XML-Simple libcurl-devel \
+    libzstd-devel tzdata zstd mysql-devel perl-DBI perl-DBD-mysql jq openssl perl-XML-Simple libcurl-devel perl-Test-Simple \
     "
 
     if [[ ${RHVER} -eq 8 ]]; then
