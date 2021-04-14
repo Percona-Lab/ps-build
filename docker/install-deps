@@ -223,6 +223,7 @@ fi
 if [ ! -f /usr/local/lib/libeatmydata.so ]; then
     git clone https://github.com/stewartsmith/libeatmydata /tmp/libeatmydata
     pushd /tmp/libeatmydata
+        git checkout df7ddeb0345104f25b5b7bb154bc6a008c8c8404
         autoreconf --force --install
         ./configure
         make
