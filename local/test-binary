@@ -218,4 +218,76 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
     process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/ci_fs.output" "${WORKDIR_ABS}/ci_fs.xml"
 fi
 
+if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[ ${DOCKER_OS} != 'i386/centos-6' ]]; then
+    if [ -f /usr/bin/yum ]; then
+        if [[ -f /opt/rh/httpd24/enable ]]; then
+            source /opt/rh/httpd24/enable
+        fi
+    fi
+
+    echo "Running tests with Hashicorp Vault in Dev mode"
+    MTR_VAULT_ADDRESS=${VAULT_V1_DEV_ADDRESS} \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_DEV_TOKEN} \
+    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_DEV_MTR_TOKEN} \
+    MTR_VAULT_VERSION=1 \
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force \
+        --max-test-fail=0 \
+        --parallel=$(nproc) \
+        --retry=0 \
+        --big-test \
+        --unit-tests \
+        --suite=keyring_vault \
+        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v1.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1" || true
+
+    MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_DEV_TOKEN} \
+    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_DEV_MTR_TOKEN} \
+    MTR_VAULT_VERSION=2 \
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force \
+        --max-test-fail=0 \
+        --parallel=$(nproc) \
+        --retry=0 \
+        --big-test \
+        --unit-tests \
+        --suite=keyring_vault \
+        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v2.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v2" || true
+
+    echo "Running tests with Hashicorp Vault in Production mode"
+    MTR_VAULT_ADDRESS=${VAULT_V1_PROD_ADDRESS} \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_PROD_ROOT_TOKEN} \
+    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_PROD_MTR_TOKEN} \
+    MTR_VAULT_CA="${WORKDIR_ABS}/vault-prod-v1-ca.pem" \
+    MTR_VAULT_VERSION=1 \
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force \
+        --max-test-fail=0 \
+        --parallel=$(nproc) \
+        --retry=0 \
+        --big-test \
+        --unit-tests \
+        --suite=keyring_vault \
+        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v1.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v1" || true
+
+    MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_PROD_ROOT_TOKEN} \
+    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_PROD_MTR_TOKEN} \
+    MTR_VAULT_CA="${WORKDIR_ABS}/vault-prod-v2-ca.pem" \
+    MTR_VAULT_VERSION=2 \
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force \
+        --max-test-fail=0 \
+        --parallel=$(nproc) \
+        --retry=0 \
+        --big-test \
+        --unit-tests \
+        --suite=keyring_vault \
+        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v2.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
+fi
+
 exit $status

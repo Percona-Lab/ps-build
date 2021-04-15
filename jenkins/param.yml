@@ -130,6 +130,20 @@
         default: "1"
         description: Run each test N number of times, --repeat=N
     - choice:
+        name: KEYRING_VAULT_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run mtr --suite=keyring_vault
+    - string:
+        name: KEYRING_VAULT_V1_VERSION
+        default: "0.9.6"
+        description: Specifies version of Hashicorp Vault for V1 tests
+    - string:
+        name: KEYRING_VAULT_V2_VERSION
+        default: "1.6.2"
+        description: Specifies version of Hashicorp Vault for V2 tests
+    - choice:
         name: LABEL
         choices:
         - docker-32gb

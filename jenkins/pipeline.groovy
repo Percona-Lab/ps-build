@@ -123,6 +123,20 @@ pipeline {
             description: 'Run each test N number of times, --repeat=N',
             name: 'MTR_REPEAT')
         choice(
+            choices: 'yes\nno',
+            description: 'Run mtr --suite=keyring_vault',
+            name: 'KEYRING_VAULT_MTR')
+        string(
+            defaultValue: '0.9.6',
+            description: 'Specifies version of Hashicorp Vault for V1 tests',
+            name: 'KEYRING_VAULT_V1_VERSION'
+        )
+        string(
+            defaultValue: '1.6.2',
+            description: 'Specifies version of Hashicorp Vault for V2 tests',
+            name: 'KEYRING_VAULT_V2_VERSION'
+        )
+        choice(
             choices: 'docker-32gb\ndocker',
             description: 'Run build on specified instance type',
             name: 'LABEL')
@@ -234,8 +248,11 @@ pipeline {
                 timeout(time: pipeline_timeout, unit: 'HOURS')  {
                     retry(3) {
                         git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
-                        withCredentials([string(credentialsId: 'MTR_VAULT_TOKEN', variable: 'MTR_VAULT_TOKEN')]) {
-                            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'c8b933cd-b8ca-41d5-b639-33fe763d3f68', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'c8b933cd-b8ca-41d5-b639-33fe763d3f68', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                            withCredentials([
+                                string(credentialsId: 'MTR_VAULT_TOKEN', variable: 'MTR_VAULT_TOKEN'),
+                                string(credentialsId: 'VAULT_V1_DEV_TOKEN', variable: 'VAULT_V1_DEV_TOKEN'),
+                                string(credentialsId: 'VAULT_V2_DEV_TOKEN', variable: 'VAULT_V2_DEV_TOKEN')]) {
                                 sh '''
                                     sudo git reset --hard
                                     sudo git clean -xdf
@@ -246,6 +263,8 @@ pipeline {
                                     until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
                                         sleep 5
                                     done
+
+                                    sudo yum -y install jq
 
                                     if [[ \$CI_FS_MTR == 'yes' ]]; then
                                         if [[ ! -f /mnt/ci_disk_\$CMAKE_BUILD_TYPE.img ]] && [[ -z \$(mount | grep /mnt/ci_disk_dir_\$CMAKE_BUILD_TYPE) ]]; then
@@ -261,6 +280,7 @@ pipeline {
                                     sg docker -c "
                                         if [ \$(docker ps -q | wc -l) -ne 0 ]; then
                                             docker ps -q | xargs docker stop --time 1 || :
+                                            docker rm --force consul vault-prod-v{1..2} vault-dev-v{1..2} || :
                                         fi
                                         ulimit -a
                                         ./docker/run-test ${DOCKER_OS}
