@@ -223,7 +223,7 @@ pipeline {
                             aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/build.log.gz ./build.log.gz
                             gunzip build.log.gz
                         '''
-                        warnings canComputeNew: false, canResolveRelativePaths: false, categoriesPattern: '', defaultEncoding: '', excludePattern: '', healthy: '', includePattern: '', messagesPattern: '', parserConfigurations: [[parserName: 'GNU C Compiler 4 (gcc)', pattern: 'build.log']], unHealthy: ''
+                        recordIssues enabledForFailure: true, tools: [gcc(pattern: 'build.log')]
                     }
                 }
             }
