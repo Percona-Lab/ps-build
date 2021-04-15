@@ -192,12 +192,29 @@
         echo "${TRIGGERED_BUILD_NUMBERS_percona_server_5_7_pipeline}" > PIPELINE_BUILD_NUMBER
         gunzip build.log.gz
     publishers:
-    - warnings:
-        workspace-file-scanners:
-        - file-pattern: 'build.log'
-          scanner: 'GNU C Compiler 4 (gcc)'
-        run-always: true
-        shouldDetectModules: false
+    - raw:
+        xml: !!binary |
+          PGlvLmplbmtpbnMucGx1Z2lucy5hbmFseXNpcy5jb3JlLnN0ZXBzLklzc3Vlc1JlY29yZGVyIHBs
+          dWdpbj0id2FybmluZ3MtbmdAOS4wLjEiPgogICAgICA8YW5hbHlzaXNUb29scz4KICAgICAgICA8
+          aW8uamVua2lucy5wbHVnaW5zLmFuYWx5c2lzLndhcm5pbmdzLkdjYzQ+CiAgICAgICAgICA8aWQg
+          Lz4KICAgICAgICAgIDxuYW1lIC8+CiAgICAgICAgICA8cGF0dGVybj5idWlsZC5sb2c8L3BhdHRl
+          cm4+CiAgICAgICAgICA8cmVwb3J0RW5jb2RpbmcgLz4KICAgICAgICAgIDxza2lwU3ltYm9saWNM
+          aW5rcz5mYWxzZTwvc2tpcFN5bWJvbGljTGlua3M+CiAgICAgICAgPC9pby5qZW5raW5zLnBsdWdp
+          bnMuYW5hbHlzaXMud2FybmluZ3MuR2NjND4KICAgICAgPC9hbmFseXNpc1Rvb2xzPgogICAgICA8
+          c291cmNlQ29kZUVuY29kaW5nIC8+CiAgICAgIDxzb3VyY2VEaXJlY3RvcnkgLz4KICAgICAgPGln
+          bm9yZVF1YWxpdHlHYXRlPmZhbHNlPC9pZ25vcmVRdWFsaXR5R2F0ZT4KICAgICAgPGlnbm9yZUZh
+          aWxlZEJ1aWxkcz50cnVlPC9pZ25vcmVGYWlsZWRCdWlsZHM+CiAgICAgIDxmYWlsT25FcnJvcj5m
+          YWxzZTwvZmFpbE9uRXJyb3I+CiAgICAgIDxoZWFsdGh5PjA8L2hlYWx0aHk+CiAgICAgIDx1bmhl
+          YWx0aHk+MDwvdW5oZWFsdGh5PgogICAgICA8bWluaW11bVNldmVyaXR5IHBsdWdpbj0iYW5hbHlz
+          aXMtbW9kZWwtYXBpQDEwLjAuMCI+CiAgICAgICAgPG5hbWU+TE9XPC9uYW1lPgogICAgICA8L21p
+          bmltdW1TZXZlcml0eT4KICAgICAgPGZpbHRlcnMgLz4KICAgICAgPGlzRW5hYmxlZEZvckZhaWx1
+          cmU+dHJ1ZTwvaXNFbmFibGVkRm9yRmFpbHVyZT4KICAgICAgPGlzQWdncmVnYXRpbmdSZXN1bHRz
+          PmZhbHNlPC9pc0FnZ3JlZ2F0aW5nUmVzdWx0cz4KICAgICAgPGlzQmxhbWVEaXNhYmxlZD5mYWxz
+          ZTwvaXNCbGFtZURpc2FibGVkPgogICAgICA8c2tpcFB1Ymxpc2hpbmdDaGVja3M+ZmFsc2U8L3Nr
+          aXBQdWJsaXNoaW5nQ2hlY2tzPgogICAgICA8cHVibGlzaEFsbElzc3Vlcz5mYWxzZTwvcHVibGlz
+          aEFsbElzc3Vlcz4KICAgICAgPHF1YWxpdHlHYXRlcyAvPgogICAgICA8dHJlbmRDaGFydFR5cGU+
+          QUdHUkVHQVRJT05fVE9PTFM8L3RyZW5kQ2hhcnRUeXBlPgogICAgICA8c2NtIC8+CiAgICA8L2lv
+          LmplbmtpbnMucGx1Z2lucy5hbmFseXNpcy5jb3JlLnN0ZXBzLklzc3Vlc1JlY29yZGVyPgogIA==
     - junit:
         results: "**/*.xml"
         keep-long-stdio: true
