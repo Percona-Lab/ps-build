@@ -175,6 +175,7 @@
         do-not-fingerprint: true
     - shell: |
         echo "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}" > PIPELINE_BUILD_NUMBER
+        find . -name "*.txt" -exec echo {} \;
         gunzip build.log.gz
     publishers:
     - raw:
@@ -205,3 +206,6 @@
         keep-long-stdio: true
     - archive:
         artifacts: 'PIPELINE_BUILD_NUMBER'
+    - archive:
+        artifacts: "**/*.txt"
+

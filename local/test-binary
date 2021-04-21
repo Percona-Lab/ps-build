@@ -190,4 +190,9 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true
 fi
 
+for mtr_file in $(find ${WORKDIR_ABS}/ -type f -maxdepth 1 -name "*.xml"); do
+    grep "<failure/>" "${mtr_file}" | grep name | cut -d '"' -f 2 | sort | uniq -c | tee -a ${WORKDIR_ABS}/failed_tests.txt
+    grep "<skipped/>" "${mtr_file}" | grep name | cut -d '"' -f 2 | sort | uniq -c | tee -a ${WORKDIR_ABS}/skipped_tests.txt
+done
+
 exit $status
