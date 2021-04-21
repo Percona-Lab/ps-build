@@ -227,7 +227,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
 
     echo "Running tests with Hashicorp Vault in Dev mode"
     MTR_VAULT_ADDRESS=${VAULT_V1_DEV_ADDRESS} \
-    MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_DEV_TOKEN} \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_DEV_ROOT_TOKEN} \
     MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_DEV_MTR_TOKEN} \
     MTR_VAULT_VERSION=1 \
     MTR_BUILD_THREAD=auto ./mtr \
@@ -242,7 +242,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1" || true
 
     MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
-    MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_DEV_TOKEN} \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_DEV_ROOT_TOKEN} \
     MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_DEV_MTR_TOKEN} \
     MTR_VAULT_VERSION=2 \
     MTR_BUILD_THREAD=auto ./mtr \

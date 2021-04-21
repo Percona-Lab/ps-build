@@ -17,10 +17,10 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]] && [[ ${DOCKER_OS} != 'centos:6' ]] && 
     fi
 
     # Bootstrap dev mode vault instances
-    BOOTSTRAP_DEV_V1="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=dev --version="${KEYRING_VAULT_V1_VERSION}" --alias=v1 --port="9200" --devtoken=${VAULT_V1_DEV_TOKEN})"
+    BOOTSTRAP_DEV_V1="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=dev --version="${KEYRING_VAULT_V1_VERSION}" --alias=v1 --port="9200" --devtoken=${VAULT_V1_DEV_ROOT_TOKEN})"
     export VAULT_V1_DEV_MTR_TOKEN=$(echo "$BOOTSTRAP_DEV_V1" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
 
-    BOOTSTRAP_DEV_V2="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=dev --version="${KEYRING_VAULT_V2_VERSION}" --alias=v2 --port="9400" --devtoken=${VAULT_V2_DEV_TOKEN})"
+    BOOTSTRAP_DEV_V2="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=dev --version="${KEYRING_VAULT_V2_VERSION}" --alias=v2 --port="9400" --devtoken=${VAULT_V2_DEV_ROOT_TOKEN})"
     export VAULT_V2_DEV_MTR_TOKEN=$(echo "$BOOTSTRAP_DEV_V2" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
 
     # Bootstrap prod mode vault instances
@@ -57,15 +57,14 @@ docker run --rm \
     export TOKUDB_ENGINES_MTR_ARGS='${TOKUDB_ENGINES_MTR_ARGS}'
     export MTR_ARGS='${MTR_ARGS}'
     export MTR_REPEAT='${MTR_REPEAT}'
-    export MTR_VAULT_TOKEN='${MTR_VAULT_TOKEN}'
     export CI_FS_MTR='${CI_FS_MTR}'
     export KEYRING_VAULT_MTR='${KEYRING_VAULT_MTR}'
     export VAULT_V1_DEV_ADDRESS='http://vault-dev-v1:9200'
     export VAULT_V2_DEV_ADDRESS='http://vault-dev-v2:9400'
     export VAULT_V1_PROD_ADDRESS='https://vault-prod-v1:9300'
     export VAULT_V2_PROD_ADDRESS='https://vault-prod-v2:9500'
-    export VAULT_V1_DEV_TOKEN='${VAULT_V1_DEV_TOKEN}'
-    export VAULT_V2_DEV_TOKEN='${VAULT_V2_DEV_TOKEN}'
+    export VAULT_V1_DEV_ROOT_TOKEN='${VAULT_V1_DEV_ROOT_TOKEN}'
+    export VAULT_V2_DEV_ROOT_TOKEN='${VAULT_V2_DEV_ROOT_TOKEN}'
     export VAULT_V1_DEV_MTR_TOKEN='${VAULT_V1_DEV_MTR_TOKEN}'
     export VAULT_V2_DEV_MTR_TOKEN='${VAULT_V2_DEV_MTR_TOKEN}'
     export VAULT_V1_PROD_ROOT_TOKEN='${VAULT_V1_PROD_ROOT_TOKEN}'

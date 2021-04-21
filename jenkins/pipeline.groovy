@@ -250,9 +250,8 @@ pipeline {
                         git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'c8b933cd-b8ca-41d5-b639-33fe763d3f68', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                             withCredentials([
-                                string(credentialsId: 'MTR_VAULT_TOKEN', variable: 'MTR_VAULT_TOKEN'),
-                                string(credentialsId: 'VAULT_V1_DEV_TOKEN', variable: 'VAULT_V1_DEV_TOKEN'),
-                                string(credentialsId: 'VAULT_V2_DEV_TOKEN', variable: 'VAULT_V2_DEV_TOKEN')]) {
+                                string(credentialsId: 'VAULT_V1_DEV_ROOT_TOKEN', variable: 'VAULT_V1_DEV_ROOT_TOKEN'),
+                                string(credentialsId: 'VAULT_V2_DEV_ROOT_TOKEN', variable: 'VAULT_V2_DEV_ROOT_TOKEN')]) {
                                 sh '''
                                     sudo git reset --hard
                                     sudo git clean -xdf
