@@ -194,8 +194,10 @@ fi
 
 # Do not pass '-DWITH_KEYRING_VAULT=ON' for Centos 6
 WITH_KEYRING_VAULT='ON'
+WITH_KEYRING_VAULT_TEST='ON'
 if [[ "${OS_VERSION}" = *"CentOS release 6."* ]]; then
     WITH_KEYRING_VAULT='OFF'
+    WITH_KEYRING_VAULT_TEST='OFF'
 fi
 
 # ------------------------------------------------------------------------------
@@ -226,6 +228,7 @@ pushd ${WORKDIR}
         -DDOWNLOAD_BOOST=ON \
         -DWITH_BOOST=${DOWNLOAD_DIR} \
         -DWITH_KEYRING_VAULT=${WITH_KEYRING_VAULT} \
+        -DWITH_KEYRING_VAULT_TEST=${WITH_KEYRING_VAULT_TEST} \
         -DCMAKE_INSTALL_PREFIX=/usr/local/$PRODUCT_FULL \
         -DMYSQL_DATADIR=/usr/local/$PRODUCT_FULL/data \
         -DCOMPILATION_COMMENT="$COMMENT" \
