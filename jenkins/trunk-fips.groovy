@@ -20,11 +20,12 @@ void build(String CMAKE_BUILD_TYPE) {
             export DEFAULT_TESTING=yes
             export HOTBACKUP_TESTING=no
             export TOKUDB_ENGINES_MTR=no
+            export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            export DOCKER_OS="CentOS-7"
             ./local/test-binary ./sources/results
 
             echo Archive test: \$(date -u "+%s")
             rm -rf ./sources/results/PS
-            gzip sources/results/*.output
             until aws s3 sync --no-progress --acl public-read --exclude 'binary.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/${CMAKE_BUILD_TYPE}/; do
                 sleep 5
             done
@@ -88,14 +89,8 @@ pipeline {
                 deleteDir()
                 sh '''
                     aws s3 sync --no-progress --exclude 'binary.tar.gz' s3://ps-build-cache/${BUILD_TAG}/ ./
-
-                    echo "
-                        mtr RelWithDebInfo log   - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/RelWithDebInfo/mtr.output.gz
-                        mtr Debug log            - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/Debug/mtr.output.gz
-                    " > public_url
                 '''
                 step([$class: 'JUnitResultArchiver', testResults: '*/*.xml', healthScaleFactor: 1.0])
-                archiveArtifacts 'public_url'
             }
         }
     }
