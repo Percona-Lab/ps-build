@@ -23,12 +23,6 @@ if [ -f /usr/bin/yum ]; then
     curl https://jenkins.percona.com/downloads/cent6/centos6-eol.repo --output /etc/yum.repos.d/CentOS-Base.repo
   fi
 
-  if [[ ${RHVER} -eq 8 ]]; then
-    yum -y install centos-release-stream
-    dnf -y swap centos-{linux,stream}-repos
-    dnf -y distro-sync
-  fi 
-
   until yum -y update; do
     yum clean all
     echo "waiting"
@@ -88,9 +82,9 @@ if [ -f /usr/bin/yum ]; then
 
     if [[ ${RHVER} -eq 8 ]]; then
         PKGLIST+=" lz4 perl-Memoize perl-open valgrind-devel libubsan rpcgen libtirpc-devel golang libunwind-devel python2 python3 libatomic"
-        PKGLIST+=" gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils"
-        PKGLIST+=" gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel"
-        PKGLIST+=" gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel"
+        PKGLIST_DEVTOOLSET10+=" gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils"
+        PKGLIST_DEVTOOLSET10+=" gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel"
+        PKGLIST_DEVTOOLSET10+=" gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel"
     fi
 
     if [[ ${RHVER} -eq 7 ]]; then
@@ -138,6 +132,13 @@ if [ -f /usr/bin/yum ]; then
             echo "waiting"
             sleep 1
         done
+    elif [[ ${RHVER} -eq 8 ]]; then
+        yum -y install centos-release-stream
+        until yum -y install ${PKGLIST_DEVTOOLSET10}; do
+            echo "waiting"
+            sleep 1
+        done
+        yum -y remove centos-release-stream
     fi
 
     if [[ ${RHVER} -eq 8 ]]; then
