@@ -95,9 +95,9 @@ if [ -f /usr/bin/yum ]; then
 
     if [[ ${RHVER} -eq 7 ]]; then
         PKGLIST+=" go-toolset-7 libunwind-devel httpd24-curl"
-        PKGLIST+=" devtoolset-10-gcc-c++ devtoolset-10-binutils"
-        PKGLIST+=" devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel"
-        PKGLIST+=" devtoolset-10-libasan-devel devtoolset-10-libubsan-devel"
+        PKGLIST_DEVTOOLSET10+=" devtoolset-10-gcc-c++ devtoolset-10-binutils"
+        PKGLIST_DEVTOOLSET10+=" devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel"
+        PKGLIST_DEVTOOLSET10+=" devtoolset-10-libasan-devel devtoolset-10-libubsan-devel"
     fi
 
     if [[ ${RHVER} != 6 ]]; then
@@ -132,6 +132,13 @@ if [ -f /usr/bin/yum ]; then
         echo "waiting"
         sleep 1
     done
+
+    if [[ ${RHVER} -eq 7 ]]; then
+        until yum -y --enablerepo=centos-sclo-rh-testing install ${PKGLIST_DEVTOOLSET10}; do
+            echo "waiting"
+            sleep 1
+        done
+    fi
 
     if [[ ${RHVER} -eq 8 ]]; then
         ln -fs /usr/bin/python3 /usr/bin/python
