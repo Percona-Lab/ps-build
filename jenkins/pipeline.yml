@@ -110,6 +110,12 @@
         - bundled
         description: Type of SSL support
     - choice:
+        name: WITH_KEYRING_VAULT
+        choices:
+        - "ON"
+        - "OFF"
+        description: Whether to build with support for keyring_vault Plugin
+    - choice:
         name: PERFSCHEMA_OPTS
         choices:
         -

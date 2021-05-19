@@ -15,6 +15,7 @@ WITH_ROCKSDB=${WITH_ROCKSDB:-ON}
 WITH_EMBEDDED_SERVER=${WITH_EMBEDDED_SERVER:-ON}
 WITH_RAPID=${WITH_RAPID:-ON}
 WITH_SSL=${WITH_SSL:-system}
+WITH_KEYRING_VAULT=${WITH_KEYRING_VAULT:-ON}
 PERFSCHEMA_OPTS=${PERFSCHEMA_OPTS:-}
 ANALYZER_OPTS=${ANALYZER_OPTS:-}
 MAKE_OPTS=${MAKE_OPTS:--j$(grep -c ^processor /proc/cpuinfo)}
@@ -156,12 +157,10 @@ else
     WITH_MECAB="system"
 fi
 
-# Do not pass '-DWITH_KEYRING_VAULT=ON' for Centos 6
-WITH_KEYRING_VAULT='ON'
-WITH_KEYRING_VAULT_TEST='ON'
-if [[ "$(lsb_release -d -s)" = *"CentOS release 6."* ]]; then
-    WITH_KEYRING_VAULT='OFF'
-    WITH_KEYRING_VAULT_TEST='OFF'
+if [[ "${WITH_KEYRING_VAULT}" == "ON" ]] && [[ "$(lsb_release -d -s)" != *"CentOS release 6."* ]]; then
+    CMAKE_OPTS+=" -DWITH_KEYRING_VAULT=ON -DWITH_KEYRING_VAULT_TEST=ON"
+else
+    CMAKE_OPTS+=" -DWITH_KEYRING_VAULT=OFF -DWITH_KEYRING_VAULT_TEST=OFF"
 fi
 
 # ------------------------------------------------------------------------------
@@ -185,8 +184,6 @@ pushd ${WORKDIR}
         -DWITH_INNODB_MEMCACHED=ON \
         -DENABLE_DOWNLOADS=ON \
         -DDOWNLOAD_ROOT=${DOWNLOAD_DIR} \
-        -DWITH_KEYRING_VAULT=${WITH_KEYRING_VAULT} \
-        -DWITH_KEYRING_VAULT_TEST=${WITH_KEYRING_VAULT_TEST} \
         -DDOWNLOAD_BOOST=ON \
         -DWITH_BOOST=${DOWNLOAD_DIR} \
         -DWITH_ZLIB=system \
