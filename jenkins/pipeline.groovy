@@ -75,6 +75,10 @@ pipeline {
             description: 'Type of SSL support',
             name: 'WITH_SSL')
         choice(
+            choices: 'ON\nOFF',
+            description: 'Whether to build with support for keyring_vault Plugin',
+            name: 'WITH_KEYRING_VAULT')
+        choice(
             choices: '\n-DWITHOUT_PERFSCHEMA_STORAGE_ENGINE=ON',
             description: 'Disable Performance Schema',
             name: 'PERFSCHEMA_OPTS')
