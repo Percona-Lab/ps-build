@@ -86,6 +86,10 @@ pipeline {
             choices: 'ON\nOFF',
             description: 'Whether to build with support for X Plugin',
             name: 'WITH_MYSQLX')
+        choice(
+            choices: 'ON\nOFF',
+            description: 'Whether to build with support for keyring_vault Plugin',
+            name: 'WITH_KEYRING_VAULT')
         string(
             defaultValue: '',
             description: 'cmake options',
