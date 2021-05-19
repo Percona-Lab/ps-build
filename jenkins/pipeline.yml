@@ -102,6 +102,12 @@
         - "ON"
         - "OFF"
         description: Whether to build with support for X Plugin
+    - choice:
+        name: WITH_KEYRING_VAULT
+        choices:
+        - "ON"
+        - "OFF"
+        description: Whether to build with support for keyring_vault Plugin
     - string:
         name: CMAKE_OPTS
         default:
