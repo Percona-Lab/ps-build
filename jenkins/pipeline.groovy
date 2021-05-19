@@ -267,8 +267,8 @@ pipeline {
                                 echo Test: \$(date -u "+%s")
                                 aws ecr-public get-login-password --region us-east-1 | docker login -u AWS --password-stdin public.ecr.aws/e7j3v3n0
                                 sg docker -c "
-                                    if [ \$(docker ps -q | wc -l) -ne 0 ]; then
-                                        docker ps -q | xargs docker stop --time 1 || :
+                                    if [ \$(docker ps -a -q | wc -l) -ne 0 ]; then
+                                        docker ps -a -q | xargs docker stop --time 1 || :
                                         docker rm --force consul vault-prod-v{1..2} vault-dev-v{1..2} || :
                                     fi
                                     ulimit -a
