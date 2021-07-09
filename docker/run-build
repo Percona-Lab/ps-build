@@ -32,6 +32,8 @@ docker run --rm \
     export TAG='${TAG}'
     export DIST_NAME='${DIST_NAME}'
     export SSL_VER='${SSL_VER}'
+    export ZEN_FS_MTR='${ZEN_FS_MTR}'
+    export DOCKER_OS='${DOCKER_OS//:/-}'
 
     mkdir  /tmp/results
     cp -r /tmp/source_downloads /tmp/results/source_downloads
