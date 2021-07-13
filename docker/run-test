@@ -27,14 +27,16 @@ if [[ ${ZEN_FS_MTR} == "yes" ]] && [[ ${DOCKER_OS} == "ubuntu:hirsute" ]] && [[ 
         sudo install --owner=root --group=root --mode=+rx $SCRIPTS_DIR/nullblk-zoned /usr/bin/
         sudo install --owner=root --group=root --mode=+rx $SCRIPTS_DIR/zenfs /usr/bin/
 
-        sudo bash -c 'echo 0 > /sys/kernel/config/nullb/nullb0/power' || true
-        sudo rmdir /sys/kernel/config/nullb/nullb0 || true 
+        for nulldevice in 0 1; do
+            sudo bash -c "echo 0 > /sys/kernel/config/nullb/nullb$nulldevice/power" || true
+            sudo rmdir /sys/kernel/config/nullb/nullb$nulldevice || true 
 
-        sudo nullblk-zoned 512 128 124 0 32 12 12
-        sudo chown 27:27 /dev/nullb0
-        sudo chmod 600 /dev/nullb0
+            sudo nullblk-zoned $nulldevice 512 128 124 0 32 12 12
+            sudo chown 27:27 /dev/nullb$nulldevice
+            sudo chmod 600 /dev/nullb$nulldevice
+        done
 
-        ZEN_FS_DOCKER_FLAG="--device=/dev/nullb0"
+        ZEN_FS_DOCKER_FLAG="--device=/dev/nullb0 --device=/dev/nullb1"
     else
         echo "Could not find zenfs utility."
         exit 1

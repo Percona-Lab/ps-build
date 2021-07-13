@@ -219,20 +219,25 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
 fi
 
 if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${DOCKER_OS} = 'ubuntu-hirsute' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
-        unset AUX_PATH
-        AUX_PATH=/tmp/zenfs_disk_dir_${CMAKE_BUILD_TYPE}
-        sudo rm -rf /tmp/zenfs* $AUX_PATH || true
+        unset AUX_PATH_0 AUX_PATH_1
+        AUX_PATH_0=/tmp/zenfs_disk_dir_0_${CMAKE_BUILD_TYPE}
+        AUX_PATH_1=/tmp/zenfs_disk_dir_1_${CMAKE_BUILD_TYPE}
+        sudo rm -rf /tmp/zenfs* $AUX_PATH_0 $AUX_PATH_1 || true
 
-        sudo zenfs mkfs --zbd nullb0 --aux_path $AUX_PATH
-        sudo zenfs ls-uuid
-        sudo zenfs df --zbd nullb0
-        sudo zenfs list --zbd nullb0
+        sudo zenfs mkfs --zbd nullb0 --aux_path $AUX_PATH_0
+        sudo zenfs mkfs --zbd nullb1 --aux_path $AUX_PATH_1
 
-        sudo blkzone report /dev/nullb0
-        sudo zbd report /dev/nullb0
+        for nulldevice in 0 1; do
+            sudo zenfs ls-uuid
+            sudo zenfs df --zbd nullb$nulldevice
+            sudo zenfs list --zbd nullb$nulldevice
 
-        sudo chown -R 27:27 $AUX_PATH
-        sudo chmod -R 770 $AUX_PATH
+            sudo blkzone report /dev/nullb$nulldevice
+            sudo zbd report /dev/nullb$nulldevice
+        done
+
+        sudo chown -R 27:27 $AUX_PATH_0 $AUX_PATH_1 
+        sudo chmod -R 770 $AUX_PATH_0 $AUX_PATH_1
 
     if [[ ${CMAKE_BUILD_TYPE} = "Debug" ]]; then
         ROCKSDB_ZENFS_MTR_ARGS="--debug-server"
@@ -244,8 +249,8 @@ if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${DOCKER_OS} = 'ubuntu-hirsute' ]] && [[ ${
         --suite-timeout=9999 \
         --testcase-timeout=${TESTCASE_TIMEOUT} \
         --big-test \
-        --mysqld=--rocksdb-fs-uri=zenfs://dev:nullb0 \
-        --after-failure-hook="rm -rf $AUX_PATH; zenfs mkfs --zbd nullb0 --aux_path=$AUX_PATH --force" \
+        --defaults-extra-file=include/zenfs_nullb_emulated.cnf \
+        --after-failure-hook="rm -rf $AUX_PATH_0 $AUX_PATH_1; zenfs mkfs --zbd nullb0 --aux_path=$AUX_PATH_0 --force; zenfs mkfs --zbd nullb1 --aux_path=$AUX_PATH_1 --force;" \
         --suite=rocksdb \
         ${ROCKSDB_ZENFS_MTR_ARGS} \
         | tee ${WORKDIR_ABS}/rocksdb_zenfs.output || true

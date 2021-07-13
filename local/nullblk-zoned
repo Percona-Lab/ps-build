@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ $# != 7 ]; then
-        echo "Usage: $0 <sect size (B)> <zone size (MB)> <zone capacity (MB)> <nr conv zones> <nr seq zones> <max active zones> <max open zones>"
+if [ $# != 8 ]; then
+        echo "Usage: $0 <dev name> <sect size (B)> <zone size (MB)> <zone capacity (MB)> <nr conv zones> <nr seq zones> <max active zones> <max open zones>"
         exit 1
 fi
 
@@ -9,14 +9,14 @@ modprobe null_blk nr_devices=0 || return $?
 
 function create_zoned_nullb()
 {
-        local nid=0
-        local bs=$1
-        local zs=$2
-        local zc=$3
-        local nr_conv=$4
-        local nr_seq=$5
-        local max_active_zones=$6
-        local max_open_zones=$7
+        local nid=$1
+        local bs=$2
+        local zs=$3
+        local zc=$4
+        local nr_conv=$5
+        local nr_seq=$6
+        local max_active_zones=$7
+        local max_open_zones=$8
 
         cap=$(( zs * (nr_conv + nr_seq) ))
 
@@ -52,5 +52,5 @@ function create_zoned_nullb()
         echo "$nid"
 }
 
-nulldev=$(create_zoned_nullb $1 $2 $3 $4 $5 $6 $7)
+nulldev=$(create_zoned_nullb $1 $2 $3 $4 $5 $6 $7 $8)
 echo "Created /dev/nullb$nulldev"
