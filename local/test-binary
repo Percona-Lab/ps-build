@@ -10,6 +10,7 @@
 #      TOKUDB_ENGINES_MTR = (yes no)
 #      MTR_ARGS
 #      MTR_REPEAT
+#      DOCKER_OS
 
 set -o errexit
 set -o xtrace
@@ -58,35 +59,6 @@ fi
 #
 MTR_ARGS+=" --timestamp --report-unstable-tests"
 #
-##
-function process_mtr_output {
-# parameters are:
-  local TESTSUITE=${1}
-  local INFILE=${2}
-  local OUTFILE=${3}
-  egrep -a -o '[[:alpha:]]+(_[[:alnum:]]+)?(\.\/)?.*\[ .* \].*$' ${INFILE} | sort | \
-  gawk 'BEGIN { print "<testsuite name=\"@@TESTSUITE@@\" tests=\"@@PASSED@@\" failures=\"@@FAILURES@@\" disabled=\"@@DISABLED@@\" skipped=\"@@SKIPPED@@\">" }
-  /\[.*pass \]/ { printf "\t<testcase name=\"%s\" time=\"%.3f\"></testcase>\n", $1, $NF/1000.0 }
-  /\[ disabled \]/ { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1 }
-  /\[ skipped \]/  { printf "\t<testcase name=\"%s\"><skipped/></testcase>\n", $1 }
-  /\[.*fail \]/    { printf "\t<testcase name=\"%s\"><failure/></testcase>\n", $1 }
-  END { print "</testsuite>" }' > ${OUTFILE}.tmp
-  gawk '!seen[$0]++' < ${OUTFILE}.tmp > ${OUTFILE}
-  rm -f ${OUTFILE}.tmp
-#
-  PASSED=$(grep -c 'time=' ${OUTFILE} ||:)
-  FAILURES=$(grep -c '<failure/>' ${OUTFILE} ||:)
-  DISABLED=$(grep -c '\[ disabled \]' ${INFILE} ||:)
-  SKIPPED=$(grep -c '\[ skipped \]' ${INFILE} ||:)
-#
-  sed -i.bak -e "s:@@TESTSUITE@@:${TESTSUITE}:g" ${OUTFILE}
-  sed -i.bak -e "s:@@PASSED@@:${PASSED}:g" ${OUTFILE}
-  sed -i.bak -e "s:@@FAILURES@@:${FAILURES}:g" ${OUTFILE}
-  sed -i.bak -e "s:@@DISABLED@@:${DISABLED}:g" ${OUTFILE}
-  sed -i.bak -e "s:@@SKIPPED@@:${SKIPPED}:g" ${OUTFILE}
-  sed -i.bak -e "s: \[::g" ${OUTFILE}
-}
-
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
   MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
   [[ ${OPENSSL_VER} < '1.0.2' ]] && export OPENSSL_ia32cap=~0x200000000000000
@@ -141,13 +113,13 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
   MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${PARALLEL} \
         --result-file \
+        --suite-timeout=9999 \
+        --testcase-timeout=${TESTCASE_TIMEOUT} \
         ${MTR_ARGS} \
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
-        --suite-timeout=9999 \
-        --testcase-timeout=${TESTCASE_TIMEOUT} \
-        | tee ${WORKDIR_ABS}/mtr.output || status=$?
-    process_mtr_output MySQL "${WORKDIR_ABS}/mtr.output" "${WORKDIR_ABS}/junit.xml"
+        --junit-output=${WORKDIR_ABS}/junit.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.main" || true
 fi
 #
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
@@ -162,8 +134,8 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         ${MTR_ARGS} \
         --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --suite tokudb_backup \
-        | tee ${WORKDIR_ABS}/tokudb_hotbackup.output || true
-    process_mtr_output "Percona Server - TokuDB HotBackup" "${WORKDIR_ABS}/tokudb_hotbackup.output" "${WORKDIR_ABS}/junit_tokudb_hotbackup.xml"
+        --junit-output=${WORKDIR_ABS}/junit_tokudb_hotbackup.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb_hotbackup" || true
 fi
 #
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
@@ -181,8 +153,8 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             --mysqld=--plugin-load=tokudb=ha_tokudb.so --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
-            2>&1 | tee ${WORKDIR_ABS}/tokudb.output || true
-    process_mtr_output "Percona Server - TokuDB" "${WORKDIR_ABS}/tokudb.output" "${WORKDIR_ABS}/junit_tokudb.xml"
+            --junit-output=${WORKDIR_ABS}/junit_tokudb.xml \
+            --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb" || true
 fi
 
 # if all tests are disabled, run only one small test to prevent test stage issue and perform simle test of binary file
@@ -191,8 +163,8 @@ if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] &
         --force \
         --max-test-fail=0 \
         main.1st \
-        | tee ${WORKDIR_ABS}/small.output || true
-    process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/small.output" "${WORKDIR_ABS}/small.xml"
+        --junit-output=${WORKDIR_ABS}/small.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.small" || true
 fi
 
 if [[ "${CI_FS_MTR}" = 'yes' ]]; then
@@ -214,8 +186,8 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --tmpdir="/tmp/ps_mtr_tempdir" \
         --vardir="/tmp/ci_disk_dir" \
         ${CI_TESTS} \
-        | tee ${WORKDIR_ABS}/ci_fs.output || true
-    process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/ci_fs.output" "${WORKDIR_ABS}/ci_fs.xml"
+        --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true
 fi
 
 if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[ ${DOCKER_OS} != 'i386/centos-6' ]]; then
