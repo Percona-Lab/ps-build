@@ -14,11 +14,11 @@ if (
     (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON'))) ||
     ((params.MTR_ARGS.contains('--big-test')) || (params.MTR_ARGS.contains('--only-big-test')))
     ) {
-        LABEL = 'docker-32gb'
+        LABEL = 'min-hirsute-x64-zenfs'
         pipeline_timeout = 20
       }
 
-if (params.DOCKER_OS == 'ubuntu:hirsute') { LABEL = 'docker-32gb-hirsute' }
+if (params.DOCKER_OS == 'ubuntu:hirsute') { LABEL = 'min-hirsute-x64-zenfs' }
 
 pipeline {
     parameters {
