@@ -173,7 +173,7 @@ if [ -f /usr/bin/apt-get ]; then
     done
 
     DIST=$(lsb_release -sc)
-    if [[ ${DIST} != 'focal' ]]; then
+    if [[ ${DIST} != 'focal' ]] && [[ ${DIST} != 'hirsute' ]]; then
         echo "deb http://jenkins.percona.com/apt-repo/ ${DIST} main" > /etc/apt/sources.list.d/percona-dev.list
         wget -q -O - http://jenkins.percona.com/apt-repo/8507EFA5.pub | apt-key add -
         wget -q -O - http://jenkins.percona.com/apt-repo/CD2EFD2A.pub | apt-key add -
@@ -227,6 +227,10 @@ if [ -f /usr/bin/apt-get ]; then
         PKGLIST+=" libre2-dev"
     fi
 
+    if [[ ${DIST} == "hirsute" ]]; then
+        PKGLIST+=" libzbd-dev clang-12 pkg-config make libgflags-dev nvme-cli util-linux fio zbd-utils"
+    fi
+
     until apt-get -y install ${PKGLIST}; do
         echo "waiting"
         sleep 1
@@ -259,7 +263,7 @@ if [ ! -f /usr/local/lib/libeatmydata.so ]; then
 fi
 
 # PS-7159 remove localhost from ipv6 
-sed -re "s/^(::1.*)\slocalhost\b(.*)$/\1 \2/g" /etc/hosts 1<> /etc/hosts
+# sed -re "s/^(::1.*)\slocalhost\b(.*)$/\1 \2/g" /etc/hosts 1<> /etc/hosts
 
 # NB: resulting docker image will be used for building all branches: 5.6, 5.7, 8.0
 # boost 1.59.0 needed for percona-server 5.7

@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-8.0-pipeline
+    name: percona-server-8.0-pipeline-PS-7749
     project-type: pipeline
     description: |
         Do not edit this job through the web!
@@ -7,9 +7,9 @@
     pipeline-scm:
       scm:
         - git:
-            url: https://github.com/Percona-Lab/ps-build
+            url: https://github.com/Sudokamikaze/ps-build
             branches:
-            - "8.0"
+            - "8.0-PS-7749-testingground"
             wipe-workspace: false
       lightweight-checkout: true
       script-path: jenkins/pipeline.groovy
@@ -47,6 +47,7 @@
         - ubuntu:xenial
         - ubuntu:bionic
         - ubuntu:focal
+        - ubuntu:hirsute
         - debian:stretch
         - debian:buster
         description: OS version for compilation
@@ -144,6 +145,12 @@
         - "yes"
         - "no"
         description: Run case-insensetive MTR tests
+    - choice:
+        name: ZEN_FS_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run ZenFS MTR tests
     - string:
         name: MTR_ARGS
         default: --unit-tests-report

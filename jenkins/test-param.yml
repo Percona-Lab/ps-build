@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-8.0-param
+    name: percona-server-8.0-param-zenfs-test
     project-type: matrix
     defaults: global
     description: |
