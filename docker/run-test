@@ -19,7 +19,14 @@ if [[ ${ZEN_FS_MTR} == "yes" ]] && [[ ${DOCKER_OS} == "ubuntu:hirsute" ]] && [[ 
         sh -c "
         set -o errexit
         set -o xtrace
-
+        sudo apt-get update
+        sudo apt -y install wget
+        mkdir debs
+        cd debs
+        wget https://downloads.percona.com/downloads/TESTING/issue-CUSTOM83/libperconaserverclient21_8.0.23-14-2.hirsute_amd64.deb https://downloads.percona.com/downloads/TESTING/issue-CUSTOM83/libperconaserverclient21-dev_8.0.23-14-2.hirsute_amd64.deb https://downloads.percona.com/downloads/TESTING/issue-CUSTOM83/percona-server-client-zenfs_8.0.23-14-2.hirsute_amd64.deb https://downloads.percona.com/downloads/TESTING/issue-CUSTOM83/percona-server-common-zenfs_8.0.23-14-2.hirsute_amd64.deb https://downloads.percona.com/downloads/TESTING/issue-CUSTOM83/percona-server-dbg-zenfs_8.0.23-14-2.hirsute_amd64.deb https://downloads.percona.com/downloads/TESTING/issue-CUSTOM83/percona-server-rocksdb-zenfs_8.0.23-14-2.hirsute_amd64.deb https://downloads.percona.com/downloads/TESTING/issue-CUSTOM83/percona-server-server-zenfs_8.0.23-14-2.hirsute_amd64.deb https://downloads.percona.com/downloads/TESTING/issue-CUSTOM83/percona-server-source-zenfs_8.0.23-14-2.hirsute_amd64.deb https://downloads.percona.com/downloads/TESTING/issue-CUSTOM83/percona-server-test-zenfs_8.0.23-14-2.hirsute_amd64.deb https://downloads.percona.com/downloads/TESTING/issue-CUSTOM83/percona-server-tokudb-zenfs_8.0.23-14-2.hirsute_amd64.deb
+        export DEBIAN_FRONTEND="noninteractive"
+        sudo apt-get install ./*.deb
+        cd ../
         sudo bash /tmp/scripts/bootstrap-zenfs /tmp/scripts/
         "
     
