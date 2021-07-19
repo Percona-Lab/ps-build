@@ -172,15 +172,7 @@
          type: user-defined
          name: DOCKER_OS
          values:
-          - centos:6
-          - centos:7
-          - centos:8
-          - ubuntu:xenial
-          - ubuntu:bionic
-          - ubuntu:focal
           - ubuntu:hirsute
-          - debian:stretch
-          - debian:buster
     builders:
     - trigger-builds:
       - project: percona-server-8.0-pipeline
