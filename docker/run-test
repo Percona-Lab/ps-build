@@ -11,21 +11,8 @@ if [[ ${CI_FS_MTR} == 'yes' ]]; then
     CI_FS_DOCKER_FLAG="--mount type=bind,source=/mnt/ci_disk_dir_${CMAKE_BUILD_TYPE},destination=/tmp/ci_disk_dir"
 fi
 
-if [[ ${ZEN_FS_MTR} == "yes" ]] && [[ ${DOCKER_OS} == "ubuntu:hirsute" ]] && [[ ${WITH_ROCKSDB} == "ON" ]]; then
-    docker run --rm \
-        --security-opt seccomp=unconfined \
-        --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
-        public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE//[:\/]/-} \
-        sh -c "
-        set -o errexit
-        set -o xtrace
-
-        sudo bash /tmp/scripts/bootstrap-zenfs /tmp/scripts/
-        "
-    
-    if [[ -f $SCRIPTS_DIR/zenfs ]]; then
+if [[ ${ZEN_FS_MTR} == "yes" ]] && [[ ${DOCKER_OS} == "ubuntu:hirsute" ]] && [[ ${WITH_ROCKSDB} == "ON" ]]; then    
         sudo install --owner=root --group=root --mode=+rx $SCRIPTS_DIR/nullblk-zoned /usr/bin/
-        sudo install --owner=root --group=root --mode=+rx $SCRIPTS_DIR/zenfs /usr/bin/
 
         for nulldevice in 0 1; do
             sudo bash -c "echo 0 > /sys/kernel/config/nullb/nullb$nulldevice/power" || true
@@ -37,10 +24,6 @@ if [[ ${ZEN_FS_MTR} == "yes" ]] && [[ ${DOCKER_OS} == "ubuntu:hirsute" ]] && [[ 
         done
 
         ZEN_FS_DOCKER_FLAG="--device=/dev/nullb0 --device=/dev/nullb1"
-    else
-        echo "Could not find zenfs utility."
-        exit 1
-    fi
 fi
 
 if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]] && [[ ${DOCKER_OS} != 'centos:6' ]] && [[ ${DOCKER_OS} != 'i386/centos:6' ]]; then
@@ -110,7 +93,6 @@ docker run --rm \
 
     mv /tmp/ps/*.pem /tmp/results || true
     cp /tmp/ps/results/*.tar.gz /tmp/results
-    sudo install --owner=root --group=root --mode=+rx  /tmp/scripts/zenfs /usr/bin/
 
     bash -x /tmp/scripts/test-binary /tmp/results
 

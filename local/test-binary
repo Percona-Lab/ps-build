@@ -219,6 +219,8 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
 fi
 
 if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${DOCKER_OS} = 'ubuntu-hirsute' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
+        sudo install --owner=root --group=root --mode=+rx ${WORKDIR_ABS}/PS/bin/zenfs /usr/bin/
+
         unset AUX_PATH_0 AUX_PATH_1
         AUX_PATH_0=/tmp/zenfs_disk_dir_0_${CMAKE_BUILD_TYPE}
         AUX_PATH_1=/tmp/zenfs_disk_dir_1_${CMAKE_BUILD_TYPE}

@@ -245,6 +245,25 @@ pushd ${WORKDIR}
     make DESTDIR=${INSTALL_DIR} install > make_install.log
 popd
 
+if [[ ${ZEN_FS_MTR} == "yes" ]] && [[ ${DOCKER_OS} == "ubuntu-hirsute" ]] && [[ ${WITH_ROCKSDB} == "ON" ]]; then
+    INSTALL_ROOT=${WORKDIR}/rocksdb-root
+    BUILD_ROOT=${WORKDIR}/rocksdb-build
+
+    mkdir ${WORKDIR}/rocksdb-root ${WORKDIR}/rocksdb-build
+    ln -s ${SOURCEDIR}/storage/rocksdb/rocksdb_plugins/zenfs/ ${SOURCEDIR}/storage/rocksdb/rocksdb/plugin/
+
+    pushd ${SOURCEDIR}/storage/rocksdb/rocksdb/
+    CC=clang-12 CXX=clang++-12 make DISABLE_WARNING_AS_ERROR=1 PREFIX=${INSTALL_ROOT}/usr OBJ_DIR=${BUILD_ROOT} ROCKSDB_PLUGINS=zenfs -j$(nproc) install-static
+    popd
+
+    pushd ${SOURCEDIR}/storage/rocksdb/rocksdb/plugin/zenfs/util
+    PKG_CONFIG_PATH=${INSTALL_ROOT}/usr/lib/pkgconfig make CC=clang-12 CXX=clang++-12 -j$(nproc)
+    popd
+
+    cp ${SOURCEDIR}/storage/rocksdb/rocksdb/plugin/zenfs/util/zenfs ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/bin/
+    rm -rf ${INSTALL_ROOT} ${BUILD_ROOT}
+fi
+
 # Copy all needed data for unit tests
 cp ${WORKDIR}/scripts/mysqld_safe ${WORKDIR}/runtime_output_directory/
 cp ${WORKDIR}/scripts/mysqldumpslow ${WORKDIR}/runtime_output_directory/
