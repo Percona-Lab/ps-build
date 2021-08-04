@@ -194,6 +194,11 @@ if [ -f /usr/bin/apt-get ]; then
         jq openssl libxml-simple-perl \
     "
 
+    # PS-7834: 8.0.26 requires GCC 8 on bionic
+    if [[ ${DIST} == "bionic" ]]; then
+        PKGLIST+=" gcc-8 g++-8"
+    fi
+
     DISTRIBUTOR_ID=$(lsb_release -i -s)
     RELEASE=$(lsb_release -r -s)
     if [[ ${DISTRIBUTOR_ID} == Ubuntu ]] && [[ $(echo "${RELEASE} >= 18.0" | bc -l) == 1 ]]; then
