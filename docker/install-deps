@@ -231,6 +231,16 @@ if [ -f /usr/bin/apt-get ]; then
         PKGLIST+=" libzbd-dev clang-12 pkg-config make libgflags-dev nvme-cli util-linux fio zbd-utils"
     fi
 
+    if [[ ${DIST} == "focal" ]]; then
+        PKGLIST+=" clang-12 pkg-config make libgflags-dev nvme-cli util-linux fio"
+        wget_loop 'libzbd-dev.deb' 'http://ua.archive.ubuntu.com/pool/universe/libz/libzbd/libzbd-dev_1.2.0-1_amd64.deb'
+        wget_loop 'libzbd1.deb' 'http://ua.archive.ubuntu.com/pool/universe/libz/libzbd/libzbd1_1.2.0-1_amd64.deb'
+        wget_loop 'zbd-utils.deb' 'http://ua.archive.ubuntu.com/pool/universe/libz/libzbd/zbd-utils_1.2.0-1_amd64.deb'
+        dpkg -i /tmp/source_downloads/libzbd-dev.deb /tmp/source_downloads/libzbd1.deb /tmp/source_downloads/zbd-utils.deb || true
+        apt-get install -fy
+        rm -f /tmp/source_downloads/libzbd-dev.deb /tmp/source_downloads/libzbd1.deb /tmp/source_downloads/zbd-utils.deb
+    fi
+
     until apt-get -y install ${PKGLIST}; do
         echo "waiting"
         sleep 1

@@ -218,7 +218,8 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
     process_mtr_output "Percona Server - Test" "${WORKDIR_ABS}/ci_fs.output" "${WORKDIR_ABS}/ci_fs.xml"
 fi
 
-if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${DOCKER_OS} = 'ubuntu-hirsute' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
+if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
+    if [[ ${DOCKER_OS} = 'ubuntu-hirsute' ]] || [[ ${DOCKER_OS} = 'ubuntu-focal' ]]; then
         sudo install --owner=root --group=root --mode=+rx ${WORKDIR_ABS}/PS/bin/zenfs /usr/bin/
 
         unset AUX_PATH_0 AUX_PATH_1
@@ -226,8 +227,8 @@ if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${DOCKER_OS} = 'ubuntu-hirsute' ]] && [[ ${
         AUX_PATH_1=/tmp/zenfs_disk_dir_1_${CMAKE_BUILD_TYPE}
         sudo rm -rf /tmp/zenfs* $AUX_PATH_0 $AUX_PATH_1 || true
 
-        sudo zenfs mkfs --zbd nullb0 --aux_path $AUX_PATH_0
-        sudo zenfs mkfs --zbd nullb1 --aux_path $AUX_PATH_1
+        zenfs mkfs --zbd nullb0 --aux_path $AUX_PATH_0
+        zenfs mkfs --zbd nullb1 --aux_path $AUX_PATH_1
 
         for nulldevice in 0 1; do
             sudo zenfs ls-uuid
@@ -241,22 +242,23 @@ if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${DOCKER_OS} = 'ubuntu-hirsute' ]] && [[ ${
         sudo chown -R 27:27 $AUX_PATH_0 $AUX_PATH_1 
         sudo chmod -R 770 $AUX_PATH_0 $AUX_PATH_1
 
-    if [[ ${CMAKE_BUILD_TYPE} = "Debug" ]]; then
-        ROCKSDB_ZENFS_MTR_ARGS="--debug-server"
-    fi
+        if [[ ${CMAKE_BUILD_TYPE} = "Debug" ]]; then
+            ROCKSDB_ZENFS_MTR_ARGS="--debug-server"
+        fi
 
-    MTR_BUILD_THREAD=auto ./mtr \
-        --force \
-        --max-test-fail=0 \
-        --suite-timeout=9999 \
-        --testcase-timeout=${TESTCASE_TIMEOUT} \
-        --big-test \
-        --defaults-extra-file=include/zenfs_nullb_emulated.cnf \
-        --after-failure-hook="rm -rf $AUX_PATH_0 $AUX_PATH_1; zenfs mkfs --zbd nullb0 --aux_path=$AUX_PATH_0 --force; zenfs mkfs --zbd nullb1 --aux_path=$AUX_PATH_1 --force;" \
-        --suite=rocksdb \
-        ${ROCKSDB_ZENFS_MTR_ARGS} \
-        | tee ${WORKDIR_ABS}/rocksdb_zenfs.output || true
-    process_mtr_output "Percona Server - RocksDB ZenFS" "${WORKDIR_ABS}/rocksdb_zenfs.output" "${WORKDIR_ABS}/junit_rocksdb_zenfs.xml"
+        MTR_BUILD_THREAD=auto ./mtr \
+            --force \
+            --max-test-fail=0 \
+            --suite-timeout=9999 \
+            --testcase-timeout=${TESTCASE_TIMEOUT} \
+            --big-test \
+            --defaults-extra-file=include/zenfs_nullb_emulated.cnf \
+            --after-failure-hook="rm -rf $AUX_PATH_0 $AUX_PATH_1; zenfs mkfs --zbd nullb0 --aux_path=$AUX_PATH_0 --force; zenfs mkfs --zbd nullb1 --aux_path=$AUX_PATH_1 --force;" \
+            --suite=rocksdb \
+            ${ROCKSDB_ZENFS_MTR_ARGS} \
+            | tee ${WORKDIR_ABS}/rocksdb_zenfs.output || true
+        process_mtr_output "Percona Server - RocksDB ZenFS" "${WORKDIR_ABS}/rocksdb_zenfs.output" "${WORKDIR_ABS}/junit_rocksdb_zenfs.xml"
+    fi
 fi
 
 if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[ ${DOCKER_OS} != 'i386/centos-6' ]]; then
