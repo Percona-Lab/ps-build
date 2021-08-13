@@ -20,13 +20,6 @@ function create_zoned_nullb()
 
         cap=$(( zs * (nr_conv + nr_seq) ))
 
-        while [ 1 ]; do
-                if [ ! -b "/dev/nullb$nid" ]; then
-                        break
-                fi
-                nid=$(( nid + 1 ))
-        done
-
         dev="/sys/kernel/config/nullb/nullb$nid"
         mkdir "$dev"
 
