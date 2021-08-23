@@ -21,7 +21,7 @@ if [[ ${ZEN_FS_MTR} == "yes" ]] && [[ ${WITH_ROCKSDB} == "ON" ]]; then
 
             sudo nullblk-zoned $nulldevice 512 128 124 0 32 12 12
             sudo chown 27:27 /dev/nullb$nulldevice
-            sudo chmod 770 /dev/nullb$nulldevice
+            sudo chmod 660 /dev/nullb$nulldevice
         done
 
         ZEN_FS_DOCKER_FLAG="--device=/dev/nullb0 --device=/dev/nullb1"
