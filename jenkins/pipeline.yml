@@ -47,6 +47,7 @@
         - ubuntu:xenial
         - ubuntu:bionic
         - ubuntu:focal
+        - ubuntu:hirsute
         - debian:stretch
         - debian:buster
         description: OS version for compilation
@@ -144,6 +145,12 @@
         - "yes"
         - "no"
         description: Run case-insensetive MTR tests
+    - choice:
+        name: ZEN_FS_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run ZenFS MTR tests
     - string:
         name: MTR_ARGS
         default: --unit-tests-report

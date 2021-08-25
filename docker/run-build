@@ -32,10 +32,12 @@ docker run --rm \
     export TAG='${TAG}'
     export DIST_NAME='${DIST_NAME}'
     export SSL_VER='${SSL_VER}'
+    export ZEN_FS_MTR='${ZEN_FS_MTR}'
+    export DOCKER_OS='${DOCKER_OS//:/-}'
 
     mkdir  /tmp/results
     cp -r /tmp/source_downloads /tmp/results/source_downloads
-    sudo chown mysql:mysql /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/rocksdb/util || :
+    sudo chown -R mysql:mysql /tmp/ps/ || :
     bash -x /tmp/scripts/build-binary /tmp/results /tmp/ps
 
     sudo rm -rf /tmp/ps/results

@@ -18,6 +18,14 @@ if (
         pipeline_timeout = 20
       }
 
+if (
+    (params.ZEN_FS_MTR == 'yes') &&
+    (params.DOCKER_OS == 'ubuntu:hirsute')) { LABEL = 'docker-32gb-hirsute' }
+
+if (
+    (params.ZEN_FS_MTR == 'yes') &&
+    (params.DOCKER_OS == 'ubuntu:focal')) { LABEL = 'docker-32gb-focal' }
+
 pipeline {
     parameters {
         string(
@@ -51,7 +59,7 @@ pipeline {
             name: 'TOKUBACKUP_BRANCH',
             trim: true)
         choice(
-            choices: 'centos:6\ncentos:7\ncentos:8\nubuntu:xenial\nubuntu:bionic\nubuntu:focal\ndebian:stretch\ndebian:buster',
+            choices: 'centos:6\ncentos:7\ncentos:8\nubuntu:xenial\nubuntu:bionic\nubuntu:focal\nubuntu:hirsute\ndebian:stretch\ndebian:buster',
             description: 'OS version for compilation',
             name: 'DOCKER_OS')
         choice(
@@ -116,6 +124,10 @@ pipeline {
             name: 'TOKUDB_ENGINES_MTR_ARGS')
         choice(
             choices: 'yes\nno',
+            description: 'Run ZenFS MTR tests',
+            name: 'ZEN_FS_MTR')
+        choice(
+            choices: 'yes\nno',
             description: 'Run case-insensetive MTR tests',
             name: 'CI_FS_MTR')
         string(
@@ -166,7 +178,7 @@ pipeline {
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'c8b933cd-b8ca-41d5-b639-33fe763d3f68', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                             sh 'echo Prepare: \$(date -u "+%s")'
                             echo 'Checking Percona Server branch version, JEN-913 prevent wrong version run'
-                            sh '''
+                            sh '''#!/bin/bash
                                 MY_BRANCH_BASE_MAJOR=8
                                 MY_BRANCH_BASE_MINOR=0
                                 RAW_VERSION_LINK=$(echo ${GIT_REPO%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
@@ -186,7 +198,7 @@ pipeline {
                                 rm -f ${WORKSPACE}/VERSION-${BUILD_NUMBER}
                             '''
                             git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
-                            sh '''
+                            sh '''#!/bin/bash
                                 # sudo is needed for better node recovery after compilation failure
                                 # if building failed on compilation stage directory will have files owned by docker user
                                 sudo git reset --hard
@@ -256,7 +268,7 @@ pipeline {
                             withCredentials([
                                 string(credentialsId: 'VAULT_V1_DEV_ROOT_TOKEN', variable: 'VAULT_V1_DEV_ROOT_TOKEN'),
                                 string(credentialsId: 'VAULT_V2_DEV_ROOT_TOKEN', variable: 'VAULT_V2_DEV_ROOT_TOKEN')]) {
-                                sh '''
+                                sh '''#!/bin/bash
                                     sudo git reset --hard
                                     sudo git clean -xdf
                                     rm -rf sources/results
@@ -266,8 +278,12 @@ pipeline {
                                     until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
                                         sleep 5
                                     done
-
-                                    sudo yum -y install jq
+                                    
+                                    if [ -f /usr/bin/yum ]; then
+                                        sudo yum -y install jq gflags-devel
+                                    else
+                                        sudo apt-get install -y jq libgflags-dev libjemalloc-dev
+                                    fi
 
                                     if [[ \$CI_FS_MTR == 'yes' ]]; then
                                         if [[ ! -f /mnt/ci_disk_\$CMAKE_BUILD_TYPE.img ]] && [[ -z \$(mount | grep /mnt/ci_disk_dir_\$CMAKE_BUILD_TYPE) ]]; then
@@ -306,7 +322,7 @@ pipeline {
             steps {
                 retry(3) {
                 deleteDir()
-                sh '''
+                sh '''#!/bin/bash
                     aws s3 sync --no-progress --exclude 'binary.tar.gz' s3://ps-build-cache/${BUILD_TAG}/ ./
 
                     echo "
