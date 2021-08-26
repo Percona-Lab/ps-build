@@ -20,11 +20,19 @@ if (
 
 if (
     (params.ZEN_FS_MTR == 'yes') &&
-    (params.DOCKER_OS == 'ubuntu:hirsute')) { LABEL = 'docker-32gb-hirsute' }
+    (params.DOCKER_OS == 'ubuntu:hirsute')
+    ) { 
+        LABEL = 'docker-32gb-hirsute'
+        pipeline_timeout = 22
+      }
 
 if (
     (params.ZEN_FS_MTR == 'yes') &&
-    (params.DOCKER_OS == 'ubuntu:focal')) { LABEL = 'docker-32gb-focal' }
+    (params.DOCKER_OS == 'ubuntu:focal')
+    ) { 
+        LABEL = 'docker-32gb-focal'
+        pipeline_timeout = 22
+      }
 
 pipeline {
     parameters {
