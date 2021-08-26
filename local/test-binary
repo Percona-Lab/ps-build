@@ -225,8 +225,8 @@ if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
             --fs-cleanup-hook="rm -rf $AUX_PATH_0 $AUX_PATH_1; zenfs mkfs --zbd nullb0 --aux_path=$AUX_PATH_0 --force; zenfs mkfs --zbd nullb1 --aux_path=$AUX_PATH_1 --force;" \
             --suite=rocksdb \
             ${ROCKSDB_ZENFS_MTR_ARGS} \
-            | tee ${WORKDIR_ABS}/rocksdb_zenfs.output || true
-        process_mtr_output "Percona Server - RocksDB ZenFS" "${WORKDIR_ABS}/rocksdb_zenfs.output" "${WORKDIR_ABS}/junit_rocksdb_zenfs.xml"
+            --junit-output=${WORKDIR_ABS}/junit_rocksdb_zenfs.xml \
+            --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.rocksdb_zenfs" || true
     fi
 fi
 
