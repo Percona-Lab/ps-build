@@ -37,7 +37,7 @@ docker run --rm \
 
     mkdir  /tmp/results
     cp -r /tmp/source_downloads /tmp/results/source_downloads
-    sudo chown -R mysql:mysql /tmp/ps/ || :
+    sudo chown mysql:mysql /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/rocksdb/util || : 
     bash -x /tmp/scripts/build-binary /tmp/results /tmp/ps
 
     sudo rm -rf /tmp/ps/results
