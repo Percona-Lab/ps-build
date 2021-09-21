@@ -78,6 +78,7 @@ if [ -f /usr/bin/yum ]; then
     perl-JSON MySQL-python perl-Digest perl-Digest-MD5 \
     numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan lz4-devel \
     libzstd-devel tzdata zstd mysql-devel perl-DBI perl-DBD-mysql jq openssl perl-XML-Simple libcurl-devel perl-Test-Simple \
+    cyrus-sasl-devel cyrus-sasl-scram krb5-devel \
     "
 
     if [[ ${RHVER} -eq 8 ]]; then
@@ -192,6 +193,7 @@ if [ -f /usr/bin/apt-get ]; then
         debconf debhelper fakeroot po-debconf psmisc ccache libtool sudo liblz4-dev liblz4-tool libedit-dev libssl-dev \
         tzdata golang libunwind-dev zstd python3-mysqldb libdbi-perl libdbd-mysql-perl \
         jq openssl libxml-simple-perl \
+        libsasl2-dev libsasl2-modules-gssapi-mit libkrb5-dev \
     "
 
     # PS-7834: 8.0.26 requires GCC 8 on bionic
