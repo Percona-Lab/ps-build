@@ -222,35 +222,39 @@ if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
     if [[ ${DOCKER_OS} = 'ubuntu-hirsute' ]] || [[ ${DOCKER_OS} = 'ubuntu-focal' ]]; then
         sudo install --owner=root --group=root --mode=+rx ${WORKDIR_ABS}/PS/runtime_output_directory/zenfs /usr/bin/
 
-        unset AUX_PATH_0 AUX_PATH_1
-        AUX_PATH_0=/tmp/zenfs_disk_dir_0_${CMAKE_BUILD_TYPE}
-        AUX_PATH_1=/tmp/zenfs_disk_dir_1_${CMAKE_BUILD_TYPE}
-        sudo rm -rf /tmp/zenfs* $AUX_PATH_0 $AUX_PATH_1 || true
+        sudo rm -rf /tmp/zenfs* || true
+        for nulldevice in {0..5}; do
+            sudo rm -rf /tmp/zenfs_aux/nullb$nulldevice || true
+        done
 
-        zenfs mkfs --zbd nullb0 --aux_path $AUX_PATH_0
-        zenfs mkfs --zbd nullb1 --aux_path $AUX_PATH_1
+        mkdir -p /tmp/zenfs_aux
 
-        for nulldevice in 0 1; do
-            zenfs ls-uuid
+        for nulldevice in {0..5}; do
+            zenfs mkfs --zbd=nullb$nulldevice --aux_path=/tmp/zenfs_aux/nullb$nulldevice
+
             zenfs df --zbd nullb$nulldevice
             zenfs list --zbd nullb$nulldevice
 
             blkzone report /dev/nullb$nulldevice
             zbd report /dev/nullb$nulldevice
         done
+        zenfs ls-uuid
 
         if [[ ${CMAKE_BUILD_TYPE} = "Debug" ]]; then
             ROCKSDB_ZENFS_MTR_ARGS="--debug-server"
         fi
 
+        SOURCE_FS_URI1=zenfs://dev:nullb0 SOURCE_FS_URI2=zenfs://dev:nullb1 SOURCE_FS_URI3=zenfs://dev:nullb2 \
+        REPLICA_FS_URI1=zenfs://dev:nullb3 REPLICA_FS_URI2=zenfs://dev:nullb4 REPLICA_FS_URI3=zenfs://dev:nullb5 \
         MTR_BUILD_THREAD=auto ./mtr \
             --force \
             --max-test-fail=0 \
             --suite-timeout=9999 \
             --testcase-timeout=${TESTCASE_TIMEOUT} \
             --big-test \
-            --defaults-extra-file=include/zenfs_nullb_emulated.cnf \
-            --fs-cleanup-hook="rm -rf $AUX_PATH_0 $AUX_PATH_1; zenfs mkfs --zbd nullb0 --aux_path=$AUX_PATH_0 --force; zenfs mkfs --zbd nullb1 --aux_path=$AUX_PATH_1 --force;" \
+            --defaults-extra-file=include/zenfs_nullb_emulated_parallel_rpl.cnf \
+            --fs-cleanup-hook="@lib/zenfs_cleanup_rpl.sh" \
+            --parallel=3 \
             --suite=rocksdb \
             ${ROCKSDB_ZENFS_MTR_ARGS} \
             | tee ${WORKDIR_ABS}/rocksdb_zenfs.output || true
