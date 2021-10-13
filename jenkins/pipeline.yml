@@ -44,12 +44,11 @@
         - centos:6
         - centos:7
         - centos:8
-        - ubuntu:xenial
         - ubuntu:bionic
         - ubuntu:focal
         - ubuntu:hirsute
-        - debian:stretch
         - debian:buster
+        - debian:bullseye
         description: OS version for compilation
     - choice:
         name: JOB_CMAKE
