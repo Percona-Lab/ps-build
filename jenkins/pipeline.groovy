@@ -20,11 +20,19 @@ if (
 
 if (
     (params.ZEN_FS_MTR == 'yes') &&
-    (params.DOCKER_OS == 'ubuntu:hirsute')) { LABEL = 'docker-32gb-hirsute' }
+    (params.DOCKER_OS == 'ubuntu:hirsute')
+    ) { 
+        LABEL = 'docker-32gb-hirsute'
+        pipeline_timeout = 22
+      }
 
 if (
     (params.ZEN_FS_MTR == 'yes') &&
-    (params.DOCKER_OS == 'ubuntu:focal')) { LABEL = 'docker-32gb-focal' }
+    (params.DOCKER_OS == 'ubuntu:focal')
+    ) { 
+        LABEL = 'docker-32gb-focal'
+        pipeline_timeout = 22
+      }
 
 pipeline {
     parameters {
@@ -306,7 +314,6 @@ pipeline {
                                     "
 
                                     echo Archive test: \$(date -u "+%s")
-                                    gzip sources/results/*.output
                                     until aws s3 sync --no-progress --acl public-read --exclude 'binary.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/; do
                                         sleep 5
                                     done
@@ -328,11 +335,10 @@ pipeline {
                     echo "
                         binary    - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/binary.tar.gz
                         build log - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/build.log.gz
-                        mtr log   - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/mtr.output.gz
                     " > public_url
                 '''
                 step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
-                archiveArtifacts 'build.log.gz,*.xml,*.output.gz,public_url'
+                archiveArtifacts 'build.log.gz,*.xml,public_url'
                 }
             }
         }
