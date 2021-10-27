@@ -221,6 +221,7 @@ pushd ${WORKDIR}
         -DWITH_ROUTER=${WITH_ROUTER} \
         -DWITH_MYSQLX=${WITH_MYSQLX} \
         -DWITH_MECAB=${WITH_MECAB} \
+        -DWITH_PACKAGE_FLAGS=OFF \
         -DWITH_SYSTEM_LIBS=ON \
         -DWITH_PROTOBUF=bundled \
         -DWITH_RAPIDJSON=bundled \
