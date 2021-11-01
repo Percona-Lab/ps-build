@@ -233,6 +233,7 @@ pushd ${WORKDIR}
         -DWITH_NUMA=ON \
         -DWITH_ZLIB=bundled \
         -DWITH_ZSTD=bundled \
+        -DWITH_LZ4=bundled \
         -DWITH_INNODB_MEMCACHED=ON \
         -DENABLE_DOWNLOADS=ON \
         -DDOWNLOAD_ROOT=${DOWNLOAD_DIR} \
