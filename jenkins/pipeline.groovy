@@ -67,7 +67,7 @@ pipeline {
             name: 'TOKUBACKUP_BRANCH',
             trim: true)
         choice(
-            choices: 'centos:6\ncentos:7\ncentos:8\nubuntu:xenial\nubuntu:bionic\nubuntu:focal\nubuntu:hirsute\ndebian:stretch\ndebian:buster',
+            choices: 'centos:6\ncentos:7\ncentos:8\nubuntu:bionic\nubuntu:focal\nubuntu:hirsute\ndebian:buster\ndebian:bullseye',
             description: 'OS version for compilation',
             name: 'DOCKER_OS')
         choice(

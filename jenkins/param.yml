@@ -175,12 +175,11 @@
           - centos:6
           - centos:7
           - centos:8
-          - ubuntu:xenial
           - ubuntu:bionic
           - ubuntu:focal
           - ubuntu:hirsute
-          - debian:stretch
           - debian:buster
+          - debian:bullseye
     builders:
     - trigger-builds:
       - project: percona-server-8.0-pipeline
