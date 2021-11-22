@@ -191,7 +191,7 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
 fi
 
 if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
-    if [[ ${DOCKER_OS} = 'ubuntu-hirsute' ]] || [[ ${DOCKER_OS} = 'ubuntu-focal' ]]; then
+    if [[ ${DOCKER_OS} = 'ubuntu-focal' ]] || [[ ${DOCKER_OS} = 'ubuntu-hirsute' ]] || [[ ${DOCKER_OS} = 'debian-bullseye' ]]; then
         sudo install --owner=root --group=root --mode=+rx ${WORKDIR_ABS}/PS/runtime_output_directory/zenfs /usr/bin/
 
         sudo rm -rf /tmp/zenfs* || true
@@ -208,7 +208,6 @@ if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
             zenfs list --zbd nullb$nulldevice
 
             blkzone report /dev/nullb$nulldevice
-            zbd report /dev/nullb$nulldevice
         done
         zenfs ls-uuid
 

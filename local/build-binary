@@ -205,7 +205,7 @@ fi
 # Check ZenFS
 # ------------------------------------------------------------------------------
 if [[ "${ZEN_FS_MTR}" = "yes" ]]; then
-    if [[ ${DOCKER_OS} = "ubuntu-hirsute" ]] || [[ ${DOCKER_OS} = "ubuntu-focal" ]]; then
+    if [[ ${DOCKER_OS} = "ubuntu-focal" ]] || [[ ${DOCKER_OS} = "ubuntu-hirsute" ]] || [[ ${DOCKER_OS} = "debian-bullseye" ]]; then
         CMAKE_OPTS+=" -DROCKSDB_PLUGINS=zenfs -DWITH_ZENFS_UTILITY=ON"
     fi
 fi
