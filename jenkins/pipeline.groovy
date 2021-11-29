@@ -34,6 +34,14 @@ if (
         pipeline_timeout = 22
       }
 
+if (
+    (params.ZEN_FS_MTR == 'yes') &&
+    (params.DOCKER_OS == 'debian:bullseye')
+    ) {
+        LABEL = 'docker-32gb-bullseye'
+        pipeline_timeout = 22
+      }
+
 pipeline {
     parameters {
         string(
