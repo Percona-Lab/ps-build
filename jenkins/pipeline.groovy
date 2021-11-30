@@ -134,7 +134,7 @@ pipeline {
             name: 'KEYRING_VAULT_V1_VERSION'
         )
         string(
-            defaultValue: '1.6.2',
+            defaultValue: '1.9.0',
             description: 'Specifies version of Hashicorp Vault for V2 tests',
             name: 'KEYRING_VAULT_V2_VERSION'
         )
