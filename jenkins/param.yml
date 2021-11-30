@@ -153,7 +153,7 @@
         description: Specifies version of Hashicorp Vault for V1 tests
     - string:
         name: KEYRING_VAULT_V2_VERSION
-        default: "1.6.2"
+        default: "1.9.0"
         description: Specifies version of Hashicorp Vault for V2 tests
     - choice:
         name: LABEL
