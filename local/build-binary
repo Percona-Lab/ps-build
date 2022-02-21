@@ -226,6 +226,7 @@ pushd ${WORKDIR}
         -DWITH_PROTOBUF=bundled \
         -DWITH_RAPIDJSON=bundled \
         -DWITH_ICU=bundled \
+        -DWITH_FIDO=bundled \
 	-DWITH_READLINE=system \
         -DBUILD_CONFIG=mysql_release \
         -DFEATURE_SET=community \
