@@ -57,6 +57,7 @@
                             "centos:8":  { build('centos:8') },
                             "ubuntu:bionic":  { build('ubuntu:bionic') },
                             "ubuntu:focal":  { build('ubuntu:focal') },
+                            "ubuntu:jammy":  { build('ubuntu:jammy') },
                             "ubuntu:hirsute":  { build('ubuntu:hirsute') },
                             "debian:buster":  { build('debian:buster') },
                             "debian:bullseye":  { build('debian:bullseye') },
