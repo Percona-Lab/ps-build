@@ -57,6 +57,7 @@ fi
 docker run --rm \
     --security-opt seccomp=unconfined \
     --sysctl net.ipv6.conf.lo.disable_ipv6=0 \
+    --volume /dev/shm:/dev/shm \
     --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
     ${CI_FS_DOCKER_FLAG} \
