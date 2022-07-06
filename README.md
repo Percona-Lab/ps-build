@@ -4,8 +4,8 @@ git clone https://github.com/Percona-Lab/ps-build
 cd ps-build
 ./local/checkout
 
-./docker/run-build centos:6
-./docker/run-test centos:6
+./docker/run-build centos:7
+./docker/run-test centos:7
 ```
 
 ## Docker debug
@@ -14,7 +14,7 @@ git clone https://github.com/Percona-Lab/ps-build
 cd ps-build
 ./local/checkout
 
-./docker/run-build-debug centos:6
+./docker/run-build-debug centos:7
 ```
 
 # Local way
