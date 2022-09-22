@@ -20,14 +20,6 @@ if (
 
 if (
     (params.ZEN_FS_MTR == 'yes') &&
-    (params.DOCKER_OS == 'ubuntu:hirsute')
-    ) { 
-        LABEL = 'docker-32gb-hirsute'
-        pipeline_timeout = 22
-      }
-
-if (
-    (params.ZEN_FS_MTR == 'yes') &&
     (params.DOCKER_OS == 'ubuntu:focal')
     ) { 
         LABEL = 'docker-32gb-focal'
@@ -75,7 +67,7 @@ pipeline {
             name: 'TOKUBACKUP_BRANCH',
             trim: true)
         choice(
-            choices: 'centos:7\ncentos:8\nubuntu:bionic\nubuntu:focal\nubuntu:hirsute\ndebian:buster\ndebian:bullseye',
+            choices: 'centos:7\ncentos:8\nubuntu:bionic\nubuntu:focal\ndebian:buster\ndebian:bullseye',
             description: 'OS version for compilation',
             name: 'DOCKER_OS')
         choice(

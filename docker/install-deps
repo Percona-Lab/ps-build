@@ -204,7 +204,7 @@ if [ -f /usr/bin/apt-get ]; then
     done
 
     DIST=$(lsb_release -sc)
-    if [[ ${DIST} != 'focal' ]] && [[ ${DIST} != 'jammy' ]] && [[ ${DIST} != 'hirsute' ]] && [[ ${DIST} != 'bullseye' ]]; then
+    if [[ ${DIST} != 'focal' ]] && [[ ${DIST} != 'jammy' ]] && [[ ${DIST} != 'bullseye' ]]; then
         echo "deb http://jenkins.percona.com/apt-repo/ ${DIST} main" > /etc/apt/sources.list.d/percona-dev.list
         wget -q -O - http://jenkins.percona.com/apt-repo/8507EFA5.pub | apt-key add -
         wget -q -O - http://jenkins.percona.com/apt-repo/CD2EFD2A.pub | apt-key add -
@@ -264,7 +264,7 @@ if [ -f /usr/bin/apt-get ]; then
         PKGLIST+=" libre2-dev"
     fi
 
-    if [[ ${DIST} == 'focal' ]] || [[ ${DIST} == 'jammy' ]] || [[ ${DIST} == 'hirsute' ]] || [[ ${DIST} == 'bullseye' ]]; then
+    if [[ ${DIST} == 'focal' ]] || [[ ${DIST} == 'jammy' ]] || [[ ${DIST} == 'bullseye' ]]; then
         PKGLIST+=" libgflags-dev util-linux"
     fi
 

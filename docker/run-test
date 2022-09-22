@@ -12,7 +12,7 @@ if [[ ${CI_FS_MTR} == 'yes' ]]; then
 fi
 
 if [[ ${ZEN_FS_MTR} == "yes" ]] && [[ ${WITH_ROCKSDB} == "ON" ]]; then
-    if [[ ${DOCKER_OS} == "ubuntu:focal" ]] || [[ ${DOCKER_OS} == "ubuntu:hirsute" ]] || [[ ${DOCKER_OS} == "debian:bullseye" ]]; then
+    if [[ ${DOCKER_OS} == "ubuntu:focal" ]] || [[ ${DOCKER_OS} == "debian:bullseye" ]]; then
         sudo install --owner=root --group=root --mode=+rx $SCRIPTS_DIR/nullblk-zoned /usr/bin/
 
         ZEN_FS_DOCKER_FLAG=''
