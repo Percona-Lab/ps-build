@@ -205,7 +205,7 @@ fi
 # Check ZenFS
 # ------------------------------------------------------------------------------
 if [[ "${ZEN_FS_MTR}" = "yes" ]]; then
-    if [[ ${DOCKER_OS} = "ubuntu-focal" ]] || [[ ${DOCKER_OS} = "ubuntu-hirsute" ]] || [[ ${DOCKER_OS} = "debian-bullseye" ]]; then
+    if [[ ${DOCKER_OS} = "ubuntu-focal" ]] || [[ ${DOCKER_OS} = "debian-bullseye" ]]; then
         CMAKE_OPTS+=" -DROCKSDB_PLUGINS=zenfs -DWITH_ZENFS_UTILITY=ON"
     fi
 fi
@@ -226,7 +226,7 @@ pushd ${WORKDIR}
         -DWITH_PROTOBUF=bundled \
         -DWITH_RAPIDJSON=bundled \
         -DWITH_ICU=bundled \
-	-DWITH_READLINE=system \
+        -DWITH_READLINE=system \
         -DBUILD_CONFIG=mysql_release \
         -DFEATURE_SET=community \
         -DWITH_PAM=ON \
