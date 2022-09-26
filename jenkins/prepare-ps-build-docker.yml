@@ -51,14 +51,15 @@
                 stage('Build') {
                     steps {
                         parallel(
-                            "centos:7":  { build('centos:7') },
-                            "centos:8":  { build('centos:8') },
-                            "ubuntu:bionic":  { build('ubuntu:bionic') },
-                            "ubuntu:focal":  { build('ubuntu:focal') },
-                            "ubuntu:jammy":  { build('ubuntu:jammy') },
+                            "centos:7":        { build('centos:7') },
+                            "centos:8":        { build('centos:8') },
+                            "oraclelinux:9":   { build('oraclelinux:9') },
+                            "ubuntu:bionic":   { build('ubuntu:bionic') },
+                            "ubuntu:focal":    { build('ubuntu:focal') },
+                            "ubuntu:jammy":    { build('ubuntu:jammy') },
                             "ubuntu:hirsute":  { build('ubuntu:hirsute') },
-                            "debian:buster":  { build('debian:buster') },
-                            "debian:bullseye":  { build('debian:bullseye') },
+                            "debian:buster":   { build('debian:buster') },
+                            "debian:bullseye": { build('debian:bullseye') },
                         )
                     }
                 }

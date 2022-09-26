@@ -56,6 +56,17 @@ if [ -f /usr/bin/yum ]; then
       PKGLIST+=" libedit-devel"
   fi
 
+  if [[ ${RHVER} -eq 9 ]]; then
+      PKGLIST+=" dnf-utils"
+      until yum -y install ${PKGLIST} ; do
+        echo "waiting"
+        sleep 1
+      done
+
+      dnf config-manager --enable ol9_codeready_builder
+      PKGLIST+=" libedit-devel"
+  fi
+
   if [[ ${RHVER} -lt 8 ]] && [[ "$(rpm --eval %{_arch})" == "x86_64" ]]; then
     until yum -y install centos-release-scl; do
       echo "waiting"
@@ -80,11 +91,15 @@ if [ -f /usr/bin/yum ]; then
     gcc-c++ gperf ncurses-devel perl readline-devel openssl-devel jemalloc zip unzip \
     time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel valgrind re2-devel \
     perl-Time-HiRes openldap-devel perl-Env perl-Data-Dumper libicu-devel perl-Sys-MemInfo \
-    perl-JSON MySQL-python perl-Digest perl-Digest-MD5 \
-    numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan lz4-devel \
+    perl-JSON perl-Digest perl-Digest-MD5 \
+    numactl-devel git which make rpm-build ccache libtool sudo libasan lz4-devel \
     libzstd-devel tzdata zstd mysql-devel perl-DBI perl-DBD-mysql jq openssl perl-XML-Simple libcurl-devel perl-Test-Simple \
     cyrus-sasl-devel cyrus-sasl-scram krb5-devel libudev-devel \
     "
+
+    if [[ ${RHVER} -lt 9 ]]; then
+        PKGLIST+=" MySQL-python redhat-lsb-core"
+    fi
 
     if [[ ${RHVER} -eq 8 ]]; then
         PKGLIST+=" lz4 perl-Memoize perl-open valgrind-devel libubsan rpcgen libtirpc-devel golang libunwind-devel python2 python3 libatomic"
