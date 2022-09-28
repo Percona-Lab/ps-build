@@ -28,23 +28,16 @@ ln -sf ${WORKDIR_ABS}/PS/library_output_directory ${WORKDIR_ABS}/library_output_
 cd ${WORKDIR_ABS}/PS/mysql-test
 TESTCASE_TIMEOUT=30
 PARALLEL=$(grep -c ^processor /proc/cpuinfo)
-# CentOS 6 & 7
+# CentOS 7
 if [[ -f /opt/rh/devtoolset-8/enable ]]; then
     source /opt/rh/devtoolset-8/enable
 fi
 
-# Centos 6/i386
-if [[ $(rpm --eval %_arch) = "i386" ]] && [[ -f /opt/rh/devtoolset-2/enable ]]; then
-    source /opt/rh/devtoolset-2/enable
-fi
-
-OPENSSL_HEADER="/usr/include/openssl/opensslv.h"
 TOKUDB_PLUGIN=$(find $WORKDIR_ABS/PS/plugin_output_directory -type f -name 'ha_tokudb.so')
 HOTBACKUP_LIB=$(find $WORKDIR_ABS/PS -type f -name 'libHotBackup.so')
 HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS/PS/plugin_output_directory -type f -name 'tokudb_backup.so')
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
 EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
-OPENSSL_VER=$(grep -o 'define SHLIB_VERSION_NUMBER .*$' ${OPENSSL_HEADER} | awk -F'"' '{print $(NF-1)}' | sed -e 's:[a-z]::g')
 
 #
 if [[ -z "${EATMYDATA}" ]]; then
@@ -59,10 +52,10 @@ if [[ -z "${JEMALLOC}" ]]; then
 fi
 #
 MTR_ARGS+=" --timestamp --report-unstable-tests"
+ANALYZER_MTR_ARGS=""
 #
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
-  MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
-  [[ ${OPENSSL_VER} < '1.0.2' ]] && export OPENSSL_ia32cap=~0x200000000000000
+  ANALYZER_MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
   TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 2))
   if [[ ${PARALLEL} -gt 1 ]]; then
     PARALLEL=$((PARALLEL/3))
@@ -70,8 +63,10 @@ if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
 fi
 
 if [[ "${ANALYZER_OPTS}" == *WITH_*SAN*=ON* ]]; then
-    MTR_ARGS+=" --sanitize"
+    ANALYZER_MTR_ARGS+=" --sanitize"
 fi
+
+MTR_ARGS+=${ANALYZER_MTR_ARGS}
 
 if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
   export ASAN_OPTIONS=allocator_may_return_null=true
@@ -154,6 +149,7 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             --mysqld=--plugin-load=tokudb=ha_tokudb.so --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
+            ${ANALYZER_MTR_ARGS} \
             --junit-output=${WORKDIR_ABS}/junit_tokudb.xml \
             --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb" || true
 fi
@@ -187,12 +183,13 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --tmpdir="/tmp/ps_mtr_tempdir" \
         --vardir="/tmp/ci_disk_dir" \
         ${CI_TESTS} \
+        ${ANALYZER_MTR_ARGS} \
         --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true
 fi
 
 if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
-    if [[ ${DOCKER_OS} = 'ubuntu-focal' ]] || [[ ${DOCKER_OS} = 'debian-bullseye' ]]; then
+    if [[ ${DOCKER_OS} = 'ubuntu-jammy' ]] || [[ ${DOCKER_OS} = 'debian-bullseye' ]] || [[ ${DOCKER_OS} = 'oraclelinux-9' ]]; then
         sudo install --owner=root --group=root --mode=+rx ${WORKDIR_ABS}/PS/runtime_output_directory/zenfs /usr/bin/
 
         sudo rm -rf /tmp/zenfs* || true
@@ -229,12 +226,13 @@ if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
             --parallel=3 \
             --suite=rocksdb \
             ${ROCKSDB_ZENFS_MTR_ARGS} \
+            ${ANALYZER_MTR_ARGS} \
             --junit-output=${WORKDIR_ABS}/junit_rocksdb_zenfs.xml \
             --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.rocksdb_zenfs" || true
     fi
 fi
 
-if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[ ${DOCKER_OS} != 'i386/centos-6' ]]; then
+if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     if [ -f /usr/bin/yum ]; then
         if [[ -f /opt/rh/httpd24/enable ]]; then
             source /opt/rh/httpd24/enable
@@ -254,6 +252,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --big-test \
         --unit-tests \
         --suite=keyring_vault \
+        ${ANALYZER_MTR_ARGS} \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v1.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1" || true
 
@@ -269,6 +268,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --big-test \
         --unit-tests \
         --suite=keyring_vault \
+        ${ANALYZER_MTR_ARGS} \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v2.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v2" || true
 
@@ -286,6 +286,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --big-test \
         --unit-tests \
         --suite=keyring_vault \
+        ${ANALYZER_MTR_ARGS} \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v1.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v1" || true
 
@@ -302,6 +303,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --big-test \
         --unit-tests \
         --suite=keyring_vault \
+        ${ANALYZER_MTR_ARGS} \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v2.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
 fi
