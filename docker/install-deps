@@ -37,6 +37,17 @@ if [ -f /usr/bin/yum ]; then
     sleep 1
   done
 
+  if [[ ${RHVER} -eq 7 ]]; then
+      # installing EndPoint repo to get 'git' 2.x.x package
+      until yum -y install ${PKGLIST} ; do
+        echo "waiting"
+        sleep 1
+      done
+      wget_loop 'endpoint-repo.x86_64.rpm' 'https://packages.endpointdev.com/rhel/7/os/x86_64/endpoint-repo.x86_64.rpm'
+      yum -y install ${DOWNLOAD_ROOT}/endpoint-repo.x86_64.rpm
+      rm -f ${DOWNLOAD_ROOT}/endpoint-repo.x86_64.rpm
+  fi
+
   if [[ ${RHVER} -eq 8 ]]; then
       PKGLIST+=" dnf-utils"
       until yum -y install ${PKGLIST} ; do
