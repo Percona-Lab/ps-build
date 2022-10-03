@@ -20,15 +20,23 @@ if (
 
 if (
     (params.ZEN_FS_MTR == 'yes') &&
-    (params.DOCKER_OS == 'ubuntu:focal')
+    (params.DOCKER_OS == 'ubuntu:jammy')
     ) { 
-        LABEL = 'docker-32gb-focal'
+        LABEL = 'docker-32gb-bullseye'
         pipeline_timeout = 22
       }
 
 if (
     (params.ZEN_FS_MTR == 'yes') &&
     (params.DOCKER_OS == 'debian:bullseye')
+    ) {
+        LABEL = 'docker-32gb-bullseye'
+        pipeline_timeout = 22
+      }
+
+if (
+    (params.ZEN_FS_MTR == 'yes') &&
+    (params.DOCKER_OS == 'oraclelinux:9')
     ) {
         LABEL = 'docker-32gb-bullseye'
         pipeline_timeout = 22
@@ -286,7 +294,7 @@ pipeline {
                                     until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
                                         sleep 5
                                     done
-                                    
+
                                     if [ -f /usr/bin/yum ]; then
                                         sudo yum -y install jq gflags-devel
                                     else
@@ -298,8 +306,8 @@ pipeline {
                                             sudo dd if=/dev/zero of=/mnt/ci_disk_\$CMAKE_BUILD_TYPE.img bs=1G count=10
                                             sudo /sbin/mkfs.vfat /mnt/ci_disk_\$CMAKE_BUILD_TYPE.img
                                             sudo mkdir -p /mnt/ci_disk_dir_\$CMAKE_BUILD_TYPE
-                                            sudo mount -o loop -o uid=27 -o gid=27 -o check=r /mnt/ci_disk_\$CMAKE_BUILD_TYPE.img /mnt/ci_disk_dir_\$CMAKE_BUILD_TYPE
-                                        fi                                
+                                            sudo mount -o loop -o uid=1001 -o gid=1001 -o check=r /mnt/ci_disk_\$CMAKE_BUILD_TYPE.img /mnt/ci_disk_dir_\$CMAKE_BUILD_TYPE
+                                        fi
                                     fi
 
                                     echo Test: \$(date -u "+%s")

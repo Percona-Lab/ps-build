@@ -12,7 +12,7 @@ if [[ ${CI_FS_MTR} == 'yes' ]]; then
 fi
 
 if [[ ${ZEN_FS_MTR} == "yes" ]] && [[ ${WITH_ROCKSDB} == "ON" ]]; then
-    if [[ ${DOCKER_OS} == "ubuntu:focal" ]] || [[ ${DOCKER_OS} == "debian:bullseye" ]]; then
+    if [[ ${DOCKER_OS} == "ubuntu:jammy" ]] || [[ ${DOCKER_OS} == "debian:bullseye" ]] || [[ ${DOCKER_OS} == "oraclelinux:9" ]]; then
         sudo install --owner=root --group=root --mode=+rx $SCRIPTS_DIR/nullblk-zoned /usr/bin/
 
         ZEN_FS_DOCKER_FLAG=''
@@ -21,14 +21,14 @@ if [[ ${ZEN_FS_MTR} == "yes" ]] && [[ ${WITH_ROCKSDB} == "ON" ]]; then
             sudo rmdir /sys/kernel/config/nullb/nullb$nulldevice || true 
 
             sudo nullblk-zoned $nulldevice 512 128 124 0 32 12 12
-            sudo chown 27:27 /dev/nullb$nulldevice
+            sudo chown 1001:1001 /dev/nullb$nulldevice
             sudo chmod 660 /dev/nullb$nulldevice
             ZEN_FS_DOCKER_FLAG+=" --device=/dev/nullb$nulldevice"
         done
     fi
 fi
 
-if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]] && [[ ${DOCKER_OS} != 'centos:6' ]] && [[ ${DOCKER_OS} != 'i386/centos:6' ]]; then
+if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     if [[ $(docker network list | grep bridge-vault) != *bridge-vault* ]]; then
         docker network create bridge-vault
     fi
@@ -44,12 +44,12 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]] && [[ ${DOCKER_OS} != 'centos:6' ]] && 
     BOOTSTRAP_PROD_V1="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=prod --version="${KEYRING_VAULT_V1_VERSION}" --alias=v1 --port="9300")"
     export VAULT_V1_PROD_ROOT_TOKEN=$(echo "$BOOTSTRAP_PROD_V1" | grep "Production token" | awk -F ':' '{print $2}' | xargs)
     export VAULT_V1_PROD_MTR_TOKEN=$(echo "$BOOTSTRAP_PROD_V1" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
-    sudo install --owner=27 --group=27 /tmp/vault.d-v1-prod/ssl/ca.pem $ROOT_DIR/vault-prod-v1-ca.pem
+    sudo install --owner=1001 --group=1001 /tmp/vault.d-v1-prod/ssl/ca.pem $ROOT_DIR/vault-prod-v1-ca.pem
 
     BOOTSTRAP_PROD_V2="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=prod --version="${KEYRING_VAULT_V2_VERSION}" --alias=v2 --port="9500")"
     export VAULT_V2_PROD_ROOT_TOKEN=$(echo "$BOOTSTRAP_PROD_V2" | grep "Production token" | awk -F ':' '{print $2}' | xargs)
     export VAULT_V2_PROD_MTR_TOKEN=$(echo "$BOOTSTRAP_PROD_V2" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
-    sudo install --owner=27 --group=27 /tmp/vault.d-v2-prod/ssl/ca.pem $ROOT_DIR/vault-prod-v2-ca.pem
+    sudo install --owner=1001 --group=1001 /tmp/vault.d-v2-prod/ssl/ca.pem $ROOT_DIR/vault-prod-v2-ca.pem
 
     VAULT_DOCKER_FLAG="--network bridge-vault"
 fi

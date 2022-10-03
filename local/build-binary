@@ -53,16 +53,11 @@ wget_loop() {
 }
 
 BOOST_VERSION=$(grep 'SET(BOOST_PACKAGE_NAME' ${SOURCEDIR}/cmake/boost.cmake | sed -re 's/.*([0-9]+_[0-9]+_[0-9]+).*/\1/')
-wget_loop "boost_${BOOST_VERSION}.tar.gz" "http://downloads.sourceforge.net/boost/boost/${BOOST_VERSION//_/.}/boost_${BOOST_VERSION}.tar.gz"
+wget_loop "boost_${BOOST_VERSION}.tar.bz2" "http://downloads.sourceforge.net/boost/boost/${BOOST_VERSION//_/.}/boost_${BOOST_VERSION}.tar.bz2"
 
-if grep -q GMOCK_PACKAGE_NAME ${SOURCEDIR}/cmake/googletest.cmake || grep -q GMOCK_PACKAGE_NAME ${SOURCEDIR}/unittest/gunit/CMakeLists.txt; then
-    if [ -f "${SOURCEDIR}/cmake/googletest.cmake" ]; then
-        GMOCK_VERSION=$(grep 'SET(GMOCK_PACKAGE_NAME' ${SOURCEDIR}/cmake/googletest.cmake | sed -re 's/.*([0-9]+[.][0-9]+[.][0-9]+).*/\1/')
-    else
-        GMOCK_VERSION=$(grep 'SET(GMOCK_PACKAGE_NAME' ${SOURCEDIR}/unittest/gunit/CMakeLists.txt | sed -re 's/.*([0-9]+[.][0-9]+[.][0-9]+).*/\1/')
-    fi
-
-    wget_loop "googletest-release-${GMOCK_VERSION}.zip" "https://github.com/google/googletest/archive/release-${GMOCK_VERSION}.zip"
+RHVER=0
+if [[ -f /etc/redhat-release ]]; then
+    RHVER="$(rpm --eval %rhel)"
 fi
 
 if [[ ${WITH_BORINGSSL} == "true" ]]; then
@@ -73,9 +68,8 @@ if [[ ${WITH_BORINGSSL} == "true" ]]; then
     git clone https://github.com/google/boringssl.git boringssl_sources
     mkdir boringssl_sources/bin
     cd boringssl_sources/bin
-    if [[ -f /etc/redhat-release ]]; then
-        RHVER="$(rpm --eval %rhel)"
-        if [[ ${RHVER} == 7 ]]; then
+    if [[ ${RHVER} -ne 0 ]]; then
+        if [[ ${RHVER} -eq 7 ]]; then
             source /opt/rh/go-toolset-7/enable
         fi
         BORING_SSL_CMAKE=/usr/bin/cmake3
@@ -113,14 +107,6 @@ if [[ "${ANALYZER_OPTS}" = *WITH_VALGRIND=ON* ]]; then
     BUILD_COMMENT+="-valgrind"
 fi
 
-OS_VERSION=$(lsb_release -d -s)
-if [[ "${OS_VERSION}" = *"CentOS release 6."* ]] && [[ "${CMAKE_BUILD_TYPE}" = "RelWithDebInfo" ]]; then
-    MYSQL_MAINTAINER_MODE="OFF"
-else
-    MYSQL_MAINTAINER_MODE="ON"
-fi
-
-
 # ------------------------------------------------------------------------------
 # set version
 # ------------------------------------------------------------------------------
@@ -142,12 +128,8 @@ TOKUDB_BACKUP_VERSION="${MYSQL_VERSION}${MYSQL_VERSION_EXTRA}"
 PRODUCT_FULL="Percona-Server-${MYSQL_VERSION}-${PERCONA_SERVER_VERSION}${BUILD_COMMENT}-${TAG}$(uname -s)${DIST_NAME}.${TARGET_ARCH}${SSL_VER}"
 COMMENT="Percona Server (GPL), Release ${MYSQL_VERSION_EXTRA#-}, Revision ${REVISION:-}${BUILD_COMMENT}"
 
-if [[ "${OS_VERSION}" = *"CentOS release 6."* ]] || [[ "${OS_VERSION}" = *"CentOS Linux release 7."* ]]; then
+if [[ ${RHVER} -eq 7 ]]; then
     JOB_CMAKE='cmake3'
-    CMAKE_OPTS+=" -DWITH_LIBEVENT=bundled"
-fi
-
-if [[ "${OS_VERSION}" = *"Ubuntu 16.04."* ]] || [[ "${OS_VERSION}" = *"Debian GNU/Linux 9."* ]] ; then
     CMAKE_OPTS+=" -DWITH_LIBEVENT=bundled"
 fi
 
@@ -159,14 +141,9 @@ if [[ "$COMPILER" != "default" ]]; then
     export CXX=$(echo ${COMPILER} | sed -e 's/gcc/g++/; s/clang/clang++/')
 fi
 
-# CentOS 6 and 7
+# CentOS 7
 if [[ -f /opt/rh/devtoolset-8/enable ]]; then
     source /opt/rh/devtoolset-8/enable
-fi
-
-# Centos 6/i386
-if [[ $(rpm --eval %_arch) = "i386" ]] && [[ -f /opt/rh/devtoolset-2/enable ]]; then
-    source /opt/rh/devtoolset-2/enable
 fi
 
 # ------------------------------------------------------------------------------
@@ -195,17 +172,13 @@ else
     WITH_MECAB="system"
 fi
 
-if [[ "${WITH_KEYRING_VAULT}" == "ON" ]] && [[ "${OS_VERSION}" != *"CentOS release 6."* ]]; then
-    CMAKE_OPTS+=" -DWITH_KEYRING_VAULT=ON -DWITH_KEYRING_VAULT_TEST=ON"
-else
-    CMAKE_OPTS+=" -DWITH_KEYRING_VAULT=OFF -DWITH_KEYRING_VAULT_TEST=OFF"
-fi
+CMAKE_OPTS+=" -DWITH_KEYRING_VAULT=ON -DWITH_KEYRING_VAULT_TEST=ON"
 
 # ------------------------------------------------------------------------------
 # Check ZenFS
 # ------------------------------------------------------------------------------
 if [[ "${ZEN_FS_MTR}" = "yes" ]]; then
-    if [[ ${DOCKER_OS} = "ubuntu-focal" ]] || [[ ${DOCKER_OS} = "debian-bullseye" ]]; then
+    if [[ ${DOCKER_OS} = "ubuntu-jammy" ]] || [[ ${DOCKER_OS} = "debian-bullseye" ]] || [[ ${DOCKER_OS} = "oraclelinux-9" ]]; then
         CMAKE_OPTS+=" -DROCKSDB_PLUGINS=zenfs -DWITH_ZENFS_UTILITY=ON"
     fi
 fi
@@ -228,7 +201,6 @@ pushd ${WORKDIR}
         -DWITH_ICU=bundled \
         -DWITH_READLINE=system \
         -DBUILD_CONFIG=mysql_release \
-        -DFEATURE_SET=community \
         -DWITH_PAM=ON \
         -DWITH_NUMA=ON \
         -DWITH_ZLIB=bundled \
@@ -236,8 +208,6 @@ pushd ${WORKDIR}
         -DWITH_LZ4=bundled \
         -DWITH_FIDO=bundled \
         -DWITH_INNODB_MEMCACHED=ON \
-        -DENABLE_DOWNLOADS=ON \
-        -DDOWNLOAD_ROOT=${DOWNLOAD_DIR} \
         -DDOWNLOAD_BOOST=ON \
         -DWITH_BOOST=${DOWNLOAD_DIR} \
         -DCMAKE_INSTALL_PREFIX=/usr/local/$PRODUCT_FULL \
