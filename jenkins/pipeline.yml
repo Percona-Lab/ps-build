@@ -45,9 +45,11 @@
         - centos:7
         - centos:8
         - i386/centos:6
+        - oraclelinux:9
         - ubuntu:xenial
         - ubuntu:bionic
         - ubuntu:focal
+        - ubuntu:jammy
         - debian:stretch
         - debian:buster
         description: OS version for compilation
