@@ -27,13 +27,33 @@ if [ -f /usr/bin/yum ]; then
         sleep 1
     done
 
+    if [[ ${RHVER} -eq 9 ]]; then
+      PKGLIST+=" dnf-utils"
+      until yum -y install ${PKGLIST} ; do
+        echo "waiting"
+        sleep 1
+      done
+
+      dnf config-manager --enable ol9_codeready_builder
+      PKGLIST+=" libedit-devel"
+    fi
+
     PKGLIST=" \
         gcc-c++ gperf ncurses-devel perl readline-devel openssl-devel jemalloc unzip \
         time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel valgrind \
         perl-Time-HiRes libcurl-devel openldap-devel perl-Env perl-Data-Dumper \
-        perl-JSON MySQL-python perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 \
-        numactl-devel git which make rpm-build ccache libtool redhat-lsb-core sudo libasan perl-XML-Simple \
+        perl-JSON perl-Digest perl-Digest-MD5 perl-Digest-Perl-MD5 \
+        numactl-devel git which make rpm-build ccache libtool sudo libasan perl-XML-Simple \
     "
+
+    if [[ ${RHVER} -eq 9 ]]; then
+        PKGLIST+=" gflags-devel util-linux libtirpc-devel rpcgen"
+    fi
+
+    if [[ ${RHVER} -lt 9 ]]; then
+        PKGLIST+=" MySQL-python redhat-lsb-core"
+    fi
+
     if [[ "$(rpm --eval %rhel)" = "6" ]]; then
         cat <<-EOF | tee /etc/yum.repos.d/devtoolset-2.repo
 		[devtoolset-2]
