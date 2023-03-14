@@ -1,0 +1,197 @@
+- job:
+    name: percona-server-8.0-pipeline-parallel-mtr-refactor
+    project-type: pipeline
+    description: |
+        Do not edit this job through the web!
+    concurrent: true
+    pipeline-scm:
+      scm:
+        - git:
+            url: https://github.com/kamil-holubicki/ps-build
+            branches:
+            - "parallel-mtr-refactor"
+            wipe-workspace: false
+      lightweight-checkout: true
+      script-path: jenkins/pipeline-parallel-mtr.groovy
+    parameters:
+    - string:
+        name: BUILD_NUMBER_BINARIES
+        default: ""
+        description: Reuse binaries built in the specified build. Useful for quick MTR test rerun without rebuild.
+    - string:
+        name: GIT_REPO
+        default: "https://github.com/percona/percona-server"
+        description: URL to percona-server repository
+    - string:
+        name: BRANCH
+        default: "8.0"
+        description: Tag/Branch for percona-server repository
+    - string:
+        name: CUSTOM_BUILD_NAME
+        default: ""
+        description: Custom string that will be appended to the build name visible in Jenkins
+    - bool:
+        name: USE_PR
+        default: false
+        description: "Check only if you pass PR number to BRANCH field"
+    - choice:
+        name: DOCKER_OS
+        choices:
+        - centos:7
+        - centos:8
+        - oraclelinux:9
+        - ubuntu:bionic
+        - ubuntu:focal
+        - ubuntu:jammy
+        - debian:buster
+        - debian:bullseye
+        description: OS version for compilation
+    - choice:
+        name: CMAKE_BUILD_TYPE
+        choices:
+        - RelWithDebInfo
+        - Debug
+        description: Type of build to produce
+    - choice:
+        name: JOB_CMAKE
+        choices:
+        - /usr/bin/cmake
+        description: path to cmake binary
+    - choice:
+        name: ANALYZER_OPTS
+        choices:
+        -
+        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
+        - -DWITH_ASAN=ON
+        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
+        - -DWITH_ASAN=ON -DWITH_UBSAN=ON
+        - -DWITH_UBSAN=ON
+        - -DWITH_MSAN=ON
+        - -DWITH_VALGRIND=ON
+        description: Enable code checking
+    - choice:
+        name: WITH_ROCKSDB
+        choices:
+        - "ON"
+        - "OFF"
+        description: Compile RocksDB engine
+    - choice:
+        name: WITH_ROUTER
+        choices:
+        - "ON"
+        - "OFF"
+        description: Whether to build MySQL Router
+    - choice:
+        name: WITH_MYSQLX
+        choices:
+        - "ON"
+        - "OFF"
+        description: Whether to build with support for X Plugin
+    - choice:
+        name: WITH_KEYRING_VAULT
+        choices:
+        - "ON"
+        - "OFF"
+        description: Whether to build with support for keyring_vault Plugin
+    - string:
+        name: CMAKE_OPTS
+        default:
+        description: cmake options
+    - string:
+        name: MAKE_OPTS
+        default:
+        description: make options, like VERBOSE=1
+    - choice:
+        name: CI_FS_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run case-insensetive MTR tests
+    - choice:
+        name: ZEN_FS_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run ZenFS MTR tests
+    - string:
+        name: MTR_ARGS
+        default: --unit-tests-report --mem --big-test
+        description: "mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report"
+    - string:
+        name: MTR_REPEAT
+        default: "1"
+        description: Run each test N number of times, --repeat=N
+    - choice:
+        name: KEYRING_VAULT_MTR
+        choices:
+        - "yes"
+        - "no"
+        description: Run mtr --suite=keyring_vault
+    - string:
+        name: KEYRING_VAULT_V1_VERSION
+        default: "0.9.6"
+        description: Specifies version of Hashicorp Vault for V1 tests
+    - string:
+        name: KEYRING_VAULT_V2_VERSION
+        default: "1.9.0"
+        description: Specifies version of Hashicorp Vault for V2 tests
+    - choice:
+        name: LABEL
+        choices:
+        - docker-32gb
+        - docker
+        description: Run build on specified instance type
+    - choice:
+        name: FULL_MTR
+        choices:
+        - "yes"
+        - "no"
+        - "skip_mtr"
+        description: |
+            yes - full MTR<br>
+            no - run mtr suites based on variables WORKER_N_MTR_SUITES<br>
+            skip_mtr - skip testing phase. Only build.
+    - string:
+        name: WORKER_1_MTR_SUITES
+        default: ""
+        description: "Suites to be ran on worker 1 when FULL_MTR is no. Unit tests, if requested, can be ran here only!"
+    - string:
+        name: WORKER_2_MTR_SUITES
+        default: ""
+        description: "Suites to be ran on worker 2 when FULL_MTR is no"
+    - string:
+        name: WORKER_3_MTR_SUITES
+        default: ""
+        description: "Suites to be ran on worker 3 when FULL_MTR is no"
+    - string:
+        name: WORKER_4_MTR_SUITES
+        default: ""
+        description: "Suites to be ran on worker 4 when FULL_MTR is no"
+    - string:
+        name: WORKER_5_MTR_SUITES
+        default: ""
+        description: "Suites to be ran on worker 5 when FULL_MTR is no"
+    - string:
+        name: WORKER_6_MTR_SUITES
+        default: ""
+        description: "Suites to be ran on worker 6 when FULL_MTR is no"
+    - string:
+        name: WORKER_7_MTR_SUITES
+        default: ""
+        description: "Suites to be ran on worker 7 when FULL_MTR is no"
+    - string:
+        name: WORKER_8_MTR_SUITES
+        default: ""
+        description: "Suites to be ran on worker 8 when FULL_MTR is no"
+    - string:
+        name: MTR_STANDALONE_TESTS
+        default:
+        description: "Space-separated test names to be executed. Worker 1 handles this request."
+    - string:
+        name: MTR_STANDALONE_TESTS_PARALLEL
+        default: 1
+        description: "MTR workers count for standalone tests"
+    - bool:
+        name: ALLOW_ABORTED_WORKERS_RERUN
+        default: true
+        description: "Rerun aborted workers"
