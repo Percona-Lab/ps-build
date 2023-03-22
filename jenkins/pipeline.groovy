@@ -224,21 +224,6 @@ pipeline {
 
                                 echo Build: \$(date -u "+%s")
                                 aws ecr-public get-login-password --region us-east-1 | docker login -u AWS --password-stdin public.ecr.aws/e7j3v3n0
-                                sg docker -c "
-                                    if [ \$(docker ps -q | wc -l) -ne 0 ]; then
-                                        docker ps -q | xargs docker stop --time 1 || :
-                                    fi
-                                    ./docker/run-build ${DOCKER_OS}
-                                " 2>&1 | tee build.log
-
-                                echo Archive build: \$(date -u "+%s")
-                                sed -i -e '
-                                    s^/tmp/ps/^sources/^;
-                                    s^/tmp/results/^sources/^;
-                                    s^/xz/src/build_lzma/^/third_party/xz-4.999.9beta/^;
-                                ' build.log
-                                gzip build.log
-
                                 if [[ -f build.log.gz ]]; then
                                     until aws s3 cp --no-progress --acl public-read build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz; do
                                         sleep 5
