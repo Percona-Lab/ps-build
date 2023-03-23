@@ -238,6 +238,12 @@ pipeline {
                                 ' build.log
                                 gzip build.log	
 
+			        git branch: 'master', url: 'https://github.com/Percona-QA/percona-qa'
+                                cd percona-qa/Coverage
+				perl dgcov.pl --v
+				perl dgcov.pl --v 2>&1 | tee output
+				cp output sources/results/				
+
                                 if [[ -f build.log.gz ]]; then
                                     until aws s3 cp --no-progress --acl public-read build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz; do
                                         sleep 5
@@ -293,7 +299,7 @@ pipeline {
                                     until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
                                         sleep 5
                                     done
-
+				    
                                     if [ -f /usr/bin/yum ]; then
                                         sudo yum -y install jq gflags-devel
                                     else
@@ -319,6 +325,7 @@ pipeline {
                                         ulimit -a
                                         ./docker/run-test ${DOCKER_OS}
                                     "
+
 
                                     echo Archive test: \$(date -u "+%s")
                                     until aws s3 sync --no-progress --acl public-read --exclude 'binary.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/; do
