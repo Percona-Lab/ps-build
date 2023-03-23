@@ -39,12 +39,14 @@ parse_arguments() {
 }
 
 function prepare_consul {
+    docker rm -f consul ||:
     docker run -d --name=consul --hostname=consul --net bridge-vault -e 'CONSUL_LOCAL_CONFIG={"skip_leave_on_interrupt": true}' consul agent -server -bind=0.0.0.0 -client=0.0.0.0 -alt-domain=consul -retry-join=127.0.0.1 -bootstrap-expect=1
     return
 }
 
 function prepare_prod_env {
     local cluster_addr_port=${1:-}
+    rm -rf /tmp/vault.d-${ALIAS}-prod /tmp/vault.d-${ALIAS}-prod/policies /tmp/vault.d-${ALIAS}-prod/ssl
     mkdir -p /tmp/vault.d-${ALIAS}-prod/ /tmp/vault.d-${ALIAS}-prod/policies /tmp/vault.d-${ALIAS}-prod/ssl
 
     # Generate SSL CA and CRT + KEY for TLS
@@ -54,6 +56,8 @@ function prepare_prod_env {
     openssl req -newkey rsa:2048 -subj "/CN=VAULT CERT" -nodes -keyout /tmp/vault.d-${ALIAS}-prod/ssl/privkey.pem -out /tmp/vault.d-${ALIAS}-prod/ssl/server-req.pem
     openssl x509 -req -in /tmp/vault.d-${ALIAS}-prod/ssl/server-req.pem -days 31 -CA /tmp/vault.d-${ALIAS}-prod/ssl/ca.pem -CAkey /tmp/vault.d-${ALIAS}-prod/ssl/ca.key -set_serial 01 -out /tmp/vault.d-${ALIAS}-prod/ssl/fullchain.pem -extfile /tmp/extfile.cnf
     cat /tmp/vault.d-${ALIAS}-prod/ssl/ca.pem | tee -a /tmp/vault.d-${ALIAS}-prod/ssl/fullchain.pem
+
+    chmod 664 /tmp/vault.d-${ALIAS}-prod/ssl/*
 
     # Place config files
 cat <<-EOF | tee /tmp/vault.d-${ALIAS}-prod/config.hcl
@@ -103,13 +107,25 @@ function main {
             fi
         fi
         prepare_prod_env $(($(echo ${PORT}) + 1))
+
+        # If this Jenkis worker instance is reused by Jenkins, we need to remove
+        # the old vault container before creating the new one.
+        docker rm -f vault-prod-${ALIAS} ||:
+
         docker run --cap-add=IPC_LOCK -d --name=vault-prod-${ALIAS} --hostname=vault-prod-${ALIAS} --net bridge-vault -v /tmp/vault.d-${ALIAS}-prod:/etc/vault.d vault:${VERSION} server -config=/etc/vault.d/config.hcl
         sleep 10
+
+        echo "Vault container started. Logs start >>>"
+        DOCKER_LOGS="$(docker logs -t vault-prod-${ALIAS})"
+        echo ${DOCKER_LOGS}
+        echo "<<< Logs end"
+
         VAULT_PROD_KEYS="$(docker exec -e VAULT_ADDR="https://vault-prod-${ALIAS}:${PORT}" -e VAULT_CACERT="/etc/vault.d/ssl/ca.pem" -t vault-prod-${ALIAS} vault operator init -format=json)"
         VAULT_PROD_UNSEAL_KEYS=$(echo "$VAULT_PROD_KEYS" | jq '.unseal_keys_b64' | awk -F '"' '{print $2}' | xargs)
         VAULT_PROD_TOKEN=$(echo "$VAULT_PROD_KEYS" | jq -r '.root_token')
 
         for key in $VAULT_PROD_UNSEAL_KEYS; do
+            echo "Unseal key $key"
             docker exec -e VAULT_ADDR="https://vault-prod-${ALIAS}:${PORT}" -e VAULT_CACERT="/etc/vault.d/ssl/ca.pem" -t vault-prod-${ALIAS} vault operator unseal "$key"
             sleep 1
         done
@@ -121,6 +137,8 @@ function main {
         echo "MTR token: ${VAULT_MTR_TOKEN}"
     else
         prepare_dev_env
+
+        docker rm -f vault-dev-${ALIAS} ||:
         docker run --cap-add=IPC_LOCK -d --name=vault-dev-${ALIAS} --hostname=vault-dev-${ALIAS} --net bridge-vault -v /tmp/vault.d-${ALIAS}-dev:/etc/vault.d vault:${VERSION} server -dev -dev-listen-address=vault-dev-${ALIAS}:${PORT} -dev-root-token-id=${DEVTOKEN}
         sleep 3
         docker exec -e VAULT_TOKEN=${DEVTOKEN} -e VAULT_ADDR="http://vault-dev-${ALIAS}:${PORT}" -t vault-dev-${ALIAS} vault policy write mtr /etc/vault.d/policies/mtr.hcl
