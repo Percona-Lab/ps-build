@@ -182,8 +182,9 @@ if [[ "${ZEN_FS_MTR}" = "yes" ]]; then
         CMAKE_OPTS+=" -DROCKSDB_PLUGINS=zenfs -DWITH_ZENFS_UTILITY=ON"
     fi
 fi
-
+cd /tmp/ps
 wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
+chmod 777 dgcov.pl
 perl dgcov.pl --v --s=$SOURCEDIR
 perl dgcov.pl --v --s=$SOURCEDIR 2>&1 | tee output
 mv output ${WORKDIR}/
