@@ -238,13 +238,6 @@ pipeline {
                                 ' build.log
                                 gzip build.log	
 
-			        
-                                wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
-				perl dgcov.pl --v
-				perl dgcov.pl --v 2>&1 | tee output
-				cp output sources/results/				
-				cd ../../
-
                                 if [[ -f build.log.gz ]]; then
                                     until aws s3 cp --no-progress --acl public-read build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz; do
                                         sleep 5

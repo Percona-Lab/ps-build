@@ -183,6 +183,11 @@ if [[ "${ZEN_FS_MTR}" = "yes" ]]; then
     fi
 fi
 
+wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
+perl dgcov.pl --v
+perl dgcov.pl --v 2>&1 | tee output
+mv output ${WORKDIR}/
+
 # ------------------------------------------------------------------------------
 # Finaly, compile!
 # ------------------------------------------------------------------------------
