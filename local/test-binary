@@ -158,6 +158,7 @@ fi
 if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] && [[ "${DEFAULT_TESTING}" = 'no' ]] ; then
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
+        --gcov \
         --max-test-fail=0 \
         main.1st \
         --junit-output=${WORKDIR_ABS}/small.xml \
