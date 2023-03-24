@@ -14,7 +14,7 @@
 
 set -o errexit
 set -o xtrace
-
+SOURCEDIR=/tmp/ps
 WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
 rm -fr ${WORKDIR_ABS}/PS
 mkdir -p ${WORKDIR_ABS}/PS/sql
@@ -308,10 +308,12 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
 fi
 
-cd /tmp/results/PS
+pushd /tmp/results/PS
+ls -l
 wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
 chmod 777 dgcov.pl
 perl dgcov.pl --v --s=$SOURCEDIR
 perl dgcov.pl --v --s=$SOURCEDIR 2>&1 | tee output
+popd
 
 exit $status
