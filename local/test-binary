@@ -311,7 +311,7 @@ fi
 ls -la /tmp/ps
 echo "...."
 pushd /tmp/results/PS
-ls -la
+find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
 wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
 chmod 777 dgcov.pl
 perl dgcov.pl --v --s=$SOURCEDIR
