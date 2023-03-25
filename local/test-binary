@@ -314,6 +314,9 @@ cat /tmp/results/PS/mysql-test-gcov.msg
 echo "-----"
 cat /tmp/results/PS/mysql-test-gcov.err
 echo "-----"
+gcov --vesrion
+gcov --v
+gcov -v
 
 ls -la /tmp/ps
 echo "...."
