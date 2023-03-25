@@ -316,10 +316,13 @@ cat /tmp/results/PS/mysql-test-gcov.msg
 echo "-----"
 cat /tmp/results/PS/mysql-test-gcov.err
 
-ls -la /tmp/ps
+pushd /tmp/ps
+ls -la 
 echo "....GIT..."
-git remote --v
-git branch
+cat .git/HEAD
+#git remote --v
+#git branch
+popd
 
 pushd /tmp/results/PS
 find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
