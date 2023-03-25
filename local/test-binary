@@ -320,8 +320,10 @@ pushd /tmp/ps
 ls -la 
 echo "....GIT..."
 cat .git/HEAD
-#git remote --v
-#git branch
+echo "....GIT INIT..."
+git init
+git remote --v
+git branch
 popd
 
 pushd /tmp/results/PS
