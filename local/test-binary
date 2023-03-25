@@ -317,7 +317,10 @@ echo "-----"
 cat /tmp/results/PS/mysql-test-gcov.err
 
 ls -la /tmp/ps
-echo "...."
+echo "....GIT..."
+git remote --v
+git branch
+
 pushd /tmp/results/PS
 find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
 wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
