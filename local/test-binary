@@ -309,6 +309,12 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
 fi
 
+echo "-----"
+cat /tmp/results/PS/mysql-test-gcov.msg
+echo "-----"
+cat /tmp/results/PS/mysql-test-gcov.err
+echo "-----"
+
 ls -la /tmp/ps
 echo "...."
 pushd /tmp/results/PS
