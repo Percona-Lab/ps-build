@@ -185,11 +185,10 @@ fi
 
 cd /tmp/ps
 ls -l
-wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
+wget https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
 chmod 777 dgcov.pl
-perl dgcov.pl --v --s=$SOURCEDIR
-perl dgcov.pl --v --s=$SOURCEDIR 2>&1 | tee output
-mv output ${WORKDIR}/
+perl dgcov.pl --v --split --source=$SOURCEDIR
+cp dumper.txt ${WORKDIR}/
 
 # ------------------------------------------------------------------------------
 # Finaly, compile!
@@ -243,4 +242,6 @@ cp -r ${WORKDIR}/unittest/gunit/*  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/runtime_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/library_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/plugin_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+cp /tmp/ps/dumper.txt ${INSTALL_DIR}/
+
 tar -C ${INSTALL_DIR}/usr/local --owner=0 --group=0 -czf "${WORKDIR}/$PRODUCT_FULL.tar.gz" $PRODUCT_FULL
