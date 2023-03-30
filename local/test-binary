@@ -317,6 +317,7 @@ echo "-----"
 gcov -v
 
 ls -l /tmp/results/PS
+ls -l /tmp/results/PS/bin/
 
 pushd /tmp/results/PS
 find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
