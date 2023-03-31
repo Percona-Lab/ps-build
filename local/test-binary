@@ -316,15 +316,18 @@ cat /tmp/results/PS/mysql-test-gcov.err
 echo "-----"
 gcov -v
 
-ls -l /tmp/results/PS
-ls -l /tmp/results/PS/bin/
-
 pushd /tmp/results/PS
+ls -l 
 find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
 wget  https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
 chmod 777 dgcov.pl
 perl dgcov.pl --v --split
 perl dgcov.pl --v --split --source=$SOURCEDIR 2>&1 | tee output
+popd
+
+pushd /tmp/ps
+ls -l 
+find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
 popd
 
 exit $status

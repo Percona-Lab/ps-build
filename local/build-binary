@@ -227,7 +227,10 @@ pushd ${WORKDIR}
         ${SOURCEDIR}
     make ${MAKE_OPTS}
     make DESTDIR=${INSTALL_DIR} install > make_install.log
+find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
+    
 popd
+
 
 # Copy all needed data for unit tests
 cp ${WORKDIR}/scripts/mysqld_safe ${WORKDIR}/runtime_output_directory/
