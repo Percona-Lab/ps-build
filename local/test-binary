@@ -325,8 +325,8 @@ ls -l
 find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
 wget  https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
 chmod 777 dgcov.pl
-perl dgcov.pl --v --split
-perl dgcov.pl --v --split --source=$SOURCEDIR 2>&1 | tee output
+perl dgcov.pl --v --dump
+perl dgcov.pl --v --dump --source=$SOURCEDIR 2>&1 | tee output
 popd
 
 exit $status

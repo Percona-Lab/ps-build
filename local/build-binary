@@ -187,7 +187,7 @@ cd /tmp/ps
 ls -l
 wget https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
 chmod 777 dgcov.pl
-perl dgcov.pl --v --split --source=$SOURCEDIR
+perl dgcov.pl --v --dump --source=$SOURCEDIR
 cp dumper.txt ${WORKDIR}/
 
 # ------------------------------------------------------------------------------
