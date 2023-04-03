@@ -208,7 +208,7 @@ if [ -f /usr/bin/apt-get ]; then
 
     # PS-7834: 8.0.26 requires GCC 8 on bionic
     if [[ ${DIST} == "bionic" ]]; then
-        PKGLIST+=" gcc-8 g++-8 gcov-8"
+        PKGLIST+=" gcc-8 g++-8 gcov-8 cpio"
     fi
 
     if [[ ${DIST} == 'jammy' ]] || [[ ${DIST} == 'bullseye' ]]; then

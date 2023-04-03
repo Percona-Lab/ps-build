@@ -25,6 +25,9 @@ ln -sf ${WORKDIR_ABS}/PS/runtime_output_directory ${WORKDIR_ABS}/runtime_output_
 ln -sf ${WORKDIR_ABS}/PS/plugin_output_directory ${WORKDIR_ABS}/plugin_output_directory
 ln -sf ${WORKDIR_ABS}/PS/library_output_directory ${WORKDIR_ABS}/library_output_directory
 
+export GCOV_PREFIX="/tmp/results/PS"
+export GCOV_PREFIX=2
+
 cd ${WORKDIR_ABS}/PS/mysql-test
 TESTCASE_TIMEOUT=30
 PARALLEL=$(grep -c ^processor /proc/cpuinfo)
@@ -309,6 +312,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
 fi
 
+
 echo "-----"
 cat /tmp/results/PS/mysql-test-gcov.msg
 echo "-----"
@@ -323,11 +327,6 @@ wget  https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage
 chmod 777 dgcov.pl
 perl dgcov.pl --v --split
 perl dgcov.pl --v --split --source=$SOURCEDIR 2>&1 | tee output
-popd
-
-pushd /tmp/ps
-ls -l 
-find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
 popd
 
 exit $status

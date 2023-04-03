@@ -227,8 +227,6 @@ pushd ${WORKDIR}
         ${SOURCEDIR}
     make ${MAKE_OPTS}
     make DESTDIR=${INSTALL_DIR} install > make_install.log
-find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
-    
 popd
 
 
@@ -247,7 +245,7 @@ cp -r ${WORKDIR}/library_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FUL
 cp -r ${WORKDIR}/plugin_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp /tmp/ps/dumper.txt ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 pushd ${WORKDIR}/
-find ./ -name "*.gcno" -o -name "*.o" -o -name "*.o.*" | cpio -pdm  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+find ./ -name "*.gcno" | cpio -pdm  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 popd
 
 
