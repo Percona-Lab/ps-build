@@ -28,7 +28,7 @@ ln -sf ${WORKDIR_ABS}/PS/library_output_directory ${WORKDIR_ABS}/library_output_
 GCDA_LOC=$(strings ${WORKDIR_ABS}/PS/runtime_output_directory/mysqld | grep gcda | head -1)
 echo $GCDA_LOC
 export GCOV_PREFIX="/tmp/results/PS/"
-export export GCOV_PREFIX_STRIP="2"
+export GCOV_PREFIX_STRIP="2"
 
 cd ${WORKDIR_ABS}/PS/mysql-test
 TESTCASE_TIMEOUT=30
