@@ -25,6 +25,8 @@ ln -sf ${WORKDIR_ABS}/PS/runtime_output_directory ${WORKDIR_ABS}/runtime_output_
 ln -sf ${WORKDIR_ABS}/PS/plugin_output_directory ${WORKDIR_ABS}/plugin_output_directory
 ln -sf ${WORKDIR_ABS}/PS/library_output_directory ${WORKDIR_ABS}/library_output_directory
 
+GCDA_LOC=$(strings ${WORKDIR_ABS}/PS/runtime_output_directory/mysqld | grep gcda | head -1)
+echo $GCDA_LOC
 export GCOV_PREFIX="/tmp/results/PS/"
 export GCOV_PREFIX=2
 
