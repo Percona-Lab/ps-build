@@ -106,6 +106,10 @@ pipeline {
             choices: 'ON\nOFF',
             description: 'Whether to build MySQL Router',
             name: 'WITH_ROUTER')
+	choice(
+            choices: 'OFF\nON',
+            description: 'Whether to build with Coverage',
+            name: 'WITH_GCOV')
         choice(
             choices: 'ON\nOFF',
             description: 'Whether to build with support for X Plugin',
