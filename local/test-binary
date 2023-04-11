@@ -24,7 +24,7 @@ ln -sf ${WORKDIR_ABS}/PS/runtime_output_directory ${WORKDIR_ABS}/runtime_output_
 ln -sf ${WORKDIR_ABS}/PS/plugin_output_directory ${WORKDIR_ABS}/plugin_output_directory
 ln -sf ${WORKDIR_ABS}/PS/library_output_directory ${WORKDIR_ABS}/library_output_directory
 
-if [[ ${WITH_GCOV} == 'yes' ]]; then
+if [[ ${WITH_GCOV} == 'ON' ]]; then
     export GCOV_PREFIX="/tmp/results/PS/"
     export GCOV_PREFIX_STRIP="2"
     MTR_ARGS+=" --gcov"
