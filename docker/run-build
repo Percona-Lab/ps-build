@@ -23,6 +23,7 @@ docker run --rm \
     export WITH_TOKUDB='${WITH_TOKUDB}'
     export WITH_ROCKSDB='${WITH_ROCKSDB}'
     export WITH_ROUTER='${WITH_ROUTER}'
+    export WITH_GCOV='${WITH_GCOV}'
     export WITH_MYSQLX='${WITH_MYSQLX}'
     export WITH_BORINGSSL='${WITH_BORINGSSL}'
     export WITH_KEYRING_VAULT='${WITH_KEYRING_VAULT}'

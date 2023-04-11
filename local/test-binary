@@ -14,7 +14,6 @@
 
 set -o errexit
 set -o xtrace
-SOURCEDIR=/tmp/ps
 WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
 rm -fr ${WORKDIR_ABS}/PS
 mkdir -p ${WORKDIR_ABS}/PS/sql
@@ -25,10 +24,11 @@ ln -sf ${WORKDIR_ABS}/PS/runtime_output_directory ${WORKDIR_ABS}/runtime_output_
 ln -sf ${WORKDIR_ABS}/PS/plugin_output_directory ${WORKDIR_ABS}/plugin_output_directory
 ln -sf ${WORKDIR_ABS}/PS/library_output_directory ${WORKDIR_ABS}/library_output_directory
 
-GCDA_LOC=$(strings ${WORKDIR_ABS}/PS/runtime_output_directory/mysqld | grep gcda | head -1)
-echo $GCDA_LOC
-export GCOV_PREFIX="/tmp/results/PS/"
-export GCOV_PREFIX_STRIP="2"
+if [[ ${WITH_GCOV} == 'yes' ]]; then
+    export GCOV_PREFIX="/tmp/results/PS/"
+    export GCOV_PREFIX_STRIP="2"
+    MTR_ARGS+=" --gcov"
+fi
 
 cd ${WORKDIR_ABS}/PS/mysql-test
 TESTCASE_TIMEOUT=30
@@ -163,7 +163,6 @@ fi
 if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] && [[ "${DEFAULT_TESTING}" = 'no' ]] ; then
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
-        --gcov \
         --max-test-fail=0 \
         main.1st \
         --junit-output=${WORKDIR_ABS}/small.xml \
@@ -314,21 +313,11 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
 fi
 
-
-echo "-----"
-cat /tmp/results/PS/mysql-test-gcov.msg
-echo "-----"
-cat /tmp/results/PS/mysql-test-gcov.err
-echo "-----"
-gcov -v
-
-pushd /tmp/results/PS
-ls -l 
-find ./ -name "*.gcno" -o -name "*.gcda" -o -name "*.gcov"
-wget  https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
-chmod 777 dgcov.pl
-perl dgcov.pl --v --dump
-perl dgcov.pl --v --dump --source=$SOURCEDIR 2>&1 | tee output
-popd
+if [[ ${WITH_GCOV} == 'yes' ]]; then
+    pushd /tmp/results/PS
+    wget  https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
+    perl dgcov.pl --v --dump 
+    popd
+fi
 
 exit $status
