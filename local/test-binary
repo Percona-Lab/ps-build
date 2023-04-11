@@ -313,7 +313,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
 fi
 
-if [[ ${WITH_GCOV} == 'yes' ]]; then
+if [[ ${WITH_GCOV} == 'ON' ]]; then
     pushd /tmp/results/PS
     wget  https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
     perl dgcov.pl --v --dump 
