@@ -246,7 +246,7 @@ if [[ ${WITH_GCOV} == 'ON' ]]; then
     cp dumper.txt ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}
     popd
     pushd ${WORKDIR}
-    find ./ -name "*.gcno" | cpio -pdm  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL} || true
+    find ./ -name "*.gcno" | cpio -pdm  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/ || true
     popd
 fi
 

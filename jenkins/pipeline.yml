@@ -105,8 +105,8 @@
     - choice:
         name: WITH_MYSQLX
         choices:
-        - "ON"
         - "OFF"
+        - "ON"
         description: Whether to build with support for X Plugin
     - choice:
         name: WITH_KEYRING_VAULT
