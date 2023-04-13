@@ -318,7 +318,7 @@ fi
 # GCOV Covergae Report
 if [[ ${WITH_GCOV} == 'ON' ]]; then
     pushd ${WORKDIR_ABS}/PS
-    wget  https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
+    wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
     perl dgcov.pl --v --dump 
     popd
 fi

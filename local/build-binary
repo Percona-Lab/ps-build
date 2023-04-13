@@ -241,7 +241,7 @@ cp -r ${WORKDIR}/plugin_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL
 # GCOV instrumentation files for coverage report. 
 if [[ ${WITH_GCOV} == 'ON' ]]; then
     pushd ${SOURCEDIR}
-    wget https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
+    wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
     perl dgcov.pl --v --dump --source=$SOURCEDIR
     cp dumper.txt ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
     popd
