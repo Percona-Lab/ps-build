@@ -240,7 +240,7 @@ pipeline {
                                     s^/tmp/results/^sources/^;
                                     s^/xz/src/build_lzma/^/third_party/xz-4.999.9beta/^;
                                 ' build.log
-                                gzip build.log	
+                                gzip build.log
 
                                 if [[ -f build.log.gz ]]; then
                                     until aws s3 cp --no-progress --acl public-read build.log.gz s3://ps-build-cache/${BUILD_TAG}/build.log.gz; do
@@ -297,7 +297,6 @@ pipeline {
                                     until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
                                         sleep 5
                                     done
-				    
                                     if [ -f /usr/bin/yum ]; then
                                         sudo yum -y install jq gflags-devel
                                     else
@@ -323,7 +322,6 @@ pipeline {
                                         ulimit -a
                                         ./docker/run-test ${DOCKER_OS}
                                     "
-
 
                                     echo Archive test: \$(date -u "+%s")
                                     until aws s3 sync --no-progress --acl public-read --exclude 'binary.tar.gz' ./sources/results/ s3://ps-build-cache/${BUILD_TAG}/; do

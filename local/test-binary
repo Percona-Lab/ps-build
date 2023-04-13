@@ -14,6 +14,7 @@
 
 set -o errexit
 set -o xtrace
+
 WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
 rm -fr ${WORKDIR_ABS}/PS
 mkdir -p ${WORKDIR_ABS}/PS/sql

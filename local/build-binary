@@ -224,7 +224,6 @@ pushd ${WORKDIR}
     make DESTDIR=${INSTALL_DIR} install > make_install.log
 popd
 
-
 # Copy all needed data for unit tests
 cp ${WORKDIR}/scripts/mysqld_safe ${WORKDIR}/runtime_output_directory/
 cp ${WORKDIR}/scripts/mysqldumpslow ${WORKDIR}/runtime_output_directory/
