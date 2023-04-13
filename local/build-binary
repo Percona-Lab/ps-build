@@ -13,6 +13,7 @@ CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
 WITH_TOKUDB=${WITH_TOKUDB:-ON}
 WITH_ROCKSDB=${WITH_ROCKSDB:-ON}
 WITH_ROUTER=${WITH_ROUTER:-ON}
+WITH_GCOV=${WITH_GCOV:-OFF}
 WITH_MYSQLX=${WITH_MYSQLX:-ON}
 WITH_KEYRING_VAULT=${WITH_KEYRING_VAULT:-ON}
 WITH_BORINGSSL=${WITH_BORINGSSL:-false}
@@ -194,6 +195,7 @@ pushd ${WORKDIR}
         -DWITH_ROUTER=${WITH_ROUTER} \
         -DWITH_MYSQLX=${WITH_MYSQLX} \
         -DWITH_MECAB=${WITH_MECAB} \
+        -DENABLE_GCOV=${WITH_GCOV} \
         -DWITH_PACKAGE_FLAGS=OFF \
         -DWITH_SYSTEM_LIBS=ON \
         -DWITH_PROTOBUF=bundled \
@@ -235,4 +237,17 @@ cp -r ${WORKDIR}/unittest/gunit/*  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/runtime_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/library_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/plugin_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+
+# GCOV instrumentation files for coverage report. 
+if [[ ${WITH_GCOV} == 'ON' ]]; then
+    pushd ${SOURCEDIR}
+    wget https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
+    perl dgcov.pl --v --dump --source=$SOURCEDIR
+    cp dumper.txt ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+    popd
+    pushd ${WORKDIR}
+    find ./ -name "*.gcno" | cpio -pdm  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/ || true
+    popd
+fi
+
 tar -C ${INSTALL_DIR}/usr/local --owner=0 --group=0 -czf "${WORKDIR}/$PRODUCT_FULL.tar.gz" $PRODUCT_FULL
