@@ -238,14 +238,15 @@ cp -r ${WORKDIR}/runtime_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FUL
 cp -r ${WORKDIR}/library_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/plugin_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 
+# GCOV instrumentation files for coverage data. 
 if [[ ${WITH_GCOV} == 'ON' ]]; then
-    pushd ${SOURCEDIR}/
+    pushd ${SOURCEDIR}
     wget https://raw.githubusercontent.com/saikumar-vs/percona-qa/Coverage/Coverage/dgcov.pl
     perl dgcov.pl --v --dump --source=$SOURCEDIR
-    cp dumper.txt ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+    cp dumper.txt ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}
     popd
-    pushd ${WORKDIR}/
-    find ./ -name "*.gcno" | cpio -pdm  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/ || true
+    pushd ${WORKDIR}
+    find ./ -name "*.gcno" | cpio -pdm  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL} || true
     popd
 fi
 
