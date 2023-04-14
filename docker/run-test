@@ -103,4 +103,10 @@ docker run --rm \
 
     sudo mv /tmp/results/*.xml /tmp/ps/results/
     sudo chown $(id -u):$(id -g) /tmp/ps/results/*.xml
+
+    # GCOV copy coverage output.
+    if [[ "${WITH_GCOV}" == 'ON' ]]; then
+        sudo mv /tmp/results/PS/coverage.txt /tmp/ps/results/
+        sudo chown $(id -u):$(id -g) /tmp/ps/results/coverage.txt
+    fi
 "
