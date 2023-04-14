@@ -1,15 +1,17 @@
 - job:
-    name: percona-server-8.0-pipeline-parallel-mtr-refactor
+    name: percona-server-8.0-pipeline-parallel-mtr
     project-type: pipeline
     description: |
-        Do not edit this job through the web!
+        <b>Do not make changes to the pipeline definition via the web interface!<br>
+        (Do not use 'Configure' option on the left for changing the pipeline definition)<br>
+        Change the YAML files and Groovy scripts in the <a href="https://github.com/Percona-Lab/ps-build/tree/8.0/jenkins">git repo</a> instead.</b>
     concurrent: true
     pipeline-scm:
       scm:
         - git:
-            url: https://github.com/kamil-holubicki/ps-build
+            url: https://github.com/Percona-Lab/ps-build
             branches:
-            - "parallel-mtr-refactor"
+            - "8.0"
             wipe-workspace: false
       lightweight-checkout: true
       script-path: jenkins/pipeline-parallel-mtr.groovy
@@ -110,8 +112,8 @@
     - choice:
         name: ZEN_FS_MTR
         choices:
-        - "yes"
         - "no"
+        - "yes"
         description: Run ZenFS MTR tests
     - string:
         name: MTR_ARGS
@@ -124,8 +126,8 @@
     - choice:
         name: KEYRING_VAULT_MTR
         choices:
-        - "yes"
         - "no"
+        - "yes"
         description: Run mtr --suite=keyring_vault
     - string:
         name: KEYRING_VAULT_V1_VERSION

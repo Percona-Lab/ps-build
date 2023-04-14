@@ -1,12 +1,14 @@
 - job:
-    name: percona-server-8.0-param-parallel-mtr-refactor
+    name: percona-server-8.0-param-parallel-mtr
     project-type: matrix
     defaults: global
     description: |
         <h3 style="color:Red;"><b>Are you sure you need to run this job?</b></h3><br>
         It will create multiple pipelines which create multiple workers.<br>
         Maybe just a single pipeline run is enough?<br>
-        <b>Anyway, do not edit this job through the web!</b>
+        <b>Do not make changes to the pipeline definition via the web interface!<br>
+        (Do not use 'Configure' option on the left for changing the pipeline definition)<br>
+        Change the YAML files and Groovy scripts in the <a href="https://github.com/Percona-Lab/ps-build/tree/8.0/jenkins">git repo</a> instead.</b>
     disabled: false
     concurrent: true
     auth-token: psparam80
@@ -96,8 +98,8 @@
     - choice:
         name: ZEN_FS_MTR
         choices:
-        - "yes"
         - "no"
+        - "yes"
         description: Run ZenFS MTR tests
     - string:
         name: MTR_ARGS
@@ -110,8 +112,8 @@
     - choice:
         name: KEYRING_VAULT_MTR
         choices:
-        - "yes"
         - "no"
+        - "yes"
         description: Run mtr --suite=keyring_vault
     - string:
         name: KEYRING_VAULT_V1_VERSION
@@ -202,7 +204,7 @@
           - debian:bullseye
     builders:
     - trigger-builds:
-      - project: percona-server-8.0-pipeline-parallel-mtr-refactor
+      - project: percona-server-8.0-pipeline-parallel-mtr
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -215,12 +217,12 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-8.0-pipeline-parallel-mtr-refactor
+        project: percona-server-8.0-pipeline-parallel-mtr
         which-build: specific-build
-        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline_parallel_mtr_refactor}"
+        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline_parallel_mtr}"
         do-not-fingerprint: true
     - shell: |
-        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline_parallel_mtr_refactor}" > PIPELINE_BUILD_NUMBER
+        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline_parallel_mtr}" > PIPELINE_BUILD_NUMBER
         gunzip build.log.gz
     publishers:
     - raw:

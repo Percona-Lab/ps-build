@@ -1,8 +1,6 @@
 PIPELINE_TIMEOUT = 24
-JENKINS_SCRIPTS_BRANCH = 'parallel-mtr-refactor'
-JENKINS_SCRIPTS_REPO = 'https://github.com/kamil-holubicki/ps-build'
-//JENKINS_SCRIPTS_BRANCH = '8.0'
-//JENKINS_SCRIPTS_REPO = 'https://github.com/Percona-Lab/ps-build'
+JENKINS_SCRIPTS_BRANCH = '8.0'
+JENKINS_SCRIPTS_REPO = 'https://github.com/Percona-Lab/ps-build'
 AWS_CREDENTIALS_ID = 'c8b933cd-b8ca-41d5-b639-33fe763d3f68'
 MAX_S3_RETRIES = 12
 S3_ROOT_DIR = 's3://ps-build-cache'
@@ -370,7 +368,7 @@ void triggerAbortedTestWorkersRerun() {
             echo "rerun needed: $rerunNeeded"
             if (rerunNeeded) {
                 echo "restarting aborted workers"
-                build job: 'percona-server-8.0-pipeline-parallel-mtr-refactor',
+                build job: 'percona-server-8.0-pipeline-parallel-mtr',
                 wait: false,
                 parameters: [
                     string(name:'BUILD_NUMBER_BINARIES', value: BUILD_NUMBER_BINARIES_FOR_RERUN),
@@ -560,7 +558,7 @@ pipeline {
             description: 'make options, like VERBOSE=1',
             name: 'MAKE_OPTS')
         choice(
-            choices: 'yes\nno',
+            choices: 'no\nyes',
             description: 'Run ZenFS MTR tests',
             name: 'ZEN_FS_MTR')
         choice(
@@ -576,7 +574,7 @@ pipeline {
             description: 'Run each test N number of times, --repeat=N',
             name: 'MTR_REPEAT')
         choice(
-            choices: 'yes\nno',
+            choices: 'no\nyes',
             description: 'Run mtr --suite=keyring_vault',
             name: 'KEYRING_VAULT_MTR')
         string(
@@ -650,7 +648,7 @@ pipeline {
         skipStagesAfterUnstable()
         timeout(time: 6, unit: 'DAYS')
         buildDiscarder(logRotator(numToKeepStr: '200', artifactNumToKeepStr: '200'))
-        copyArtifactPermission('percona-server-8.0-param-parallel-mtr-refactor');
+        copyArtifactPermission('percona-server-8.0-param-parallel-mtr');
     }
     stages {
         stage('Prepare') {
