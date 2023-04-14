@@ -319,7 +319,7 @@ fi
 if [[ ${WITH_GCOV} == 'ON' ]]; then
     pushd ${WORKDIR_ABS}/PS
     wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
-    perl dgcov.pl --v --dump 
+    perl dgcov.pl --v --dump | tee coverage.txt
     popd
 fi
 
