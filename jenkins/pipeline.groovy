@@ -106,6 +106,10 @@ pipeline {
             choices: 'ON\nOFF',
             description: 'Whether to build MySQL Router',
             name: 'WITH_ROUTER')
+	choice(
+            choices: 'OFF\nON',
+            description: 'Whether to build with Coverage',
+            name: 'WITH_GCOV')
         choice(
             choices: 'ON\nOFF',
             description: 'Whether to build with support for X Plugin',
@@ -230,7 +234,6 @@ pipeline {
                                     fi
                                     ./docker/run-build ${DOCKER_OS}
                                 " 2>&1 | tee build.log
-
                                 echo Archive build: \$(date -u "+%s")
                                 sed -i -e '
                                     s^/tmp/ps/^sources/^;
@@ -294,7 +297,6 @@ pipeline {
                                     until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
                                         sleep 5
                                     done
-
                                     if [ -f /usr/bin/yum ]; then
                                         sudo yum -y install jq gflags-devel
                                     else
@@ -346,7 +348,7 @@ pipeline {
                     " > public_url
                 '''
                 step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
-                archiveArtifacts 'build.log.gz,*.xml,public_url'
+                archiveArtifacts 'build.log.gz,*.xml,public_url,coverage.txt'
                 }
             }
         }

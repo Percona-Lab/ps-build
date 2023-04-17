@@ -97,6 +97,12 @@
         - "ON"
         description: Whether to build MySQL Router
     - choice:
+        name: WITH_GCOV
+        choices:
+        - "OFF"
+        - "ON"
+        description: Whether to build with Coverage
+    - choice:
         name: WITH_MYSQLX
         choices:
         - "ON"

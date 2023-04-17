@@ -70,6 +70,7 @@ docker run --rm \
 
     mkdir /tmp/results /tmp/ps_mtr_tempdir
     export CMAKE_BUILD_TYPE='${CMAKE_BUILD_TYPE}'
+    export WITH_GCOV='${WITH_GCOV}'
     export ANALYZER_OPTS='${ANALYZER_OPTS}'
     export DEFAULT_TESTING='${DEFAULT_TESTING}'
     export HOTBACKUP_TESTING='${HOTBACKUP_TESTING}'
@@ -102,4 +103,10 @@ docker run --rm \
 
     sudo mv /tmp/results/*.xml /tmp/ps/results/
     sudo chown $(id -u):$(id -g) /tmp/ps/results/*.xml
+
+    # GCOV copy coverage output.
+    if [[ "${WITH_GCOV}" == 'ON' ]]; then
+        sudo mv /tmp/results/PS/coverage.txt /tmp/ps/results/
+        sudo chown $(id -u):$(id -g) /tmp/ps/results/coverage.txt
+    fi
 "
