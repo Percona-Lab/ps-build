@@ -159,7 +159,7 @@ if [ -f /usr/bin/yum ]; then
         yum -y remove centos-release-stream
     fi
 
-    if [[ ${RHVER} -eq 8 ]]; then
+    if [[ ${RHVER} -eq 8 ]] || [[ ${RHVER} -eq 9 ]]; then
         ln -fs /usr/bin/python3 /usr/bin/python
     fi
 
