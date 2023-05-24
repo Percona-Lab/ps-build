@@ -104,6 +104,12 @@ if [ -f /usr/bin/yum ]; then
         PKGLIST+=" MySQL-python redhat-lsb-core"
     fi
 
+    if [[ ${RHVER} -eq 8 ]] || [[ ${RHVER} -eq 9 ]]; then
+        # Next packages are required by 8.0.33
+        PKGLIST_DEVTOOLSET12+=" gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils"
+        PKGLIST_DEVTOOLSET12+=" gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc"
+    fi
+
     if [[ ${RHVER} -eq 8 ]]; then
         PKGLIST+=" lz4 perl-Memoize perl-open valgrind-devel libubsan rpcgen libtirpc-devel golang libunwind-devel python2 python3 libatomic"
         PKGLIST_DEVTOOLSET10+=" gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils gcc-toolset-10-annobin"
@@ -152,11 +158,16 @@ if [ -f /usr/bin/yum ]; then
         done
     elif [[ ${RHVER} -eq 8 ]]; then
         yum -y install centos-release-stream
-        until yum -y install ${PKGLIST_DEVTOOLSET10} ${PKGLIST_DEVTOOLSET11}; do
+        until yum -y install ${PKGLIST_DEVTOOLSET10} ${PKGLIST_DEVTOOLSET11} ${PKGLIST_DEVTOOLSET12}; do
             echo "waiting"
             sleep 1
         done
         yum -y remove centos-release-stream
+    elif [[ ${RHVER} -eq 9 ]]; then
+        until yum -y install ${PKGLIST_DEVTOOLSET12}; do
+            echo "waiting"
+            sleep 1
+        done
     fi
 
     if [[ ${RHVER} -eq 8 ]] || [[ ${RHVER} -eq 9 ]]; then
