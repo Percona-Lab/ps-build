@@ -59,6 +59,7 @@
                             "ubuntu:jammy":    { build('ubuntu:jammy') },
                             "debian:buster":   { build('debian:buster') },
                             "debian:bullseye": { build('debian:bullseye') },
+                            "debian:bookworm": { build('debian:bookworm') },
                         )
                     }
                 }
