@@ -180,6 +180,7 @@
           - ubuntu:jammy
           - debian:buster
           - debian:bullseye
+          - debian:bookworm
     builders:
     - trigger-builds:
       - project: percona-server-8.0-pipeline
