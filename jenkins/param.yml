@@ -199,6 +199,8 @@
           - ubuntu:jammy
           - debian:stretch
           - debian:buster
+          - debian:bullseye
+          - debian:bookworm
     builders:
     - trigger-builds:
       - project: percona-server-5.7-pipeline
