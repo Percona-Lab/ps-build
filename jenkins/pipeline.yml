@@ -52,6 +52,8 @@
         - ubuntu:jammy
         - debian:stretch
         - debian:buster
+        - debian:bullseye
+        - debian:bookworm
         description: OS version for compilation
     - choice:
         name: JOB_CMAKE
