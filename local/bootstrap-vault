@@ -39,7 +39,7 @@ parse_arguments() {
 }
 
 function prepare_consul {
-    docker run -d --name=consul --hostname=consul --net bridge-vault -e 'CONSUL_LOCAL_CONFIG={"skip_leave_on_interrupt": true}' consul agent -server -bind=0.0.0.0 -client=0.0.0.0 -alt-domain=consul -retry-join=127.0.0.1 -bootstrap-expect=1
+    docker run -d --name=consul --hostname=consul --net bridge-vault -e 'CONSUL_LOCAL_CONFIG={"skip_leave_on_interrupt": true}' hashicorp/consul agent -server -bind=0.0.0.0 -client=0.0.0.0 -alt-domain=consul -retry-join=127.0.0.1 -bootstrap-expect=1
     return
 }
 
