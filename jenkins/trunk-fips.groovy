@@ -42,7 +42,7 @@ pipeline {
     }
     parameters {
         run(
-            projectName: 'percona-server-8.0-trunk',
+            projectName: 'percona-server-8.x-trunk',
             description: '',
             name: 'UPSTREAM')
         string(
@@ -64,7 +64,7 @@ pipeline {
         buildDiscarder(logRotator(artifactNumToKeepStr: '10'))
     }
     triggers {
-        upstream threshold: hudson.model.Result.UNSTABLE, upstreamProjects: 'percona-server-8.0-trunk'
+        upstream threshold: hudson.model.Result.UNSTABLE, upstreamProjects: 'percona-server-8.x-trunk'
     }
     stages {
         stage('Test') {

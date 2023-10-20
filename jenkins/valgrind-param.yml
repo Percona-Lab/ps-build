@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-8.0-valgrind-param
+    name: percona-server-8.x-valgrind-param
     project-type: matrix
     defaults: global
     description: |
@@ -20,7 +20,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "8.0"
+        default: ""
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
@@ -141,7 +141,7 @@
           - ubuntu:jammy
     builders:
     - trigger-builds:
-      - project: percona-server-8.0-pipeline
+      - project: percona-server-8.x-pipeline
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -154,7 +154,7 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-8.0-pipeline
+        project: percona-server-8.x-pipeline
         which-build: specific-build
         build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}"
         do-not-fingerprint: true

@@ -1,5 +1,5 @@
 PIPELINE_TIMEOUT = 24
-JENKINS_SCRIPTS_BRANCH = '8.0'
+JENKINS_SCRIPTS_BRANCH = '8.x'
 JENKINS_SCRIPTS_REPO = 'https://github.com/Percona-Lab/ps-build'
 AWS_CREDENTIALS_ID = 'c8b933cd-b8ca-41d5-b639-33fe763d3f68'
 MAX_S3_RETRIES = 12
@@ -368,7 +368,7 @@ void triggerAbortedTestWorkersRerun() {
             echo "rerun needed: $rerunNeeded"
             if (rerunNeeded) {
                 echo "restarting aborted workers"
-                build job: 'percona-server-8.0-pipeline-parallel-mtr',
+                build job: 'percona-server-8.x-pipeline-parallel-mtr',
                 wait: false,
                 parameters: [
                     string(name:'BUILD_NUMBER_BINARIES', value: BUILD_NUMBER_BINARIES_FOR_RERUN),
@@ -381,7 +381,6 @@ void triggerAbortedTestWorkersRerun() {
                             string(name:'WITH_ROCKSDB', value: env.WITH_ROCKSDB),
                             string(name:'WITH_ROUTER', value: env.WITH_ROUTER),
                             string(name:'WITH_MYSQLX', value: env.WITH_MYSQLX),
-                            string(name:'WITH_KEYRING_VAULT', value: env.WITH_KEYRING_VAULT),
                     string(name:'CMAKE_OPTS', value: env.CMAKE_OPTS),
                     string(name:'MAKE_OPTS', value: env.MAKE_OPTS),
                             string(name:'ZEN_FS_MTR', value: env.ZEN_FS_MTR),
@@ -504,7 +503,7 @@ pipeline {
             name: 'GIT_REPO',
             trim: true)
         string(
-            defaultValue: '8.0',
+            defaultValue: '',
             description: 'Tag/Branch for percona-server repository',
             name: 'BRANCH',
             trim: true)
@@ -545,10 +544,6 @@ pipeline {
             choices: 'ON\nOFF',
             description: 'Whether to build with support for X Plugin',
             name: 'WITH_MYSQLX')
-        choice(
-            choices: 'ON\nOFF',
-            description: 'Whether to build with support for keyring_vault Plugin',
-            name: 'WITH_KEYRING_VAULT')
         string(
             defaultValue: '',
             description: 'cmake options',
@@ -575,7 +570,7 @@ pipeline {
             name: 'MTR_REPEAT')
         choice(
             choices: 'no\nyes',
-            description: 'Run mtr --suite=keyring_vault',
+            description: 'Run mtr --suite=component_keyring_vault',
             name: 'KEYRING_VAULT_MTR')
         string(
             defaultValue: '0.9.6',
@@ -648,7 +643,7 @@ pipeline {
         skipStagesAfterUnstable()
         timeout(time: 6, unit: 'DAYS')
         buildDiscarder(logRotator(numToKeepStr: '200', artifactNumToKeepStr: '200'))
-        copyArtifactPermission('percona-server-8.0-param-parallel-mtr');
+        copyArtifactPermission('percona-server-8.x-param-parallel-mtr');
     }
     stages {
         stage('Prepare') {

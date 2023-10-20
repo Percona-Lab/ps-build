@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-8.0-pipeline
+    name: percona-server-8.x-pipeline
     project-type: pipeline
     description: |
         Do not edit this job through the web!
@@ -9,7 +9,7 @@
         - git:
             url: https://github.com/Percona-Lab/ps-build
             branches:
-            - "8.0"
+            - "8.x"
             wipe-workspace: false
       lightweight-checkout: true
       script-path: jenkins/pipeline.groovy
@@ -20,7 +20,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "8.0"
+        default: ""
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
@@ -109,12 +109,6 @@
         - "ON"
         - "OFF"
         description: Whether to build with support for X Plugin
-    - choice:
-        name: WITH_KEYRING_VAULT
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build with support for keyring_vault Plugin
     - string:
         name: CMAKE_OPTS
         default:
@@ -170,7 +164,7 @@
         choices:
         - "yes"
         - "no"
-        description: Run mtr --suite=keyring_vault
+        description: Run mtr --suite=component_keyring_vault
     - string:
         name: KEYRING_VAULT_V1_VERSION
         default: "0.9.6"

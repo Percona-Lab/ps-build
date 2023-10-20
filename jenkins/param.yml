@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-8.0-param
+    name: percona-server-8.x-param
     project-type: matrix
     defaults: global
     description: |
@@ -21,7 +21,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "8.0"
+        default: ""
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
@@ -85,12 +85,6 @@
         - "ON"
         - "OFF"
         description: Whether to build with support for X Plugin
-    - choice:
-        name: WITH_KEYRING_VAULT
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build with support for keyring_vault Plugin
     - string:
         name: CMAKE_OPTS
         default:
@@ -146,7 +140,7 @@
         choices:
         - "yes"
         - "no"
-        description: Run mtr --suite=keyring_vault
+        description: Run mtr --suite=component_keyring_vault
     - string:
         name: KEYRING_VAULT_V1_VERSION
         default: "0.9.6"
@@ -183,7 +177,7 @@
           - debian:bookworm
     builders:
     - trigger-builds:
-      - project: percona-server-8.0-pipeline
+      - project: percona-server-8.x-pipeline
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -196,7 +190,7 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-8.0-pipeline
+        project: percona-server-8.x-pipeline
         which-build: specific-build
         build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}"
         do-not-fingerprint: true
