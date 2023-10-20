@@ -1,5 +1,5 @@
 - job:
-    name: fb-mysql-server-8.0-pipeline
+    name: fb-mysql-server-8.x-pipeline
     project-type: pipeline
     description: |
         Do not edit this job through the web!
@@ -9,7 +9,7 @@
         - git:
             url: https://github.com/Percona-Lab/ps-build
             branches:
-            - "8.0"
+            - "8.x"
             wipe-workspace: false
       lightweight-checkout: true
       script-path: jenkins/pipeline-fb.groovy

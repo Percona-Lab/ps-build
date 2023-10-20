@@ -1,9 +1,9 @@
 - job:
-    name: percona-server-8.0-asan-param
+    name: percona-server-8.x-asan-param
     project-type: matrix
     defaults: global
     description: |
-        MySQL 8.0 parametrised AddressSanitizer build
+        MySQL 8.x parametrised AddressSanitizer build
         Do not edit this job through the web!
     disabled: false
     concurrent: true
@@ -21,7 +21,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "8.0"
+        default: ""
         description: Tag/Branch for percona-server repository
     - string:
         name: PERCONAFT_REPO
@@ -143,7 +143,7 @@
           - ubuntu:jammy
     builders:
     - trigger-builds:
-      - project: percona-server-8.0-pipeline
+      - project: percona-server-8.x-pipeline
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -156,7 +156,7 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-8.0-pipeline
+        project: percona-server-8.x-pipeline
         which-build: specific-build
         build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}"
         do-not-fingerprint: true

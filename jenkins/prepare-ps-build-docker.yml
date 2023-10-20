@@ -41,7 +41,7 @@
             stages {
                 stage('Prepare') {
                     steps {
-                        git poll: true, branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
+                        git poll: true, branch: '8.x', url: 'https://github.com/Percona-Lab/ps-build'
                         sh '''
                             git reset --hard
                             git clean -xdf

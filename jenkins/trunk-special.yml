@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-8.0-trunk-special
+    name: percona-server-8.x-trunk-special
     project-type: matrix
     defaults: global
     description: |
@@ -17,7 +17,7 @@
         artifact-num-to-keep: 10
     triggers:
     - reverse:
-        jobs: 'percona-server-8.0-trunk-max-parts'
+        jobs: 'percona-server-8.x-trunk-max-parts'
         result: 'failure'
     parameters:
     - string:
@@ -55,7 +55,7 @@
         url: "https://github.com/percona/percona-server.git"
     builders:
     - trigger-builds:
-      - project: percona-server-8.0-pipeline
+      - project: percona-server-8.x-pipeline
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -68,7 +68,7 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-8.0-pipeline
+        project: percona-server-8.x-pipeline
         which-build: specific-build
         build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}"
         do-not-fingerprint: true

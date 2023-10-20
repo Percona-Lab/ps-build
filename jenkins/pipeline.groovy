@@ -50,7 +50,7 @@ pipeline {
             name: 'GIT_REPO',
             trim: true)
         string(
-            defaultValue: '8.0',
+            defaultValue: '',
             description: 'Tag/Branch for percona-server repository',
             name: 'BRANCH',
             trim: true)
@@ -114,10 +114,6 @@ pipeline {
             choices: 'ON\nOFF',
             description: 'Whether to build with support for X Plugin',
             name: 'WITH_MYSQLX')
-        choice(
-            choices: 'ON\nOFF',
-            description: 'Whether to build with support for keyring_vault Plugin',
-            name: 'WITH_KEYRING_VAULT')
         string(
             defaultValue: '',
             description: 'cmake options',
@@ -160,7 +156,7 @@ pipeline {
             name: 'MTR_REPEAT')
         choice(
             choices: 'yes\nno',
-            description: 'Run mtr --suite=keyring_vault',
+            description: 'Run mtr --suite=component_keyring_vault',
             name: 'KEYRING_VAULT_MTR')
         string(
             defaultValue: '0.9.6',
@@ -217,7 +213,7 @@ pipeline {
                                 fi
                                 rm -f ${WORKSPACE}/VERSION-${BUILD_NUMBER}
                             '''
-                            git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
+                            git branch: '8.x', url: 'https://github.com/Percona-Lab/ps-build'
                             sh '''#!/bin/bash
                                 # sudo is needed for better node recovery after compilation failure
                                 # if building failed on compilation stage directory will have files owned by docker user
@@ -282,7 +278,7 @@ pipeline {
             steps {
                 timeout(time: pipeline_timeout, unit: 'HOURS')  {
                     retry(3) {
-                        git branch: '8.0', url: 'https://github.com/Percona-Lab/ps-build'
+                        git branch: '8.x', url: 'https://github.com/Percona-Lab/ps-build'
                         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'c8b933cd-b8ca-41d5-b639-33fe763d3f68', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                             withCredentials([
                                 string(credentialsId: 'VAULT_V1_DEV_ROOT_TOKEN', variable: 'VAULT_V1_DEV_ROOT_TOKEN'),

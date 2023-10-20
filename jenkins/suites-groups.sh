@@ -19,10 +19,10 @@
 #    and another executes only bit tests.
 
 # Unit tests will be executed by worker 1
-WORKER_1_MTR_SUITES="main|nobig,binlog_nogtid,innodb_undo,test_services,service_sys_var_registration,connection_control,service_status_var_registration,service_udf_registration,interactive_utilities"
-WORKER_2_MTR_SUITES="main|big"
-WORKER_3_MTR_SUITES="innodb"
-WORKER_4_MTR_SUITES="auth_sec,audit_log,audit_log_filter,binlog_57_decryption,percona-pam-for-mysql,data_masking,procfs,rpl_encryption,audit_null,engines/iuds,engines/funcs,group_replication,jp,stress"
+WORKER_1_MTR_SUITES="main|nobig,percona|nobig,binlog_nogtid,innodb_undo,test_services,service_sys_var_registration,connection_control,service_status_var_registration,service_udf_registration,interactive_utilities"
+WORKER_2_MTR_SUITES="main|big,percona|big"
+WORKER_3_MTR_SUITES="innodb,percona_innodb"
+WORKER_4_MTR_SUITES="auth_sec,audit_log,component_audit_log_filter,binlog_57_decryption,percona-pam-for-mysql,data_masking,procfs,rpl_encryption,audit_null,engines/iuds,engines/funcs,group_replication,jp,stress"
 WORKER_5_MTR_SUITES="rpl,rpl_gtid,rpl_nogtid,binlog,sys_vars,funcs_2,opt_trace,json,collations"
 WORKER_6_MTR_SUITES="innodb_gis,perfschema,parts,clone,query_rewrite_plugins,funcs_1"
 WORKER_7_MTR_SUITES="rocksdb,rocksdb_stress,rocksdb_rpl,innodb_zip,information_schema,rocksdb_sys_vars"

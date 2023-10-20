@@ -1,5 +1,5 @@
 - job:
-    name: percona-server-8.0-param-parallel-mtr
+    name: percona-server-8.x-param-parallel-mtr
     project-type: matrix
     defaults: global
     description: |
@@ -8,7 +8,7 @@
         Maybe just a single pipeline run is enough?<br>
         <b>Do not make changes to the pipeline definition via the web interface!<br>
         (Do not use 'Configure' option on the left for changing the pipeline definition)<br>
-        Change the YAML files and Groovy scripts in the <a href="https://github.com/Percona-Lab/ps-build/tree/8.0/jenkins">git repo</a> instead.</b>
+        Change the YAML files and Groovy scripts in the <a href="https://github.com/Percona-Lab/ps-build/tree/8.x/jenkins">git repo</a> instead.</b>
     disabled: false
     concurrent: true
     auth-token: psparam80
@@ -30,7 +30,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "8.0"
+        default: ""
         description: Tag/Branch for percona-server repository
     - string:
         name: CUSTOM_BUILD_NAME
@@ -75,12 +75,6 @@
         - "ON"
         - "OFF"
         description: Whether to build with support for X Plugin
-    - choice:
-        name: WITH_KEYRING_VAULT
-        choices:
-        - "ON"
-        - "OFF"
-        description: Whether to build with support for keyring_vault Plugin
     - string:
         name: CMAKE_OPTS
         default:
@@ -114,7 +108,7 @@
         choices:
         - "no"
         - "yes"
-        description: Run mtr --suite=keyring_vault
+        description: Run mtr --suite=component_keyring_vault
     - string:
         name: KEYRING_VAULT_V1_VERSION
         default: "0.9.6"
@@ -205,7 +199,7 @@
           - debian:bookworm
     builders:
     - trigger-builds:
-      - project: percona-server-8.0-pipeline-parallel-mtr
+      - project: percona-server-8.x-pipeline-parallel-mtr
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -218,7 +212,7 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: percona-server-8.0-pipeline-parallel-mtr
+        project: percona-server-8.x-pipeline-parallel-mtr
         which-build: specific-build
         build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline_parallel_mtr}"
         do-not-fingerprint: true

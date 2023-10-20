@@ -1,8 +1,8 @@
 - view:
-    name: '8.0-fb'
+    name: '8.x-fb'
     description: |
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSdQ-3t96_P_pev5OccioxZKY5w4I2toaMuEt_1RXq6FoJjfqw/viewform?entry.691231593=ps.cd.percona.com">Customer service survey. Your opinion is important. </a> <br>
-        percona-server-8.0 jobs<br>
+        percona-server-8.x jobs<br>
         Do not edit these jobs through the web!<br>
     view-type: list
-    regex: 'fb-mysql-server-8[.]0-.*'
+    regex: 'fb-mysql-server-8[.]x-.*'

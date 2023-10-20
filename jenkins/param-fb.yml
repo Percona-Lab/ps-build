@@ -1,5 +1,5 @@
 - job:
-    name: fb-mysql-server-8.0-param
+    name: fb-mysql-server-8.x-param
     project-type: matrix
     defaults: global
     description: |
@@ -93,7 +93,7 @@
           - ubuntu:focal
     builders:
     - trigger-builds:
-      - project: fb-mysql-server-8.0-pipeline
+      - project: fb-mysql-server-8.x-pipeline
         current-parameters: true
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
@@ -106,7 +106,7 @@
     - shell: |
         sudo find . -name "*.xml" -o -name "*.log" -delete
     - copyartifact:
-        project: fb-mysql-server-8.0-pipeline
+        project: fb-mysql-server-8.x-pipeline
         which-build: specific-build
         build-number: "${TRIGGERED_BUILD_NUMBERS_fb_mysql_server_8_0_pipeline}"
         do-not-fingerprint: true

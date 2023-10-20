@@ -1,6 +1,6 @@
 LIST = $(wildcard *.yml)
 targets =$(patsubst %.yml, %, $(LIST))
-test-targets =$(addprefix percona-server-8.0-, $(filter-out view, $(targets)))
+test-targets =$(addprefix percona-server-8.x-, $(filter-out view, $(targets)))
 
 all: $(targets)
 
@@ -12,6 +12,6 @@ test: $(test-targets)
 
 $(test-targets):
 	@mkdir -p result/$@
-	jenkins-jobs --server ps.cd test $(patsubst percona-server-8.0-%,%, $@).yml -o result/$@
+	jenkins-jobs --server ps.cd test $(patsubst percona-server-8.x-%,%, $@).yml -o result/$@
 	@mv result/$@/percona-server-* result/$@/config.xml
 	@echo
