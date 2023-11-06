@@ -78,7 +78,7 @@ docker run --rm \
     mv /tmp/ps/*.pem /tmp/results || true
     cp /tmp/ps/results/*.tar.gz /tmp/results
 
-    bash -x /tmp/scripts/test-binary /tmp/results
+    bash -x /tmp/scripts/test-binary /tmp/results /tmp/ps
 
     sudo mv /tmp/results/*.xml /tmp/ps/results/
     sudo chown $(id -u):$(id -g) /tmp/ps/results/*.xml

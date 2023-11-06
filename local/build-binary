@@ -23,7 +23,7 @@ TAG=${TAG:-}
 DIST_NAME=${DIST_NAME:-}
 SSL_VER=${SSL_VER:-}
 TARGET_CFLAGS=${TARGET_CFLAGS:-}
-
+UNIT_TESTS_ROUTER=${UNIT_TESTS_ROUTER:-yes}
 
 # ------------------------------------------------------------------------------
 # set working dir
@@ -215,7 +215,15 @@ cp ${WORKDIR}/scripts/mysqldumpslow ${WORKDIR}/runtime_output_directory/
 if [ -d ${SOURCEDIR}/rqg ]; then
     cp -r ${SOURCEDIR}/rqg ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 fi
-cp -r ${WORKDIR}/unittest/gunit/*  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+# Copy unit tests
+cp ${WORKDIR}/CTestTestfile.cmake ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+if [ -d ${WORKDIR}/unittest ]; then
+    cp -r ${WORKDIR}/unittest ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+fi
+if [[ "${UNIT_TESTS_ROUTER}" = "yes" ]]; then
+    cp -r ${WORKDIR}/router ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+    cp -r ${SOURCEDIR}/router/tests/component/data ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/router/tests/component/
+fi
 cp -r ${WORKDIR}/runtime_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/library_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/plugin_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
