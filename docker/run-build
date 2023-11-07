@@ -34,6 +34,7 @@ docker run --rm \
     export DIST_NAME='${DIST_NAME}'
     export SSL_VER='${SSL_VER}'
     export ZEN_FS_MTR='${ZEN_FS_MTR}'
+    export UNIT_TESTS_ROUTER='${UNIT_TESTS_ROUTER}'
     export DOCKER_OS='${DOCKER_OS//:/-}'
 
     mkdir  /tmp/results

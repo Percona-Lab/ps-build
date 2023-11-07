@@ -565,6 +565,10 @@ pipeline {
             choices: 'yes\nno',
             description: 'Run case-insensetive MTR tests',
             name: 'CI_FS_MTR')
+        choice(
+            choices: 'no\nyes',
+            description: 'Run MySQL Router unit tests',
+            name: 'UNIT_TESTS_ROUTER')
         string(
             defaultValue: '--unit-tests-report --mem --big-test',
             description: 'mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report',
