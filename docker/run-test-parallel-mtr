@@ -55,8 +55,8 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     VAULT_DOCKER_FLAG="--network bridge-vault"
 fi
 
-docker run --rm --shm-size=24G \
-    --tmpfs /dev/shm:rw,exec,size=24G \
+docker run --rm --shm-size=32G \
+    --tmpfs /dev/shm:rw,exec,size=32G \
     --security-opt seccomp=unconfined \
     --sysctl net.ipv6.conf.lo.disable_ipv6=0 \
     --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps \

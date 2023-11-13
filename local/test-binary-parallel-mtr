@@ -87,9 +87,9 @@ if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
 fi
 
 # hack for too big instances ;)
-if [[ ${PARALLEL} -gt 8 ]]; then
-  echo "Limit parallel ${PARALLEL} -> 8"
-  PARALLEL=8
+if [[ ${PARALLEL} -gt 10 ]]; then
+  echo "Limit parallel ${PARALLEL} -> 10"
+  PARALLEL=10
 fi
 
 if [[ "${ANALYZER_OPTS}" == *WITH_*SAN*=ON* ]]; then
