@@ -91,7 +91,7 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
                     echo "Preparing filesystem for CIFS tests"
 
                     if [ -f /usr/bin/yum ]; then
-                        sudo yum -y dosfstools
+                        sudo yum -y install dosfstools
                     else
                         sudo apt-get install -y dosfstools
                     fi
