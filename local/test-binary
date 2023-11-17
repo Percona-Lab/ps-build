@@ -58,12 +58,21 @@ if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
     MTR_ARGS+=" --debug-server"
 fi
 #
+
+ANALYZER_MTR_ARGS=""
+
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
-  MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
+  ANALYZER_MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
   [[ ${OPENSSL_VER} < '1.0.2' ]] && export OPENSSL_ia32cap=~0x200000000000000
   TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 2))
 fi
 #
+if [[ "${ANALYZER_OPTS}" == *WITH_*SAN*=ON* ]]; then
+    ANALYZER_MTR_ARGS+=" --sanitize"
+fi
+
+MTR_ARGS+=${ANALYZER_MTR_ARGS}
+
 if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
     export ASAN_OPTIONS=allocator_may_return_null=true
 # trying to find the proper library
@@ -136,6 +145,7 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             --mysqld=--plugin-load=tokudb=ha_tokudb.so --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
+            ${ANALYZER_MTR_ARGS} \
             --junit-output=${WORKDIR_ABS}/junit_tokudb.xml \
             --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb" || true
 fi
@@ -165,6 +175,7 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --tmpdir="/tmp/ps_mtr_tempdir" \
         --vardir="/tmp/ci_disk_dir" \
         ${CI_TESTS} \
+        ${ANALYZER_MTR_ARGS} \
         --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true
 fi
@@ -189,6 +200,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --big-test \
         --unit-tests \
         --suite=keyring_vault \
+        ${ANALYZER_MTR_ARGS} \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v1.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1" || true
 
@@ -204,6 +216,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --big-test \
         --unit-tests \
         --suite=keyring_vault \
+        ${ANALYZER_MTR_ARGS} \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v2.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v2" || true
 
@@ -221,6 +234,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --big-test \
         --unit-tests \
         --suite=keyring_vault \
+        ${ANALYZER_MTR_ARGS} \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v1.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v1" || true
 
@@ -237,6 +251,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --big-test \
         --unit-tests \
         --suite=keyring_vault \
+        ${ANALYZER_MTR_ARGS} \
         --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v2.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
 fi
