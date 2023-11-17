@@ -101,12 +101,6 @@
         - "no"
         - "yes"
         description: Run ZenFS MTR tests
-    - choice:
-        name: UNIT_TESTS_ROUTER
-        choices:
-        - "no"
-        - "yes"
-        description: Run MySQL Router unit tests
     - string:
         name: MTR_ARGS
         default: --unit-tests-report --mem --big-test

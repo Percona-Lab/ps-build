@@ -235,10 +235,8 @@ if [ -d ${SOURCEDIR}/rqg ]; then
 fi
 # Copy unit tests
 cp ${WORKDIR}/CTestTestfile.cmake ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+cp -r ${WORKDIR}/router ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/unittest ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
-if [[ "${UNIT_TESTS_ROUTER}" = "yes" ]]; then
-    cp -r ${WORKDIR}/router ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
-fi
 cp -r ${WORKDIR}/runtime_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/library_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 cp -r ${WORKDIR}/plugin_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
