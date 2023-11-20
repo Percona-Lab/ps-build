@@ -219,7 +219,7 @@ void build(String SCRIPT) {
 }
 
 void setupTestSuitesSplit() {
-    sh """#!/bin/bash
+    def split_script = """#!/bin/bash
         if [[ "${FULL_MTR}" == "yes" ]]; then
             # Try to get suites split from PS repo. If not present, fallback to hardcoded.
             RAW_VERSION_LINK=\$(echo \${GIT_REPO%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
@@ -238,7 +238,8 @@ void setupTestSuitesSplit() {
             wget \${RAW_VERSION_LINK}/${BRANCH}/mysql-test/mysql-test-run.pl -O ${WORKSPACE}/mysql-test-run.pl
             chmod +x ${WORKSPACE}/suites-groups.sh
             set +e
-            ${WORKSPACE}/suites-groups.sh check ${WORKSPACE}/mysql-test-run.pl
+            echo "Check if suites list is consistent with the one specified in mysql-test-run.pl"
+            ${WORKSPACE}/suites-groups.sh check ${WORKSPACE}/mysql-test-run.pl ${CMAKE_BUILD_TYPE}
             CHECK_RESULT=\$?
             set -e
             echo "CHECK_RESULT: \${CHECK_RESULT}"
@@ -248,8 +249,12 @@ void setupTestSuitesSplit() {
                 exit 1
             fi
 
-            # Source suites split definition
+            # Set suites split definition, that is WORKER_x_MTR_SUITES
             source ${WORKSPACE}/suites-groups.sh
+            # Call set_suites() function if exists
+            if [[ \$(type -t set_suites) == function ]]; then
+                set_suites ${CMAKE_BUILD_TYPE}
+            fi
 
             echo \${WORKER_1_MTR_SUITES} > ${WORKSPACE}/worker_1.suites
             echo \${WORKER_2_MTR_SUITES} > ${WORKSPACE}/worker_2.suites
@@ -261,6 +266,9 @@ void setupTestSuitesSplit() {
             echo \${WORKER_8_MTR_SUITES} > ${WORKSPACE}/worker_8.suites
         fi
     """
+    def split_script_output = sh(script: split_script, returnStdout: true)
+    echo split_script_output
+
     script {
         if (env.FULL_MTR == 'yes') {
             env.WORKER_1_MTR_SUITES = sh(returnStdout: true, script: "cat ${WORKSPACE}/worker_1.suites").trim()
