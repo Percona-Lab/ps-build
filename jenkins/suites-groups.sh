@@ -18,23 +18,43 @@
 #    Such approach makes it possible to split the suite execution among two workers, where one woker executes no-big test
 #    and another executes only bit tests.
 
-# Unit tests will be executed by worker 1
-WORKER_1_MTR_SUITES="sys_vars,sysschema,innodb_zip,gcol,encryption,engines/iuds,funcs_1,funcs_2,opt_trace,json,collations,query_rewrite_plugins,information_schema,federated,test_service_sql_api,gis,secondary_engine,test_services,service_sys_var_registration,connection_control,service_status_var_registration,service_udf_registration,interactive_utilities,audit_log,percona-pam-for-mysql,data_masking,component_masking_functions,procfs,rpl_encryption,audit_null,jp,stress"
-WORKER_2_MTR_SUITES="innodb_undo,innodb_fts,perfschema,component_keyring_file,x,auth_sec,audit_log_filter,binlog,binlog_gtid,binlog_nogtid,binlog_57_decryption"
-WORKER_3_MTR_SUITES="rpl,rpl_gtid"
-WORKER_4_MTR_SUITES="group_replication"
-WORKER_5_MTR_SUITES="rocksdb,rocksdb_stress,rocksdb_rpl,rocksdb_sys_vars,clone"
-WORKER_6_MTR_SUITES="innodb"
-WORKER_7_MTR_SUITES="main|nobig,innodb_gis,engines/funcs"
-WORKER_8_MTR_SUITES="main|big,rpl_nogtid,parts"
 
-INPUT=${2:-./mysql-test-run.pl}
+# usage: set_suites <BUILD_TYPE>
+function set_suites() {
+  if [[ "$1" == "RelWithDebInfo" ]]; then
+    echo "Setting WORKER_x_MTR_SUITES for BUILD_TYPE=RelWithDebInfo"
+    # Unit tests will be executed by worker 1
+    WORKER_1_MTR_SUITES="sys_vars"
+    WORKER_2_MTR_SUITES="rpl_gtid,innodb_undo,innodb_fts,perfschema,component_keyring_file,x,auth_sec,audit_log_filter,binlog,binlog_gtid,binlog_nogtid,binlog_57_decryption"
+    WORKER_3_MTR_SUITES="rpl"
+    WORKER_4_MTR_SUITES="group_replication|big"
+    WORKER_5_MTR_SUITES="rocksdb,rocksdb_stress,rocksdb_rpl,rocksdb_sys_vars,clone"
+    WORKER_6_MTR_SUITES="innodb,sysschema,innodb_zip,gcol,encryption,engines/iuds,funcs_1,funcs_2,opt_trace,json,collations,query_rewrite_plugins,information_schema,federated,test_service_sql_api,gis,secondary_engine,test_services,service_sys_var_registration,connection_control,service_status_var_registration,service_udf_registration,interactive_utilities,audit_log,percona-pam-for-mysql,data_masking,component_masking_functions,procfs,rpl_encryption,audit_null,jp,stress"
+    WORKER_7_MTR_SUITES="main|nobig,group_replication|nobig,innodb_gis,engines/funcs"
+    WORKER_8_MTR_SUITES="main|big,rpl_nogtid,parts"
+  else # Debug (and everything different from "RelWithDebInfo")
+    echo "Setting WORKER_x_MTR_SUITES for BUILD_TYPE=Debug"
+    # Unit tests will be executed by worker 1
+    WORKER_1_MTR_SUITES="sys_vars,sysschema,innodb_zip,gcol,encryption,engines/iuds,funcs_1,funcs_2,opt_trace,json,collations,query_rewrite_plugins,information_schema,federated,test_service_sql_api,gis,secondary_engine,test_services,service_sys_var_registration,connection_control,service_status_var_registration,service_udf_registration,interactive_utilities,audit_log,percona-pam-for-mysql,data_masking,component_masking_functions,procfs,rpl_encryption,audit_null,jp,stress"
+    WORKER_2_MTR_SUITES="innodb_undo,innodb_fts,perfschema,component_keyring_file,x,auth_sec,audit_log_filter,binlog,binlog_gtid,binlog_nogtid,binlog_57_decryption"
+    WORKER_3_MTR_SUITES="rpl,rpl_gtid"
+    WORKER_4_MTR_SUITES="group_replication"
+    WORKER_5_MTR_SUITES="rocksdb,rocksdb_stress,rocksdb_rpl,rocksdb_sys_vars,clone"
+    WORKER_6_MTR_SUITES="innodb"
+    WORKER_7_MTR_SUITES="main|nobig,innodb_gis,engines/funcs"
+    WORKER_8_MTR_SUITES="main|big,rpl_nogtid,parts"
+  fi
+}
 
-check() {
+
+# usage: check_suites <path_to_mysql-test-run.pl>
+function check_suites() {
+  INPUT=${1:-./mysql-test-run.pl}
+
   if [[ ! -f ${INPUT} ]]
     then
     echo "${INPUT} file does not exist on your filesystem."
-    exit 1
+    return 1
   fi
 
   echo "Checking if suites list is consistent with the one specified in mysql-test-run.pl"
@@ -132,11 +152,19 @@ check() {
   fi
   echo "************************"
 
-  exit ${failure}
+  return ${failure}
 }
+
+
+# This code will be run when this script is included as "source"
+if [[ "$BUILD_TYPE" != "" ]]; then
+  echo "Using BUILD_TYPE=$BUILD_TYPE"
+  set_suites $BUILD_TYPE
+fi
 
 case "$1" in
   'check')
-    check
+    set_suites ${3:-$BUILD_TYPE}
+    check_suites $2
     ;;
 esac
