@@ -79,6 +79,7 @@ docker run --rm \
     export MTR_ARGS='${MTR_ARGS}'
     export MTR_REPEAT='${MTR_REPEAT}'
     export CI_FS_MTR='${CI_FS_MTR}'
+    export WITH_PS_PROTOCOL='${WITH_PS_PROTOCOL}'
     export KEYRING_VAULT_MTR='${KEYRING_VAULT_MTR}'
     export VAULT_V1_DEV_ADDRESS='http://vault-dev-v1:9200'
     export VAULT_V2_DEV_ADDRESS='http://vault-dev-v2:9400'
