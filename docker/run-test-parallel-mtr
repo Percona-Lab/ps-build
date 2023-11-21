@@ -79,6 +79,7 @@ docker run --rm --shm-size=32G \
     export MTR_REPEAT='${MTR_REPEAT}'
     export MTR_SUITES='${MTR_SUITES}'
     export CI_FS_MTR='${CI_FS_MTR}'
+    export WITH_PS_PROTOCOL='${WITH_PS_PROTOCOL}'
     export KEYRING_VAULT_MTR='${KEYRING_VAULT_MTR}'
     export WORKER_NO='${WORKER_NO}'
     export VAULT_V1_DEV_ADDRESS='http://vault-dev-v1:9200'

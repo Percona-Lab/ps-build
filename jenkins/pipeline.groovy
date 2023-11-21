@@ -150,6 +150,11 @@ pipeline {
             choices: 'yes\nno',
             description: 'Run case-insensetive MTR tests',
             name: 'CI_FS_MTR')
+        choice(
+            choices: 'yes\nno',
+            description: 'Run MTR tests with --ps-protocol',
+            name: 'WITH_PS_PROTOCOL')
+
         string(
             defaultValue: '--unit-tests-report',
             description: 'mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report',

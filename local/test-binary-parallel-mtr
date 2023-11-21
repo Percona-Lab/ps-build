@@ -387,6 +387,58 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
     echo KH,SUITE_TOTAL,CI_FS_tests,time,$runtime
 fi
 
+#
+# PS PROTOCOL tests
+if [[ "${WITH_PS_PROTOCOL}" = 'yes' ]]; then
+    echo "Running PS PROTOCOL tests"
+    start=`date +%s`
+
+    MTR_ARGS_PS=${MTR_ARGS}
+
+    if [[ $BIG_TEST == "1" ]]; then
+        MTR_ARGS_PS+=" --big-test"
+    fi
+
+    # Collect all PS_PROTOCOL tests
+    PS_TESTS=$(grep --exclude="*.inc" --exclude="*.log" -rl . -e include/have_ps_protocol.inc | awk -F '/' '{print $(NF-2)"."$NF}' | sed 's/\.test//g' | sed 's/^\./main/g')
+
+    # Filter out disabled tests
+    # Skip lines starting with #
+    # Grab until whitespace or :
+    DISABLED_TESTS=$(grep -P -o collections/disabled.def -e'^\s*[^#][^:\s]*')
+
+    set +x
+    for CURRENT_TEST in $DISABLED_TESTS; do
+        PS_TESTS=${PS_TESTS//"$CURRENT_TEST"/""}
+    done
+    set -x
+
+    MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
+        --result-file \
+        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+        --max-test-fail=0 \
+        --suite-timeout=9999 \
+        --parallel=$PARALLEL \
+        --ps-protocol \
+        --testcase-timeout=${TESTCASE_TIMEOUT} \
+        ${MTR_ARGS_PS} \
+        ${PS_TESTS} \
+        ${ANALYZER_MTR_ARGS} \
+        --junit-output=${WORKDIR_ABS}/junit_ps_protocol.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ps_protocol" || true
+
+        ln -s /tmp/ps_disk_dir/var $PWD/var_ps_protocol
+
+        rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ps_protocol $PWD/mtr_var
+
+        killall -9 mysqld || true
+        rm -rf $PWD/var_ps_protocol
+	end=`date +%s`
+        runtime=$((end-start))
+        echo KH,SUITE_TOTAL,PS_tests,time,$runtime
+fi
+
+
 
 if [[ ${ZEN_FS_MTR} = 'yes' ]] && [[ ${WITH_ROCKSDB} = 'ON' ]]; then
     if [[ ${DOCKER_OS} = 'ubuntu-jammy' ]] || [[ ${DOCKER_OS} = 'debian-bullseye' ]] || [[ ${DOCKER_OS} = 'oraclelinux-9' ]]; then
