@@ -160,16 +160,57 @@ fi
 MTR_ARGS=${MTR_ARGS//"--unit-tests-report"/""}
 
 #
-# Running MTR test cases
-
-status=0
-#
-# Running MTR test cases
+# set options for "--mysqld-env"
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
     MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${EATMYDATA}"
 else
     MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
 fi
+
+#
+# >>>> execute all unit tests at the beginning with main.1st only
+if [[ $UNIT_TESTS == "1" ]]; then
+    tests="main.1st"
+    suiteNoSlash="UNIT_TESTS"
+    echo "Executing unit tests with $tests"
+
+    df -h
+    du /dev/shm
+    mount
+    ls -la /dev/shm
+    cat /proc/meminfo
+    start=`date +%s`
+
+    MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
+        --parallel=${PARALLEL} \
+        --result-file \
+        --unit-tests-report \
+        ${tests} \
+        ${MTR_ARGS} \
+        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+        --max-test-fail=0 \
+        --junit-output=${WORKDIR_ABS}/junit_${suiteNoSlash}.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${suiteNoSlash}" || true
+
+    ln -s $PWD/var $PWD/var_${suiteNoSlash}
+    which rsync
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${suiteNoSlash} $PWD/mtr_var
+
+    killall -9 mysqld || true
+    rm -rf $PWD/var_${suiteNoSlash}
+
+    df -h
+    du -sh /dev/shm
+
+    end=`date +%s`
+    runtime=$((end-start))
+    echo KH,UNIT_TESTS,${tests},time,$runtime
+fi
+
+#
+# Running MTR test cases
+status=0
+MTR_ARGS="${MTR_ARGS} --no-unit-tests"
 
 ARRAY_MTR_SUITES=($(echo $MTR_SUITES | sed 's/,/ /g'))
 # >>>> main MTR execution loop starts here
@@ -203,8 +244,8 @@ for suite in "${ARRAY_MTR_SUITES[@]}"; do
     fi
 done
 
-echo "Running MTR normal suites: $suitesNormal"
-echo "Running MTR big suites: $suitesBig"
+echo "MTR normal suites: $suitesNormal"
+echo "MTR big suites: $suitesBig"
 
 start=`date +%s`
 
@@ -220,11 +261,6 @@ if [[ "$suitesNormal" != "" ]]; then
     cat /proc/meminfo
 
     MTR_ARGS_NORMAL=${MTR_ARGS}
-
-    if [[ $UNIT_TESTS == "1" ]]; then
-        MTR_ARGS_NORMAL+=" --unit-tests-report"
-        UNIT_TESTS=0
-    fi
 
     MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${PARALLEL} \
@@ -263,11 +299,6 @@ if [[ "$suitesBig" != "" ]]; then
     suiteNoSlash+="_bigtest"
     TESTCASE_TIMEOUT_BIG=$((TESTCASE_TIMEOUT * 2))
 
-    if [[ $UNIT_TESTS == "1" ]]; then
-        MTR_ARGS_BIG+=" --unit-tests-report"
-        UNIT_TESTS=0
-    fi
-
     MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${PARALLEL} \
         --result-file \
@@ -303,10 +334,6 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
 
     MTR_ARGS_CI=${MTR_ARGS}
 
-    if [[ $UNIT_TESTS == "1" ]]; then
-        MTR_ARGS_CI+=" --unit-tests-report"
-        UNIT_TESTS=0
-    fi
     # no --mem allowed if vardir specified
     MTR_ARGS_CI=${MTR_ARGS_CI//"--mem"/""}
 
@@ -412,11 +439,6 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     start=`date +%s`
 
     MTR_ARGS_KV=${MTR_ARGS}
-
-    if [[ $UNIT_TESTS == "1" ]]; then
-        MTR_ARGS_KV+=" --unit-tests-report"
-        UNIT_TESTS=0
-    fi
 
     if [[ $BIG_TEST == "1" ]]; then
         MTR_ARGS_KV+=" --big-test"
