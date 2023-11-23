@@ -123,7 +123,7 @@ if [ -f /usr/bin/yum ]; then
     fi
 
     if [[ ${RHVER} -eq 7 ]]; then
-        PKGLIST+=" go-toolset-7 libunwind-devel httpd24-curl"
+        PKGLIST+=" go-toolset-7 libunwind-devel httpd24-curl openssl11 openssl11-devel"
         PKGLIST_DEVTOOLSET10+=" devtoolset-10-gcc-c++ devtoolset-10-binutils"
         PKGLIST_DEVTOOLSET10+=" devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel"
         PKGLIST_DEVTOOLSET10+=" devtoolset-10-libasan-devel devtoolset-10-libubsan-devel"
