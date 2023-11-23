@@ -182,11 +182,21 @@ if [[ "${ZEN_FS_MTR}" = "yes" ]]; then
 fi
 
 # ------------------------------------------------------------------------------
+# Set WITH_SSL
+# ------------------------------------------------------------------------------
+if [[ "${DOCKER_OS}" = "centos-7" ]]; then
+  WITH_SSL="openssl11"
+else
+  WITH_SSL="system"
+fi
+
+# ------------------------------------------------------------------------------
 # Finaly, compile!
 # ------------------------------------------------------------------------------
 pushd ${WORKDIR}
     ${JOB_CMAKE} \
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
+        -DWITH_SSL=${WITH_SSL} \
         -DWITH_TOKUDB=${WITH_TOKUDB} \
         -DWITH_ROCKSDB=${WITH_ROCKSDB} \
         -DWITH_ROUTER=${WITH_ROUTER} \
