@@ -27,7 +27,6 @@
         choices:
         - centos:7
         - centos:8
-        - ubuntu:bionic
         - ubuntu:focal
         description: OS version for compilation
     - choice:

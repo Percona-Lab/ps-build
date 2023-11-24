@@ -89,7 +89,6 @@
          values:
           - centos:7
           - centos:8
-          - ubuntu:bionic
           - ubuntu:focal
     builders:
     - trigger-builds:
