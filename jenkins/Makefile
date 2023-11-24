@@ -1,4 +1,4 @@
-LIST = $(wildcard *.yml)
+LIST = param-parallel-mtr.yml pipeline-parallel-mtr.yml
 targets =$(patsubst %.yml, %, $(LIST))
 test-targets =$(addprefix percona-server-8.x-, $(filter-out view, $(targets)))
 
