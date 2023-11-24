@@ -517,7 +517,7 @@ pipeline {
             description: 'Check only if you pass PR number to BRANCH field',
             name: 'USE_PR')
         choice(
-            choices: 'centos:7\ncentos:8\noraclelinux:9\nubuntu:bionic\nubuntu:focal\nubuntu:jammy\ndebian:buster\ndebian:bullseye\ndebian:bookworm',
+            choices: 'centos:7\ncentos:8\noraclelinux:9\nubuntu:focal\nubuntu:jammy\ndebian:bullseye\ndebian:bookworm',
             description: 'OS version for compilation',
             name: 'DOCKER_OS')
         choice(
