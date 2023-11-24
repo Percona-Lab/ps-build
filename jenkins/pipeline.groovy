@@ -54,26 +54,6 @@ pipeline {
             description: 'Tag/Branch for percona-server repository',
             name: 'BRANCH',
             trim: true)
-        string(
-            defaultValue: '',
-            description: 'URL to forked PerconaFT repository',
-            name: 'PERCONAFT_REPO',
-            trim: true)
-        string(
-            defaultValue: '',
-            description: 'Tag/Branch for PerconaFT repository',
-            name: 'PERCONAFT_BRANCH',
-            trim: true)
-        string(
-            defaultValue: '',
-            description: 'URL to forked Percona-TokuBackup repository',
-            name: 'TOKUBACKUP_REPO',
-            trim: true)
-        string(
-            defaultValue: '',
-            description: 'Tag/Branch for Percona-TokuBackup repository',
-            name: 'TOKUBACKUP_BRANCH',
-            trim: true)
         choice(
             choices: 'centos:7\ncentos:8\noraclelinux:9\nubuntu:bionic\nubuntu:focal\nubuntu:jammy\ndebian:buster\ndebian:bullseye\ndebian:bookworm',
             description: 'OS version for compilation',
@@ -94,10 +74,6 @@ pipeline {
             choices: '\n-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON\n-DWITH_ASAN=ON\n-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON\n-DWITH_ASAN=ON -DWITH_UBSAN=ON\n-DWITH_UBSAN=ON\n-DWITH_MSAN=ON\n-DWITH_VALGRIND=ON',
             description: 'Enable code checking',
             name: 'ANALYZER_OPTS')
-        choice(
-            choices: 'OFF\nON',
-            description: 'Compile TokuDB engine',
-            name: 'WITH_TOKUDB')
         choice(
             choices: 'OFF\nON',
             description: 'Compile RocksDB engine',
@@ -126,18 +102,6 @@ pipeline {
             choices: 'yes\nno',
             description: 'Run mysql-test-run.pl',
             name: 'DEFAULT_TESTING')
-        choice(
-            choices: 'yes\nno',
-            description: 'Run mysql-test-run.pl --suite tokudb_backup',
-            name: 'HOTBACKUP_TESTING')
-        choice(
-            choices: 'yes\nno',
-            description: 'Run mtr --suite=engines/iuds,engines/funcs --mysqld=--default-storage-engine=tokudb',
-            name: 'TOKUDB_ENGINES_MTR')
-        string(
-            defaultValue: '',
-            description: 'TokuDB specific mtr args',
-            name: 'TOKUDB_ENGINES_MTR_ARGS')
         choice(
             choices: 'yes\nno',
             description: 'Run ZenFS MTR tests',

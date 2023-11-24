@@ -18,8 +18,6 @@ void build(String CMAKE_BUILD_TYPE) {
             echo Test: \$(date -u "+%s")
             ulimit -a; env
             export DEFAULT_TESTING=yes
-            export HOTBACKUP_TESTING=no
-            export TOKUDB_ENGINES_MTR=no
             export OPENSSL_FIPS_INSTALLED=on
             ./local/test-binary ./sources/results
 
