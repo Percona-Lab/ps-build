@@ -10,7 +10,6 @@ set -o xtrace
 JOB_CMAKE=${JOB_CMAKE:-cmake}
 COMPILER=${COMPILER:-default}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
-WITH_TOKUDB=${WITH_TOKUDB:-ON}
 WITH_ROCKSDB=${WITH_ROCKSDB:-ON}
 WITH_ROUTER=${WITH_ROUTER:-ON}
 WITH_GCOV=${WITH_GCOV:-OFF}
@@ -124,7 +123,6 @@ fi
 MYSQL_VERSION="$MYSQL_VERSION_MAJOR.$MYSQL_VERSION_MINOR.$MYSQL_VERSION_PATCH"
 PERCONA_SERVER_VERSION="$(echo $MYSQL_VERSION_EXTRA | sed 's/^-//')"
 PRODUCT="Percona-Server-$MYSQL_VERSION-$PERCONA_SERVER_VERSION"
-TOKUDB_BACKUP_VERSION="${MYSQL_VERSION}${MYSQL_VERSION_EXTRA}"
 PRODUCT_FULL="Percona-Server-${MYSQL_VERSION}-${PERCONA_SERVER_VERSION}${BUILD_COMMENT}-${TAG}$(uname -s)${DIST_NAME}.${TARGET_ARCH}${SSL_VER}"
 COMMENT="Percona Server (GPL), Release ${MYSQL_VERSION_EXTRA#-}, Revision ${REVISION:-}${BUILD_COMMENT}"
 
@@ -145,22 +143,6 @@ fi
 if [[ -f /opt/rh/devtoolset-8/enable ]]; then
     source /opt/rh/devtoolset-8/enable
 fi
-
-# ------------------------------------------------------------------------------
-# Check tokudb
-# ------------------------------------------------------------------------------
-if [[ "${WITH_TOKUDB}" = "ON" ]]; then
-    CMAKE_OPTS+=" -DBUILD_TESTING=OFF -DUSE_GTAGS=OFF -DUSE_CTAGS=OFF -DUSE_ETAGS=OFF -DUSE_CSCOPE=OFF -DTOKUDB_BACKUP_PLUGIN_VERSION=${TOKUDB_BACKUP_VERSION}"
-    if [[ "${CMAKE_BUILD_TYPE}" = "Debug" ]]; then
-        CMAKE_OPTS+=" -DTOKU_DEBUG_PARANOID=ON"
-    else
-        CMAKE_OPTS+=" -DTOKU_DEBUG_PARANOID=OFF"
-    fi
-    if [[ "${ANALYZER_OPTS}" = *WITH_VALGRIND=ON* ]]; then
-        CMAKE_OPTS+=" -DUSE_VALGRIND=ON"
-    fi
-fi
-
 
 # ------------------------------------------------------------------------------
 # Check mecab
@@ -197,7 +179,6 @@ pushd ${WORKDIR}
     ${JOB_CMAKE} \
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
         -DWITH_SSL=${WITH_SSL} \
-        -DWITH_TOKUDB=${WITH_TOKUDB} \
         -DWITH_ROCKSDB=${WITH_ROCKSDB} \
         -DWITH_ROUTER=${WITH_ROUTER} \
         -DWITH_MYSQLX=${WITH_MYSQLX} \
@@ -234,9 +215,6 @@ popd
 # Copy all needed data for unit tests
 cp ${WORKDIR}/scripts/mysqld_safe ${WORKDIR}/runtime_output_directory/
 cp ${WORKDIR}/scripts/mysqldumpslow ${WORKDIR}/runtime_output_directory/
-if [ -f ${WORKDIR}/storage/tokudb/PerconaFT/tools/tokuftdump ]; then
-    cp ${WORKDIR}/storage/tokudb/PerconaFT/tools/tokuftdump ${WORKDIR}/runtime_output_directory/
-fi
 if [ -d ${SOURCEDIR}/rqg ]; then
     cp -r ${SOURCEDIR}/rqg ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 fi

@@ -6,8 +6,6 @@
 #      CMAKE_BUILD_TYPE = (RelWithDebInfo Debug)
 #      ANALYZER_OPTS = (-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_MSAN=ON -DWITH_UBSAN=ON -DWITH_VALGRIND=ON)
 #      DEFAULT_TESTING = (yes no)
-#      HOTBACKUP_TESTING = (yes no)
-#      TOKUDB_ENGINES_MTR = (yes no)
 #      MTR_ARGS
 #      MTR_REPEAT
 #      DOCKER_OS
@@ -40,9 +38,6 @@ if [[ -f /opt/rh/devtoolset-8/enable ]]; then
     source /opt/rh/devtoolset-8/enable
 fi
 
-TOKUDB_PLUGIN=$(find $WORKDIR_ABS/PS/plugin_output_directory -type f -name 'ha_tokudb.so')
-HOTBACKUP_LIB=$(find $WORKDIR_ABS/PS -type f -name 'libHotBackup.so')
-HOTBACKUP_PLUGIN=$(find $WORKDIR_ABS/PS/plugin_output_directory -type f -name 'tokudb_backup.so')
 JEMALLOC=$(find /lib* /usr/lib* /usr/local/lib* -type f -name 'libjemalloc.so*' | head -n1)
 EATMYDATA=$(find /lib* /usr/lib* /usr/local/lib* -type f -name '*eatmyda*.so*' | head -n1)
 
@@ -125,44 +120,8 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.main" || true
 fi
 #
-if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
-    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
-
-    MTR_BUILD_THREAD=auto ./mtr \
-        --force \
-        --max-test-fail=0 \
-        --suite-timeout=9999 \
-        --testcase-timeout=${TESTCASE_TIMEOUT} \
-        --parallel=${PARALLEL} \
-        ${MTR_ARGS} \
-        --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
-        --suite tokudb_backup \
-        --junit-output=${WORKDIR_ABS}/junit_tokudb_hotbackup.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb_hotbackup" || true
-fi
-#
-# if there's tokudb plugin compiled run tokudb tests else exit with previous status
-if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
-  # this is a workaround because mtr is looking for ha_tokudb.so in source_dir in lib/plugins/mysql when it's actually in builddir/storage/tokudb
-  mkdir -p lib/mysql/plugin
-  ln -s ${TOKUDB_PLUGIN} lib/mysql/plugin/ha_tokudb.so
-  ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
-
-    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
-    MTR_BUILD_THREAD=auto \
-        ./mtr --suite=engines/iuds,engines/funcs \
-            --mysqld=--default-storage-engine=tokudb --mysqld=--default-tmp-storage-engine=tokudb \
-            --suite-timeout=9999 --testcase-timeout=${TESTCASE_TIMEOUT} --parallel=${PARALLEL} --big-test --force --max-test-fail=0 \
-            --mysqld=--plugin-load=tokudb=ha_tokudb.so --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
-            --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
-            ${TOKUDB_ENGINES_MTR_ARGS} \
-            ${ANALYZER_MTR_ARGS} \
-            --junit-output=${WORKDIR_ABS}/junit_tokudb.xml \
-            --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb" || true
-fi
-
-# if all tests are disabled, run only one small test to prevent test stage issue and perform simle test of binary file
-if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] && [[ "${DEFAULT_TESTING}" = 'no' ]] ; then
+# if all tests are disabled, run only one small test to prevent test stage issue and perform simple test of binary file
+if [[ "${CI_FS_MTR}" = 'no' ]] && [[ "${KEYRING_VAULT_MTR}" = 'no' ]] && [[ "${DEFAULT_TESTING}" = 'no' ]] ; then
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \

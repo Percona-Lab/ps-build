@@ -5,8 +5,6 @@
 #  possible jenkins vars:
 #      CMAKE_BUILD_TYPE = (RelWithDebInfo Debug)
 #      ANALYZER_OPTS = (-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_MSAN=ON -DWITH_UBSAN=ON -DWITH_VALGRIND=ON)
-#      HOTBACKUP_TESTING = (yes no)
-#      TOKUDB_ENGINES_MTR = (yes no)
 #      MTR_ARGS
 #      MTR_REPEAT
 #      MTR_SUITES
