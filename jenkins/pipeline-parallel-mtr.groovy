@@ -11,7 +11,6 @@ BUILD_TRIGGER_BY = ''
 PXB24_PACKAGE_TO_DOWNLOAD = ''
 PXB80_PACKAGE_TO_DOWNLOAD = ''
 
-def ZEN_FS_MTR_SUPPORTED = false
 def LABEL = 'docker-32gb'
 
 
@@ -80,13 +79,13 @@ void prepareWorkspace() {
     }
 }
 
-void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean ZENFS_TESTS = false) {
+void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false) {
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
         withCredentials([
             string(credentialsId: 'VAULT_V1_DEV_ROOT_TOKEN', variable: 'VAULT_V1_DEV_ROOT_TOKEN'),
             string(credentialsId: 'VAULT_V2_DEV_ROOT_TOKEN', variable: 'VAULT_V2_DEV_ROOT_TOKEN')]) {
             sh """#!/bin/bash
-                echo "Starting MTR worker ${WORKER_ID}, SUITES: ${SUITES}, STANDALONE_TESTS: ${STANDALONE_TESTS}, UNIT_TESTS: ${UNIT_TESTS}, CIFS_TESTS: ${CIFS_TESTS}, KV_TESTS: ${KV_TESTS}, ZENFS_TESTS: ${ZENFS_TESTS}"
+                echo "Starting MTR worker ${WORKER_ID}, SUITES: ${SUITES}, STANDALONE_TESTS: ${STANDALONE_TESTS}, UNIT_TESTS: ${UNIT_TESTS}, CIFS_TESTS: ${CIFS_TESTS}, KV_TESTS: ${KV_TESTS}"
 
                 if [[ "${CIFS_TESTS}" == "true" ]]; then
                     echo "Preparing filesystem for CIFS tests"
@@ -123,13 +122,6 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
                     echo "Enabling Keyring Vault mtr"
                     KEYRING_VAULT_MTR=yes
                 fi
-                if [[ "${ZENFS_TESTS}" == "false" ]]; then
-                    echo "Disabling ZenFS mtr"
-                    ZEN_FS_MTR=no
-                else
-                    echo "Enabling ZenFS mtr"
-                    ZEN_FS_MTR=yes
-                fi
 
                 MTR_STANDALONE_TESTS="${STANDALONE_TESTS}"
                 export MTR_SUITES="${SUITES}"
@@ -147,7 +139,7 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
     }  // withCredentials
 }
 
-void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean ZENFS_TESTS = false) {
+void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false) {
     timeout(time: PIPELINE_TIMEOUT, unit: 'HOURS')  {
         script {
             echo "JENKINS_SCRIPTS_BRANCH: ${JENKINS_SCRIPTS_BRANCH}"
@@ -158,7 +150,7 @@ void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS =
         script {
             prepareWorkspace()
             downloadFilesForTests()
-            doTests(WORKER_ID.toString(), SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, ZENFS_TESTS)
+            doTests(WORKER_ID.toString(), SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS)
         }
 
         // This is questionable. Do we need resutl XMLs in S3 cache while Jenkins archives them as well?
@@ -168,13 +160,13 @@ void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS =
     }
 }
 
-void doTestWorkerJobWithGuard(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean ZENFS_TESTS = false) {
+void doTestWorkerJobWithGuard(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false) {
     catchError(buildResult: 'UNSTABLE') {
         script {
             WORKER_ABORTED[WORKER_ID] = true
             echo "WORKER_${WORKER_ID.toString()}_ABORTED = true"
         }
-        doTestWorkerJob(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, ZENFS_TESTS)
+        doTestWorkerJob(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS)
         script {
             WORKER_ABORTED[WORKER_ID] = false
             echo "WORKER_${WORKER_ID.toString()}_ABORTED = false"
@@ -284,7 +276,6 @@ void setupTestSuitesSplit() {
             env.WORKER_7_MTR_SUITES = ""
             env.WORKER_8_MTR_SUITES = ""
             env.CI_FS_MTR = 'no'
-            env.ZEN_FS_MTR = 'no'
             env.KEYRING_VAULT_MTR = 'no'
         }
 
@@ -383,7 +374,6 @@ void triggerAbortedTestWorkersRerun() {
                             string(name:'WITH_MYSQLX', value: env.WITH_MYSQLX),
                     string(name:'CMAKE_OPTS', value: env.CMAKE_OPTS),
                     string(name:'MAKE_OPTS', value: env.MAKE_OPTS),
-                            string(name:'ZEN_FS_MTR', value: env.ZEN_FS_MTR),
                     string(name:'MTR_ARGS', value: env.MTR_ARGS),
                     string(name:'CI_FS_MTR', value: env.CI_FS_MTR),
                     string(name:'GALERA_PARALLEL_RUN', value: env.GALERA_PARALLEL_RUN),
@@ -472,24 +462,6 @@ if ( ((params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) &&
     PIPELINE_TIMEOUT = 20
 }
 
-if ( (params.ZEN_FS_MTR == 'yes') &&
-     ((params.DOCKER_OS == 'oraclelinux:9') ||
-      (params.DOCKER_OS == 'ubuntu:jammy') ||
-      (params.DOCKER_OS == 'debian:bullseye')
-     ) )
-{
-    LABEL = 'docker-32gb-bullseye'
-    PIPELINE_TIMEOUT = 22
-    ZEN_FS_MTR_SUPPORTED = true
-}
-else
-{
-    // Do not allow ZEN_FS test. It is not possible to execute them on requested platform anyway.
-    script {
-        echo "ZEN_FS tests disabled. Unsupported OS: ${params.DOCKER_OS}"
-    }
-}
-
 pipeline {
     parameters {
         string(
@@ -552,10 +524,6 @@ pipeline {
             defaultValue: '',
             description: 'make options, like VERBOSE=1',
             name: 'MAKE_OPTS')
-        choice(
-            choices: 'no\nyes',
-            description: 'Run ZenFS MTR tests',
-            name: 'ZEN_FS_MTR')
         choice(
             choices: 'yes\nno',
             description: 'Run case-insensetive MTR tests',
@@ -737,11 +705,11 @@ pipeline {
                 stage('Test - 1') {
                     when {
                         beforeAgent true
-                        expression { (env.WORKER_1_MTR_SUITES?.trim() || env.MTR_STANDALONE_TESTS?.trim() || env.CI_FS_MTR?.trim() == 'yes' || env.KEYRING_VAULT_MTR?.trim() == 'yes' || ZEN_FS_MTR_SUPPORTED && (env.ZEN_FS_MTR?.trim() == 'yes') ) }
+                        expression { (env.WORKER_1_MTR_SUITES?.trim() || env.MTR_STANDALONE_TESTS?.trim() || env.CI_FS_MTR?.trim() == 'yes' || env.KEYRING_VAULT_MTR?.trim() == 'yes') }
                     }
                     agent { label LABEL }
                     steps {
-                        doTestWorkerJobWithGuard(1, "${WORKER_1_MTR_SUITES}", "${MTR_STANDALONE_TESTS}", true, env.CI_FS_MTR?.trim() == 'yes', env.KEYRING_VAULT_MTR?.trim() == 'yes', ZEN_FS_MTR_SUPPORTED && (env.ZEN_FS_MTR?.trim() == 'yes'))
+                        doTestWorkerJobWithGuard(1, "${WORKER_1_MTR_SUITES}", "${MTR_STANDALONE_TESTS}", true, env.CI_FS_MTR?.trim() == 'yes', env.KEYRING_VAULT_MTR?.trim() == 'yes')
                     }
                 }
                 stage('Test - 2') {

@@ -18,30 +18,6 @@ if (
         pipeline_timeout = 20
       }
  
-if (
-    (params.ZEN_FS_MTR == 'yes') &&
-    (params.DOCKER_OS == 'ubuntu:jammy')
-    ) { 
-        LABEL = 'docker-32gb-bullseye'
-        pipeline_timeout = 22
-      }
-
-if (
-    (params.ZEN_FS_MTR == 'yes') &&
-    (params.DOCKER_OS == 'debian:bullseye')
-    ) {
-        LABEL = 'docker-32gb-bullseye'
-        pipeline_timeout = 22
-      }
-
-if (
-    (params.ZEN_FS_MTR == 'yes') &&
-    (params.DOCKER_OS == 'oraclelinux:9')
-    ) {
-        LABEL = 'docker-32gb-bullseye'
-        pipeline_timeout = 22
-      }
-
 pipeline {
     parameters {
         string(
@@ -102,10 +78,6 @@ pipeline {
             choices: 'yes\nno',
             description: 'Run mysql-test-run.pl',
             name: 'DEFAULT_TESTING')
-        choice(
-            choices: 'yes\nno',
-            description: 'Run ZenFS MTR tests',
-            name: 'ZEN_FS_MTR')
         choice(
             choices: 'yes\nno',
             description: 'Run case-insensetive MTR tests',
