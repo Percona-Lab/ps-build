@@ -31,17 +31,16 @@ docker run --rm \
     export TAG='${TAG}'
     export DIST_NAME='${DIST_NAME}'
     export SSL_VER='${SSL_VER}'
-    export ZEN_FS_MTR='${ZEN_FS_MTR}'
     export DOCKER_OS='${DOCKER_OS//:/-}'
 
     mkdir  /tmp/results
     cp -r /tmp/source_downloads /tmp/results/source_downloads
-    sudo chown mysql:mysql /tmp/ps /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/rocksdb/util /tmp/ps/storage/rocksdb/rocksdb_plugins/zenfs/fs || :
+    sudo chown mysql:mysql /tmp/ps /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/rocksdb/util || :
     bash -x /tmp/scripts/build-binary /tmp/results /tmp/ps
 
     sudo rm -rf /tmp/ps/results
     sudo mkdir /tmp/ps/results
     sudo mv /tmp/results/*.tar.gz /tmp/ps/results/
     sudo chown -R $(id -u):$(id -g) /tmp/ps/results
-    sudo chown $(id -u):$(id -g) /tmp/ps /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/rocksdb/util /tmp/ps/storage/rocksdb/rocksdb_plugins/zenfs/fs || :
+    sudo chown $(id -u):$(id -g) /tmp/ps /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/rocksdb/util || :
 "

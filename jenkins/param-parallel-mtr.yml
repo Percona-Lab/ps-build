@@ -89,12 +89,6 @@
         - "yes"
         - "no"
         description: Run case-insensetive MTR tests
-    - choice:
-        name: ZEN_FS_MTR
-        choices:
-        - "no"
-        - "yes"
-        description: Run ZenFS MTR tests
     - string:
         name: MTR_ARGS
         default: --unit-tests-report --mem --big-test
