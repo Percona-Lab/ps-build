@@ -154,6 +154,25 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true
 fi
 
+if [[ "${WITH_PS_PROTOCOL}" = 'yes' ]]; then
+    PS_TESTS=""
+    for PS_TESTS_TMP in $(grep --exclude="*.inc" --exclude="*.log" -rl . -e include/have_ps_protocol.inc | awk -F '/' '{print $NF}' | sed 's/.test//g'); do
+        PS_TESTS+=" $PS_TESTS_TMP"
+    done
+
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+        --max-test-fail=0 \
+        --parallel=$(nproc) \
+        --retry=0 \
+        --big-test \
+        --ps-protocol \
+        ${PS_TESTS} \
+        ${ANALYZER_MTR_ARGS} \
+        --junit-output=${WORKDIR_ABS}/junit_ps_protocol.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ps_protocol" || true
+fi
+
 if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     if [ -f /usr/bin/yum ]; then
         if [[ -f /opt/rh/httpd24/enable ]]; then
