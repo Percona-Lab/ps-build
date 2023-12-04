@@ -83,6 +83,12 @@
         - "yes"
         - "no"
         description: Run case-insensetive MTR tests
+    - choice:
+        name: WITH_PS_PROTOCOL
+        choices:
+        - "yes"
+        - "no"
+        description: Run MTR tests with --ps-protocol
     - string:
         name: MTR_ARGS
         default: --unit-tests-report
