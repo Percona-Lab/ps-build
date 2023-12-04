@@ -143,6 +143,10 @@ pipeline {
             description: 'Run case-insensetive MTR tests',
             name: 'CI_FS_MTR')
         choice(
+            choices: 'yes\nno',
+            description: 'Run MTR tests with --ps-protocol',
+            name: 'WITH_PS_PROTOCOL')
+        choice(
             choices: 'docker\ndocker-32gb',
             description: 'Run build on specified instance type',
             name: 'LABEL')
