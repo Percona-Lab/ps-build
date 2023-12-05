@@ -235,7 +235,9 @@ if [ -d ${SOURCEDIR}/rqg ]; then
 fi
 # Copy unit tests
 cp ${WORKDIR}/CTestTestfile.cmake ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
-cp -r ${WORKDIR}/unittest ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+if [ -d ${WORKDIR}/unittest ]; then
+    cp -r ${WORKDIR}/unittest ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
+fi
 if [[ "${UNIT_TESTS_ROUTER}" = "yes" ]]; then
     cp -r ${WORKDIR}/router ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
     cp -r ${SOURCEDIR}/router/tests/component/data ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/router/tests/component/
