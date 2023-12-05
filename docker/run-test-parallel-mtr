@@ -6,8 +6,8 @@ set -o xtrace
 ROOT_DIR=$(cd $(dirname $0)/..; pwd -P)
 SCRIPTS_DIR=$ROOT_DIR/local
 SOURCES_DIR=$ROOT_DIR/sources
-SOURCE_IMAGE=${1:-centos:7}
-SOURCE_IMAGE=${SOURCE_IMAGE//[:\/]/-}
+DOCKER_OS=${1:-centos:7}
+SOURCE_IMAGE=${DOCKER_OS//[:\/]/-}
 WORKER_NO=${2:-0}
 BUILD_DIR=$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}
 mkdir -p $BUILD_DIR
@@ -65,7 +65,7 @@ docker run --rm --shm-size=32G \
     --sysctl net.ipv6.conf.lo.disable_ipv6=0 \
     --mount type=bind,source=${SOURCES_DIR},destination=/tmp/ps \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
-    --mount type=bind,source=${BUILD_DIR},destination=/tmp/results \
+    --mount type=bind,source=${BUILD_DIR},destination=/tmp/build \
     ${CI_FS_DOCKER_FLAG} \
     ${VAULT_DOCKER_FLAG} \
     ${ZEN_FS_DOCKER_FLAG} \
@@ -74,7 +74,7 @@ docker run --rm --shm-size=32G \
     set -o errexit
     set -o xtrace
 
-    mkdir /tmp/ps_mtr_tempdir
+    mkdir /tmp/results /tmp/ps_mtr_tempdir
     export CMAKE_BUILD_TYPE='${CMAKE_BUILD_TYPE}'
     export ANALYZER_OPTS='${ANALYZER_OPTS}'
     export HOTBACKUP_TESTING='${HOTBACKUP_TESTING}'
@@ -103,11 +103,11 @@ docker run --rm --shm-size=32G \
     export ZEN_FS_MTR='${ZEN_FS_MTR}'
     export WITH_ROCKSDB='${WITH_ROCKSDB}'
 
-    sudo chown mysql:mysql /tmp/results
+    sudo chown mysql:mysql /tmp/build
     mv /tmp/ps/*.pem /tmp/results || true
     cp /tmp/ps/results/*.tar.gz /tmp/results
 
-    bash -x /tmp/scripts/test-binary-parallel-mtr /tmp/results
+    bash -x /tmp/scripts/test-binary-parallel-mtr /tmp/results /tmp/build
 
     mkdir /tmp/results/log
     rsync -a --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' /tmp/results/PS/mysql-test/mtr_var /tmp/results/log

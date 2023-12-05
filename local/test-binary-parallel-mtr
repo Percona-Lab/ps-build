@@ -15,6 +15,9 @@
 set -o errexit
 set -o xtrace
 
+WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
+BUILD_DIR=$2
+
 echo "*******************************************************"
 echo "Starting tests on worker ${WORKER_NO}"
 whoami
@@ -24,12 +27,6 @@ prlimit
 ulimit -a
 echo "*******************************************************"
 
-WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
-rm -fr ${WORKDIR_ABS}/PS
-mkdir -p ${WORKDIR_ABS}/PS/sql
-tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
-
-cd ${WORKDIR_ABS}/PS/mysql-test
 TESTCASE_TIMEOUT=30
 PARALLEL=$(grep -c ^processor /proc/cpuinfo)
 # CentOS 7
@@ -92,14 +89,6 @@ fi
 
 MTR_ARGS+=${ANALYZER_MTR_ARGS}
 
-if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
-  export ASAN_OPTIONS=allocator_may_return_null=true
-  # trying to find the proper library
-  MYSQLD=$(find ${WORKDIR_ABS}/PS/bin -name mysqld)
-  LIBASAN=$(ldd ${MYSQLD} | grep libasan | awk '{print $3}')
-  ADD_TO_LD_PRELOAD="${LIBASAN}:"
-fi
-
 if [[ -n "${MTR_REPEAT}" ]]; then
   MTR_ARGS+=" --repeat=${MTR_REPEAT}"
 fi
@@ -141,16 +130,12 @@ if [[ $MTR_ARGS == *"--unit-tests-report"* ]]; then
 fi
 MTR_ARGS=${MTR_ARGS//"--unit-tests-report"/""}
 
-#
-# set options for "--mysqld-env"
-if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
-    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${EATMYDATA}"
-else
-    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
-fi
+rm -fr ${WORKDIR_ABS}/PS
+mkdir -p ${WORKDIR_ABS}/PS/sql ${WORKDIR_ABS}/PS/mysql-test
+cd ${WORKDIR_ABS}/PS/mysql-test
 
 #
-# >>>> execute all unit tests at the beginning with main.1st only
+# >>>> execute all unit tests at the beginning with main.1st only using an original build (not files for ".tar.gz" archive)
 if [[ $UNIT_TESTS == "1" ]]; then
     tests="main.1st"
     suiteNoSlash="UNIT_TESTS"
@@ -163,18 +148,24 @@ if [[ $UNIT_TESTS == "1" ]]; then
     cat /proc/meminfo
     start=`date +%s`
 
+    pushd ${BUILD_DIR}/mysql-test
+    MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
+    MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_DEV_ROOT_TOKEN} \
+    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_DEV_MTR_TOKEN} \
+    MTR_VAULT_VERSION=2 \
     MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${PARALLEL} \
         --result-file \
         --unit-tests-report \
         ${tests} \
         ${MTR_ARGS} \
-        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+        --force \
         --max-test-fail=0 \
         --junit-output=${WORKDIR_ABS}/junit_${suiteNoSlash}.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${suiteNoSlash}" || true
+    popd
 
-    ln -s $PWD/var $PWD/var_${suiteNoSlash}
+    ln -s ${BUILD_DIR}/mysql-test/var $PWD/var_${suiteNoSlash}
     which rsync
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${suiteNoSlash} $PWD/mtr_var
 
@@ -188,6 +179,36 @@ if [[ $UNIT_TESTS == "1" ]]; then
     runtime=$((end-start))
     echo KH,UNIT_TESTS,${tests},time,$runtime
 fi
+
+
+echo "*******************************************************"
+echo "Remove the original build"
+ls -l ${BUILD_DIR}
+rm -rf ${BUILD_DIR}/*
+ls -l ${BUILD_DIR}
+
+echo "*******************************************************"
+echo "Decompress \".tar.gz\" archive and use it for MTR tests"
+
+tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
+
+
+if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
+  export ASAN_OPTIONS=allocator_may_return_null=true
+  # trying to find the proper library
+  MYSQLD=$(find ${WORKDIR_ABS}/PS/bin -name mysqld)
+  LIBASAN=$(ldd ${MYSQLD} | grep libasan | awk '{print $3}')
+  ADD_TO_LD_PRELOAD="${LIBASAN}:"
+fi
+
+#
+# set options for "--mysqld-env"
+if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
+    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${EATMYDATA}"
+else
+    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
+fi
+
 
 #
 # Running MTR test cases
