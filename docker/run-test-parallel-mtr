@@ -107,7 +107,7 @@ docker run --rm --shm-size=32G \
     mv /tmp/ps/*.pem /tmp/results || true
     cp /tmp/ps/results/*.tar.gz /tmp/results
 
-    bash -x /tmp/scripts/test-binary-parallel-mtr /tmp/results /tmp/ps
+    bash -x /tmp/scripts/test-binary-parallel-mtr /tmp/results
 
     mkdir /tmp/results/log
     rsync -a --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' /tmp/results/PS/mysql-test/mtr_var /tmp/results/log

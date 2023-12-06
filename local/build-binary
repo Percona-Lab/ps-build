@@ -25,7 +25,6 @@ TAG=${TAG:-}
 DIST_NAME=${DIST_NAME:-}
 SSL_VER=${SSL_VER:-}
 TARGET_CFLAGS=${TARGET_CFLAGS:-}
-UNIT_TESTS_ROUTER=${UNIT_TESTS_ROUTER:-yes}
 
 # ------------------------------------------------------------------------------
 # set working dir
@@ -223,28 +222,6 @@ pushd ${WORKDIR}
     make ${MAKE_OPTS}
     make DESTDIR=${INSTALL_DIR} install > make_install.log
 popd
-
-# Copy all needed data for unit tests
-cp ${WORKDIR}/scripts/mysqld_safe ${WORKDIR}/runtime_output_directory/
-cp ${WORKDIR}/scripts/mysqldumpslow ${WORKDIR}/runtime_output_directory/
-if [ -f ${WORKDIR}/storage/tokudb/PerconaFT/tools/tokuftdump ]; then
-    cp ${WORKDIR}/storage/tokudb/PerconaFT/tools/tokuftdump ${WORKDIR}/runtime_output_directory/
-fi
-if [ -d ${SOURCEDIR}/rqg ]; then
-    cp -r ${SOURCEDIR}/rqg ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
-fi
-# Copy unit tests
-cp ${WORKDIR}/CTestTestfile.cmake ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
-if [ -d ${WORKDIR}/unittest ]; then
-    cp -r ${WORKDIR}/unittest ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
-fi
-if [[ "${UNIT_TESTS_ROUTER}" = "yes" ]]; then
-    cp -r ${WORKDIR}/router ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
-    cp -r ${SOURCEDIR}/router/tests/component/data ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/router/tests/component/
-fi
-cp -r ${WORKDIR}/runtime_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
-cp -r ${WORKDIR}/library_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
-cp -r ${WORKDIR}/plugin_output_directory ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
 
 # GCOV instrumentation files for coverage report. 
 if [[ ${WITH_GCOV} == 'ON' ]]; then
