@@ -25,29 +25,9 @@ ulimit -a
 echo "*******************************************************"
 
 WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
-SOURCEDIR=$2
 rm -fr ${WORKDIR_ABS}/PS
 mkdir -p ${WORKDIR_ABS}/PS/sql
 tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
-
-if [[ "${SOURCEDIR}" != "" ]]; then
-    # Router unit tests have hard coded paths to SOURCEDIR.
-    # We link proper paths in case SOURCEDIR is not available (e.g. Jenkins docker builds).
-    if ! [ -d ${SOURCEDIR}/router/tests/component/data ]; then
-        sudo mkdir -p ${SOURCEDIR}/router/tests/component
-        sudo ln -sf ${WORKDIR_ABS}/PS/router/tests/component/data ${SOURCEDIR}/router/tests/component
-    fi
-    if ! [ -d ${SOURCEDIR}/mysql-test/std_data ]; then
-        sudo mkdir -p ${SOURCEDIR}/mysql-test
-        sudo ln -sf ${WORKDIR_ABS}/PS/mysql-test/std_data ${SOURCEDIR}/mysql-test
-    fi
-fi
-
-ln -sf ${WORKDIR_ABS}/PS/router ${WORKDIR_ABS}/router
-ln -sf ${WORKDIR_ABS}/PS/unittest ${WORKDIR_ABS}/unittest
-ln -sf ${WORKDIR_ABS}/PS/runtime_output_directory ${WORKDIR_ABS}/runtime_output_directory
-ln -sf ${WORKDIR_ABS}/PS/plugin_output_directory ${WORKDIR_ABS}/plugin_output_directory
-ln -sf ${WORKDIR_ABS}/PS/library_output_directory ${WORKDIR_ABS}/library_output_directory
 
 cd ${WORKDIR_ABS}/PS/mysql-test
 TESTCASE_TIMEOUT=30
