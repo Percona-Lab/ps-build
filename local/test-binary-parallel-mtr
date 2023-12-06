@@ -376,11 +376,11 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true
 
-        ln -s /tmp/ci_disk_dir/var $PWD/var_ci_fs
-        rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ci_fs $PWD/mtr_var
+    ln -s /tmp/ci_disk_dir/var $PWD/var_ci_fs
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ci_fs $PWD/mtr_var
 
-        killall -9 mysqld || true
-        rm -rf $PWD/var_ci_fs
+    killall -9 mysqld || true
+    rm -rf $PWD/var_ci_fs
 
     end=`date +%s`
     runtime=$((end-start))
@@ -427,15 +427,15 @@ if [[ "${WITH_PS_PROTOCOL}" = 'yes' ]]; then
         --junit-output=${WORKDIR_ABS}/junit_ps_protocol.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ps_protocol" || true
 
-        ln -s /tmp/ps_disk_dir/var $PWD/var_ps_protocol
+    ln -s $PWD/var $PWD/var_ps_protocol
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ps_protocol $PWD/mtr_var
 
-        rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ps_protocol $PWD/mtr_var
+    killall -9 mysqld || true
+    rm -rf $PWD/var_ps_protocol
 
-        killall -9 mysqld || true
-        rm -rf $PWD/var_ps_protocol
-	end=`date +%s`
-        runtime=$((end-start))
-        echo KH,SUITE_TOTAL,PS_tests,time,$runtime
+    end=`date +%s`
+    runtime=$((end-start))
+    echo KH,SUITE_TOTAL,PS_protocol_tests,time,$runtime
 fi
 
 
