@@ -178,6 +178,7 @@ void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS =
 void doTestWorkerJobWithGuard(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean ZENFS_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
     catchError(buildResult: 'UNSTABLE') {
         script {
+            echo "NODE_NAME = ${env.NODE_NAME}"
             WORKER_ABORTED[WORKER_ID] = true
             echo "WORKER_${WORKER_ID.toString()}_ABORTED = true"
         }
@@ -675,6 +676,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 script {
+                    echo "NODE_NAME = ${env.NODE_NAME}"
                     echo "JENKINS_SCRIPTS_BRANCH: $JENKINS_SCRIPTS_BRANCH"
                     echo "JENKINS_SCRIPTS_REPO: $JENKINS_SCRIPTS_REPO"
                     echo "Using instances with LABEL ${LABEL} for build and test stages"
@@ -701,143 +703,145 @@ pipeline {
                 }
             }
         }
-        stage('Build') {
-            when {
-                beforeAgent true
-                expression { env.BUILD_NUMBER_BINARIES == '' }
-            }
+        stage('Wait for instance') {
             agent { label LABEL }
-            steps {
-                script {
-                    echo "JENKINS_SCRIPTS_BRANCH: $JENKINS_SCRIPTS_BRANCH"
-                    echo "JENKINS_SCRIPTS_REPO: $JENKINS_SCRIPTS_REPO"
-                }
-                git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
+            stages {
+                stage('Build') {
+                    when { expression { env.BUILD_NUMBER_BINARIES == '' }}
+                    steps {
+                        script {
+                            echo "NODE_NAME = ${env.NODE_NAME}"
+                            echo "JENKINS_SCRIPTS_BRANCH: $JENKINS_SCRIPTS_BRANCH"
+                            echo "JENKINS_SCRIPTS_REPO: $JENKINS_SCRIPTS_REPO"
+                        }
+                        git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
 
-                checkoutSources()
-                build("./docker/run-build")
+                        checkoutSources()
+                        build("./docker/run-build")
 
-                script {
-                    boolean archive_public_url = false
-                    BIN_FILE_NAME = sh(
-                        script: 'ls sources/results/*.tar.gz | head -1',
-                        returnStdout: true
-                    ).trim()
-                    LOG_FILE_NAME = sh(
-                        script: 'ls build.log.gz | head -1',
-                        returnStdout: true
-                    ).trim()
-                    if (BIN_FILE_NAME != "") {
-                        uploadFileToS3("$BIN_FILE_NAME", "$BUILD_TAG", "binary.tar.gz")
-                        sh "echo 'binary    - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG_BINARIES}/binary.tar.gz' >> public_url"
-                        archive_public_url = true
-                    } else {
-                        echo 'Cannot find compiled archive log'
-                        currentBuild.result = 'FAILURE'
-                    }
-                    if (LOG_FILE_NAME != "") {
-                        uploadFileToS3("$LOG_FILE_NAME", "$BUILD_TAG", "build.log.gz")
-                        sh "echo 'build log - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG_BINARIES}/build.log.gz' >> public_url"
-                        archive_public_url = true
-                        archiveArtifacts 'build.log.gz'
-                        sh """
-                            gunzip build.log.gz
-                            ls | grep -xv "build.log\\|public_url" | xargs rm -rf
-                        """
-                        recordIssues enabledForFailure: true, tools: [gcc(pattern: 'build.log')]
-                    } else {
-                        echo 'Cannot find build log'
-                    }
+                        script {
+                            boolean archive_public_url = false
+                            BIN_FILE_NAME = sh(
+                                script: 'ls sources/results/*.tar.gz | head -1',
+                                returnStdout: true
+                            ).trim()
+                            LOG_FILE_NAME = sh(
+                                script: 'ls build.log.gz | head -1',
+                                returnStdout: true
+                            ).trim()
+                            if (BIN_FILE_NAME != "") {
+                                uploadFileToS3("$BIN_FILE_NAME", "$BUILD_TAG", "binary.tar.gz")
+                                sh "echo 'binary    - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG_BINARIES}/binary.tar.gz' >> public_url"
+                                archive_public_url = true
+                            } else {
+                                echo 'Cannot find compiled archive log'
+                                currentBuild.result = 'FAILURE'
+                            }
+                            if (LOG_FILE_NAME != "") {
+                                uploadFileToS3("$LOG_FILE_NAME", "$BUILD_TAG", "build.log.gz")
+                                sh "echo 'build log - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG_BINARIES}/build.log.gz' >> public_url"
+                                archive_public_url = true
+                                archiveArtifacts 'build.log.gz'
+                                sh """
+                                    gunzip build.log.gz
+                                    ls | grep -xv "build.log\\|public_url" | xargs rm -rf
+                                """
+                                recordIssues enabledForFailure: true, tools: [gcc(pattern: 'build.log')]
+                            } else {
+                                echo 'Cannot find build log'
+                            }
 
-                    if (archive_public_url) {
-                        archiveArtifacts 'public_url'
-                    }
+                            if (archive_public_url) {
+                                archiveArtifacts 'public_url'
+                            }
 
-                    env.BUILD_TAG_BINARIES = env.BUILD_TAG
-                    BUILD_NUMBER_BINARIES_FOR_RERUN = env.BUILD_NUMBER
-                }
-            }
-        }
-        stage('Test') {
-            parallel {
-                stage('Test - 1') {
-                    when {
-                        beforeAgent true
-                        expression { (env.WORKER_1_MTR_SUITES?.trim() || env.MTR_STANDALONE_TESTS?.trim() || env.CI_FS_MTR?.trim() == 'yes' || env.KEYRING_VAULT_MTR?.trim() == 'yes' || (ZEN_FS_MTR_SUPPORTED && (env.ZEN_FS_MTR?.trim() == 'yes')) || env.WITH_PS_PROTOCOL?.trim() == 'yes') }
-                    }
-                    agent { label LABEL }
-                    steps {
-                        doTestWorkerJobWithGuard(1, "${WORKER_1_MTR_SUITES}", "${MTR_STANDALONE_TESTS}", true, env.CI_FS_MTR?.trim() == 'yes', env.KEYRING_VAULT_MTR?.trim() == 'yes', ZEN_FS_MTR_SUPPORTED && (env.ZEN_FS_MTR?.trim() == 'yes'), env.WITH_PS_PROTOCOL?.trim() == 'yes')
+                            env.BUILD_TAG_BINARIES = env.BUILD_TAG
+                            BUILD_NUMBER_BINARIES_FOR_RERUN = env.BUILD_NUMBER
+                        }
                     }
                 }
-                stage('Test - 2') {
-                    when {
-                        beforeAgent true
-                        expression { (env.WORKER_2_MTR_SUITES?.trim()) }
-                    }
-                    agent { label LABEL }
-                    steps {
-                        doTestWorkerJobWithGuard(2, "${WORKER_2_MTR_SUITES}")
-                    }
-                }
-                stage('Test - 3') {
-                    when {
-                        beforeAgent true
-                        expression { (env.WORKER_3_MTR_SUITES?.trim()) }
-                    }
-                    agent { label LABEL }
-                    steps {
-                        doTestWorkerJobWithGuard(3, "${WORKER_3_MTR_SUITES}")
-                    }
-                }
-                stage('Test - 4') {
-                    when {
-                        beforeAgent true
-                        expression { (env.WORKER_4_MTR_SUITES?.trim()) }
-                    }
-                    agent { label LABEL }
-                    steps {
-                        doTestWorkerJobWithGuard(4, "${WORKER_4_MTR_SUITES}")
-                    }
-                }
-                stage('Test - 5') {
-                    when {
-                        beforeAgent true
-                        expression { (env.WORKER_5_MTR_SUITES?.trim()) }
-                    }
-                    agent { label LABEL }
-                    steps {
-                        doTestWorkerJobWithGuard(5, "${WORKER_5_MTR_SUITES}")
-                    }
-                }
-                stage('Test - 6') {
-                    when {
-                        beforeAgent true
-                        expression { (env.WORKER_6_MTR_SUITES?.trim()) }
-                    }
-                    agent { label LABEL }
-                    steps {
-                        doTestWorkerJobWithGuard(6, "${WORKER_6_MTR_SUITES}")
-                    }
-                }
-                stage('Test - 7') {
-                    when {
-                        beforeAgent true
-                        expression { (env.WORKER_7_MTR_SUITES?.trim()) }
-                    }
-                    agent { label LABEL }
-                    steps {
-                        doTestWorkerJobWithGuard(7, "${WORKER_7_MTR_SUITES}")
-                    }
-                }
-                stage('Test - 8') {
-                    when {
-                        beforeAgent true
-                        expression { (env.WORKER_8_MTR_SUITES?.trim()) }
-                    }
-                    agent { label LABEL }
-                    steps {
-                        doTestWorkerJobWithGuard(8, "${WORKER_8_MTR_SUITES}")
+                stage('Test') {
+                    parallel {
+                        stage('Test 1') {
+                            when {
+                                beforeAgent true
+                                expression { (env.WORKER_1_MTR_SUITES?.trim() || env.MTR_STANDALONE_TESTS?.trim() || env.CI_FS_MTR?.trim() == 'yes' || env.KEYRING_VAULT_MTR?.trim() == 'yes' || (ZEN_FS_MTR_SUPPORTED && (env.ZEN_FS_MTR?.trim() == 'yes')) || env.WITH_PS_PROTOCOL?.trim() == 'yes') }
+                            }
+                            // agent { label LABEL }
+                            steps {
+                                doTestWorkerJobWithGuard(1, "${WORKER_1_MTR_SUITES}", "${MTR_STANDALONE_TESTS}", true, env.CI_FS_MTR?.trim() == 'yes', env.KEYRING_VAULT_MTR?.trim() == 'yes', ZEN_FS_MTR_SUPPORTED && (env.ZEN_FS_MTR?.trim() == 'yes'), env.WITH_PS_PROTOCOL?.trim() == 'yes')
+                            }
+                        }
+                        stage('Test 2') {
+                            when {
+                                beforeAgent true
+                                expression { (env.WORKER_2_MTR_SUITES?.trim()) }
+                            }
+                            agent { label LABEL }
+                            steps {
+                                doTestWorkerJobWithGuard(2, "${WORKER_2_MTR_SUITES}")
+                            }
+                        }
+                        stage('Test 3') {
+                            when {
+                                beforeAgent true
+                                expression { (env.WORKER_3_MTR_SUITES?.trim()) }
+                            }
+                            agent { label LABEL }
+                            steps {
+                                doTestWorkerJobWithGuard(3, "${WORKER_3_MTR_SUITES}")
+                            }
+                        }
+                        stage('Test 4') {
+                            when {
+                                beforeAgent true
+                                expression { (env.WORKER_4_MTR_SUITES?.trim()) }
+                            }
+                            agent { label LABEL }
+                            steps {
+                                doTestWorkerJobWithGuard(4, "${WORKER_4_MTR_SUITES}")
+                            }
+                        }
+                        stage('Test 5') {
+                            when {
+                                beforeAgent true
+                                expression { (env.WORKER_5_MTR_SUITES?.trim()) }
+                            }
+                            agent { label LABEL }
+                            steps {
+                                doTestWorkerJobWithGuard(5, "${WORKER_5_MTR_SUITES}")
+                            }
+                        }
+                        stage('Test 6') {
+                            when {
+                                beforeAgent true
+                                expression { (env.WORKER_6_MTR_SUITES?.trim()) }
+                            }
+                            agent { label LABEL }
+                            steps {
+                                doTestWorkerJobWithGuard(6, "${WORKER_6_MTR_SUITES}")
+                            }
+                        }
+                        stage('Test 7') {
+                            when {
+                                beforeAgent true
+                                expression { (env.WORKER_7_MTR_SUITES?.trim()) }
+                            }
+                            agent { label LABEL }
+                            steps {
+                                doTestWorkerJobWithGuard(7, "${WORKER_7_MTR_SUITES}")
+                            }
+                        }
+                        stage('Test 8') {
+                            when {
+                                beforeAgent true
+                                expression { (env.WORKER_8_MTR_SUITES?.trim()) }
+                            }
+                            agent { label LABEL }
+                            steps {
+                                doTestWorkerJobWithGuard(8, "${WORKER_8_MTR_SUITES}")
+                            }
+                        }
                     }
                 }
             }
