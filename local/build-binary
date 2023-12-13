@@ -27,11 +27,13 @@ TARGET_CFLAGS=${TARGET_CFLAGS:-}
 # ------------------------------------------------------------------------------
 # set working dir
 # ------------------------------------------------------------------------------
-mkdir -p ${1:-./build}
 WORKDIR=$(cd ${1:-./build}; pwd -P)
-INSTALL_DIR=${WORKDIR}/DESTDIR
+BUILD_DIR=${WORKDIR}/build
+INSTALL_DIR=${WORKDIR}/install
 DOWNLOAD_DIR=${WORKDIR}/source_downloads
-mkdir -p ${INSTALL_DIR} ${DOWNLOAD_DIR}
+
+rm -rf ${INSTALL_DIR}
+mkdir -p ${BUILD_DIR} ${INSTALL_DIR} ${DOWNLOAD_DIR}
 SOURCEDIR=$(cd ${2:-$(dirname $0)/../sources}; pwd -P)
 
 
@@ -62,7 +64,7 @@ if [[ ${WITH_BORINGSSL} == "true" ]]; then
     # ------------------------------------------------------------------------------
     # compile boringssl libs
     # ------------------------------------------------------------------------------
-    pushd ${WORKDIR}
+    pushd ${BUILD_DIR}
     git clone https://github.com/google/boringssl.git boringssl_sources
     mkdir boringssl_sources/bin
     cd boringssl_sources/bin
@@ -77,11 +79,11 @@ if [[ ${WITH_BORINGSSL} == "true" ]]; then
     export GOCACHE="/tmp/boring_ssl_cache"
     ${BORING_SSL_CMAKE} .. -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_C_FLAGS="-fPIC"
     if make -j$(nproc); then
-        mkdir -p ${WORKDIR}/boringssl_bin/lib
-        cp crypto/libcrypto.a ${WORKDIR}/boringssl_bin/lib/libcrypto_pic.a
-        cp ssl/libssl.a ${WORKDIR}/boringssl_bin/lib/libssl_pic.a
-        cp -r ../include ${WORKDIR}/boringssl_bin/
-        CMAKE_OPTS+=" -DWITH_SSL=system -DCMAKE_PREFIX_PATH=${WORKDIR}/boringssl_bin"
+        mkdir -p ${BUILD_DIR}/boringssl_bin/lib
+        cp crypto/libcrypto.a ${BUILD_DIR}/boringssl_bin/lib/libcrypto_pic.a
+        cp ssl/libssl.a ${BUILD_DIR}/boringssl_bin/lib/libssl_pic.a
+        cp -r ../include ${BUILD_DIR}/boringssl_bin/
+        CMAKE_OPTS+=" -DWITH_SSL=system -DCMAKE_PREFIX_PATH=${BUILD_DIR}/boringssl_bin"
     else
         echo "BoringSSL compilation failed."
         exit 1
@@ -124,6 +126,7 @@ PERCONA_SERVER_VERSION="$(echo $MYSQL_VERSION_EXTRA | sed 's/^-//')"
 PRODUCT="Percona-Server-$MYSQL_VERSION-$PERCONA_SERVER_VERSION"
 PRODUCT_FULL="Percona-Server-${MYSQL_VERSION}-${PERCONA_SERVER_VERSION}${BUILD_COMMENT}-${TAG}$(uname -s)${DIST_NAME}.${TARGET_ARCH}${SSL_VER}"
 COMMENT="Percona Server - GPL, Release ${MYSQL_VERSION_EXTRA#-}, Revision ${REVISION:-}${BUILD_COMMENT}"
+printf >${WORKDIR}/build_info.txt "PRODUCT=${PRODUCT}\nPRODUCT_FULL=${PRODUCT_FULL}\nGIT_HASH=${REVISION}\n"
 
 if [[ ${RHVER} -eq 7 ]]; then
     JOB_CMAKE='cmake3'
@@ -172,7 +175,7 @@ fi
 # ------------------------------------------------------------------------------
 # Finaly, compile!
 # ------------------------------------------------------------------------------
-pushd ${WORKDIR}
+pushd ${BUILD_DIR}
     ${JOB_CMAKE} \
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
         -DWITH_SSL=${WITH_SSL} \
@@ -203,9 +206,9 @@ pushd ${WORKDIR}
         ${TARGET_CFLAGS:+-DCMAKE_C_FLAGS="${TARGET_CFLAGS}" -DCMAKE_CXX_FLAGS="${TARGET_CFLAGS}"} \
         ${ANALYZER_OPTS} \
         ${CMAKE_OPTS} \
-        ${SOURCEDIR}
-    make ${MAKE_OPTS}
-    make DESTDIR=${INSTALL_DIR} install > make_install.log
+        ${SOURCEDIR} | tee ${WORKDIR}/cmake.log
+    make ${MAKE_OPTS} | tee ${WORKDIR}/make_build.log
+    make -j$(nproc) DESTDIR=${INSTALL_DIR} install | tee ${WORKDIR}/make_install.log
 popd
 
 # GCOV instrumentation files for coverage report. 
@@ -215,9 +218,16 @@ if [[ ${WITH_GCOV} == 'ON' ]]; then
     perl dgcov.pl --v --dump --source=$SOURCEDIR
     cp dumper.txt ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/
     popd
-    pushd ${WORKDIR}
+    pushd ${BUILD_DIR}
     find ./ -name "*.gcno" | cpio -pdm  ${INSTALL_DIR}/usr/local/${PRODUCT_FULL}/ || true
     popd
 fi
 
 tar -C ${INSTALL_DIR}/usr/local --owner=0 --group=0 -czf "${WORKDIR}/$PRODUCT_FULL.tar.gz" $PRODUCT_FULL
+rm -rf ${INSTALL_DIR}
+
+if [[ "${KEEP_BUILD}" != "yes" ]]; then
+    rm -rf ${BUILD_DIR}
+fi
+
+ls -l ${WORKDIR}
