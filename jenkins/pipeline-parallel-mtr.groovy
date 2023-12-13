@@ -62,11 +62,14 @@ void downloadFilesForTests() {
     downloadFileFromS3("${BUILD_TAG_BINARIES}", "binary.tar.gz", "./sources/results/binary.tar.gz")
 }
 
-void prepareWorkspace() {
+void prepareWorkspace(Integer WORKER_ID) {
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
         sh """
+            echo "prepareWorkspace for MTR worker ${WORKER_ID}"
             sudo git reset --hard
-            sudo git clean -xdf
+            if [[ "${WORKER_ID}" != "1" ]]; then
+                sudo git clean -xdf
+            fi
             rm -rf sources/results
             sudo git -C sources reset --hard || :
             sudo git -C sources clean -xdf   || :
@@ -163,7 +166,7 @@ void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS =
         }
         git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
         script {
-            prepareWorkspace()
+            prepareWorkspace(WORKER_ID)
             downloadFilesForTests()
             doTests(WORKER_ID.toString(), SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, ZENFS_TESTS, PS_PROTOCOL_TESTS)
         }
@@ -744,7 +747,8 @@ pipeline {
                                 archiveArtifacts 'build.log.gz'
                                 sh """
                                     gunzip build.log.gz
-                                    ls | grep -xv "build.log\\|public_url" | xargs rm -rf
+                                    echo "Additional artifacts:"
+                                    ls | grep -xv "build.log\\|public_url" | xargs ls -l
                                 """
                                 recordIssues enabledForFailure: true, tools: [gcc(pattern: 'build.log')]
                             } else {

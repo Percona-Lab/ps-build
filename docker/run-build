@@ -3,15 +3,21 @@
 set -o errexit
 set -o xtrace
 
-ROOT_DIR=$(cd $(dirname $0)/../sources; pwd -P)
-SCRIPTS_DIR=$(cd $(dirname $0)/../local; pwd -P)
+ROOT_DIR=$(cd $(dirname $0)/..; pwd -P)
+SCRIPTS_DIR=$ROOT_DIR/local
+SOURCES_DIR=$ROOT_DIR/sources
 SOURCE_IMAGE=${1:-centos:7}
+SOURCE_IMAGE=${SOURCE_IMAGE//[:\/]/-}
+BUILD_DIR=$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}
+rm -rf $BUILD_DIR
+mkdir $BUILD_DIR
 
 docker run --rm \
     --cap-add SYS_PTRACE \
-    --mount type=bind,source=${ROOT_DIR},destination=/tmp/ps \
+    --mount type=bind,source=${SOURCES_DIR},destination=/tmp/ps \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
-    public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE//[:\/]/-} \
+    --mount type=bind,source=${BUILD_DIR},destination=/tmp/results \
+    public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE} \
     sh -c "
     set -o errexit
     set -o xtrace
@@ -36,9 +42,8 @@ docker run --rm \
     export ZEN_FS_MTR='${ZEN_FS_MTR}'
     export DOCKER_OS='${DOCKER_OS//:/-}'
 
-    mkdir  /tmp/results
+    sudo chown mysql:mysql /tmp/ps /tmp/results /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/rocksdb/util /tmp/ps/storage/rocksdb/rocksdb_plugins/zenfs/fs || :
     cp -r /tmp/source_downloads /tmp/results/source_downloads
-    sudo chown mysql:mysql /tmp/ps /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/rocksdb/util /tmp/ps/storage/rocksdb/rocksdb_plugins/zenfs/fs || :
     bash -x /tmp/scripts/build-binary /tmp/results /tmp/ps
 
     sudo rm -rf /tmp/ps/results
