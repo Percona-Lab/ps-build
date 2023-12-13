@@ -6,15 +6,24 @@
 #      CMAKE_BUILD_TYPE = (RelWithDebInfo Debug)
 #      ANALYZER_OPTS = (-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_MSAN=ON -DWITH_UBSAN=ON -DWITH_VALGRIND=ON)
 #      MTR_ARGS
-#      MTR_REPEAT
-#      MTR_SUITES
-#      DOCKER_OS
+#      MTR_REPEAT = (1 ...)
+#      MTR_SUITES = e.g "sys_vars,federated"
+#      WORKER_NO = (1 ... 8)
+#      DOCKER_OS = (ubuntu-jammy debian-bullseye oraclelinux-9 ...)
+#      CI_FS_MTR = (yes no)
+#      WITH_PS_PROTOCOL = (yes no)
+#      KEYRING_VAULT_MTR = (yes no)
+#      WITH_ROCKSDB = (ON OFF)
+#      KEEP_BUILD = (yes no)
 
 set -o errexit
 set -o xtrace
 
-WORKDIR_ABS=$(cd ${1:-./build}; pwd -P)
-BUILD_DIR=$2
+WORKDIR=$(cd ${1:-./build}; pwd -P)
+BUILD_DIR=${WORKDIR}/build
+RESULTS_DIR=${WORKDIR}/results
+EXTRACT_DIR=${WORKDIR}/extract
+mkdir -p ${RESULTS_DIR}
 
 echo "*******************************************************"
 echo "Starting tests on worker ${WORKER_NO}"
@@ -124,13 +133,17 @@ MTR_ARGS=${MTR_ARGS//"--only-big-test"/""}
 # unit tests
 UNIT_TESTS=0
 if [[ $MTR_ARGS == *"--unit-tests-report"* ]]; then
-    UNIT_TESTS=1
+    if [ -e ${BUILD_DIR}/mysql-test/mysql-test-run.pl ]; then
+        UNIT_TESTS=1
+    else
+        echo "Skipping unit tests. Couldn't find ${BUILD_DIR}/mysql-test/mysql-test-run.pl"
+    fi
 fi
 MTR_ARGS=${MTR_ARGS//"--unit-tests-report"/""}
 
-rm -fr ${WORKDIR_ABS}/PS
-mkdir -p ${WORKDIR_ABS}/PS/sql ${WORKDIR_ABS}/PS/mysql-test
-cd ${WORKDIR_ABS}/PS/mysql-test
+rm -fr ${EXTRACT_DIR}
+mkdir -p ${EXTRACT_DIR}/sql ${EXTRACT_DIR}/mysql-test
+cd ${EXTRACT_DIR}/mysql-test
 
 #
 # >>>> execute all unit tests at the beginning with main.1st only using an original build (not files for ".tar.gz" archive)
@@ -146,12 +159,17 @@ if [[ $UNIT_TESTS == "1" ]]; then
     cat /proc/meminfo
     start=`date +%s`
 
+    if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
+        MTR_VAULT_ARRAY=(
+            MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS}
+            MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_DEV_ROOT_TOKEN}
+            MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_DEV_MTR_TOKEN}
+            MTR_VAULT_VERSION=2
+        )
+    fi
+
     pushd ${BUILD_DIR}/mysql-test
-    MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
-    MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_DEV_ROOT_TOKEN} \
-    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_DEV_MTR_TOKEN} \
-    MTR_VAULT_VERSION=2 \
-    MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
+    env -i "${MTR_VAULT_ARRAY[@]}" MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${PARALLEL} \
         --result-file \
         --unit-tests-report \
@@ -159,13 +177,13 @@ if [[ $UNIT_TESTS == "1" ]]; then
         ${MTR_ARGS} \
         --force \
         --max-test-fail=0 \
-        --junit-output=${WORKDIR_ABS}/junit_${suiteNoSlash}.xml \
+        --junit-output=${RESULTS_DIR}/junit_${suiteNoSlash}.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${suiteNoSlash}" || true
     popd
 
     ln -s ${BUILD_DIR}/mysql-test/var $PWD/var_${suiteNoSlash}
     which rsync
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${suiteNoSlash} $PWD/mtr_var
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${suiteNoSlash} ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_${suiteNoSlash}
@@ -179,22 +197,22 @@ if [[ $UNIT_TESTS == "1" ]]; then
 fi
 
 
-echo "*******************************************************"
-echo "Remove the original build"
-ls -l ${BUILD_DIR}
-rm -rf ${BUILD_DIR}/*
-ls -l ${BUILD_DIR}
+if [[ "${KEEP_BUILD}" != "yes" ]]; then
+    echo "*******************************************************"
+    echo "Remove the original build"
+    ls -l ${BUILD_DIR} || :
+    sudo rm -rf ${BUILD_DIR}
+fi
 
 echo "*******************************************************"
 echo "Decompress \".tar.gz\" archive and use it for MTR tests"
-
-tar -C ${WORKDIR_ABS}/PS --strip-components=1 -zxpf $(ls $WORKDIR_ABS/*.tar.gz | head -1)
+tar -C ${EXTRACT_DIR} --strip-components=1 -zxpf $(ls ${WORKDIR}/*.tar.gz | head -1)
 
 
 if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
   export ASAN_OPTIONS=allocator_may_return_null=true
   # trying to find the proper library
-  MYSQLD=$(find ${WORKDIR_ABS}/PS/bin -name mysqld)
+  MYSQLD=$(find ${EXTRACT_DIR}/bin -name mysqld)
   LIBASAN=$(ldd ${MYSQLD} | grep libasan | awk '{print $3}')
   ADD_TO_LD_PRELOAD="${LIBASAN}:"
 fi
@@ -210,7 +228,6 @@ fi
 
 #
 # Running MTR test cases
-status=0
 MTR_ARGS="${MTR_ARGS} --no-unit-tests"
 
 ARRAY_MTR_SUITES=($(echo $MTR_SUITES | sed 's/,/ /g'))
@@ -272,12 +289,12 @@ if [[ "$suitesNormal" != "" ]]; then
         ${MTR_ARGS_NORMAL} \
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
-        --junit-output=${WORKDIR_ABS}/junit_${suiteNoSlash}.xml \
+        --junit-output=${RESULTS_DIR}/junit_${suiteNoSlash}.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${suiteNoSlash}" || true
 
     ln -s $PWD/var $PWD/var_${suiteNoSlash}
     which rsync
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${suiteNoSlash} $PWD/mtr_var
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${suiteNoSlash} ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_${suiteNoSlash}
@@ -309,11 +326,11 @@ if [[ "$suitesBig" != "" ]]; then
         ${MTR_ARGS_BIG} \
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
-        --junit-output=${WORKDIR_ABS}/junit_${suiteNoSlash}.xml \
+        --junit-output=${RESULTS_DIR}/junit_${suiteNoSlash}.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${suiteNoSlash}" || true
 
     ln -s $PWD/var $PWD/var_${suiteNoSlash}
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${suiteNoSlash} $PWD/mtr_var
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${suiteNoSlash} ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_${suiteNoSlash}
@@ -372,11 +389,11 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --vardir="/tmp/ci_disk_dir/var" \
         ${CI_TESTS} \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml \
+        --junit-output=${RESULTS_DIR}/junit_ci_fs.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true
 
     ln -s /tmp/ci_disk_dir/var $PWD/var_ci_fs
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ci_fs $PWD/mtr_var
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ci_fs ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_ci_fs
@@ -422,11 +439,11 @@ if [[ "${WITH_PS_PROTOCOL}" = 'yes' ]]; then
         ${MTR_ARGS_PS} \
         ${PS_TESTS} \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${WORKDIR_ABS}/junit_ps_protocol.xml \
+        --junit-output=${RESULTS_DIR}/junit_ps_protocol.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ps_protocol" || true
 
     ln -s $PWD/var $PWD/var_ps_protocol
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ps_protocol $PWD/mtr_var
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ps_protocol ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_ps_protocol
@@ -464,11 +481,11 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV} \
         ${ANALYZER_MTR_ARGS} \
         --suite=component_keyring_vault \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v1.xml \
+        --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v1.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1" || true
 
     ln -s $PWD/var $PWD/var_kv1_dev
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv1_dev $PWD/mtr_var
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv1_dev ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_kv1_dev
@@ -485,11 +502,11 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV} \
         --suite=component_keyring_vault \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v2.xml \
+        --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v2.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v2" || true
 
     ln -s $PWD/var $PWD/var_kv2_dev
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv2_dev $PWD/mtr_var
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv2_dev ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_kv2_dev
@@ -498,7 +515,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     MTR_VAULT_ADDRESS=${VAULT_V1_PROD_ADDRESS} \
     MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_PROD_ROOT_TOKEN} \
     MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_PROD_MTR_TOKEN} \
-    MTR_VAULT_CA="${WORKDIR_ABS}/vault-prod-v1-ca.pem" \
+    MTR_VAULT_CA="${WORKDIR}/cert/vault-prod-v1-ca.pem" \
     MTR_VAULT_VERSION=1 \
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
@@ -508,11 +525,11 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV} \
         --suite=component_keyring_vault \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v1.xml \
+        --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v1.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v1" || true
 
     ln -s $PWD/var $PWD/var_kv1_prod
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv1_prod $PWD/mtr_var
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv1_prod ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_kv1_prod
@@ -520,7 +537,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
     MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_PROD_ROOT_TOKEN} \
     MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_PROD_MTR_TOKEN} \
-    MTR_VAULT_CA="${WORKDIR_ABS}/vault-prod-v2-ca.pem" \
+    MTR_VAULT_CA="${WORKDIR}/cert/vault-prod-v2-ca.pem" \
     MTR_VAULT_VERSION=2 \
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
@@ -530,11 +547,11 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV} \
         --suite=component_keyring_vault \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v2.xml \
+        --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v2.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
 
     ln -s $PWD/var $PWD/var_kv2_prod
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv2_prod $PWD/mtr_var
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv2_prod ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_kv2_prod
@@ -544,4 +561,13 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     echo KH,SUITE_TOTAL,KEYRING_VAULT_tests,time,$runtime
 fi
 
-exit $status
+cd ${WORKDIR}
+rm -fr ${EXTRACT_DIR}/mysql-test/var
+if [[ "${KEEP_BUILD}" != "yes" ]]; then
+    rm -rf ${EXTRACT_DIR}
+fi
+
+tar -C ${RESULTS_DIR} --owner=0 --group=0 -czf "${RESULTS_DIR}/ps80-test-mtr_logs-${WORKER_NO}.tar.gz" mtr_var
+
+ls -l ${WORKDIR}
+ls -l ${RESULTS_DIR}

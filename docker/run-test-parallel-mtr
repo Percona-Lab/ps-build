@@ -3,14 +3,39 @@
 set -o errexit
 set -o xtrace
 
+# Test Percona Server build using Docker image from "public.ecr.aws/e7j3v3n0/ps-build"
+#
+# usage:
+#   ./docker/run-test-parallel-mtr [Docker-OS] [Worker-Number] [Work-Dir]
+#
+# example:
+#   cd ps-build
+#   ./local/checkout
+#   ./docker/run-build ubuntu:jammy
+#   ./docker/run-test-parallel-mtr ubuntu:jammy
+
+# decides if keep original build files or just ".tar.gz" archive
+KEEP_BUILD=${KEEP_BUILD:-no}
+
+DOCKER_OS=${1:-ubuntu:jammy}
+SOURCE_IMAGE=${DOCKER_OS//:/-}
+WORKER_NO=${2:-0}
+
 ROOT_DIR=$(cd $(dirname $0)/..; pwd -P)
 SCRIPTS_DIR=$ROOT_DIR/local
+# SOURCES_DIR is only required by an original build in ${WORK_DIR}/build to run unit tests
 SOURCES_DIR=$ROOT_DIR/sources
-DOCKER_OS=${1:-centos:7}
-SOURCE_IMAGE=${DOCKER_OS//[:\/]/-}
-WORKER_NO=${2:-0}
-BUILD_DIR=$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}
-mkdir -p $BUILD_DIR
+mkdir -p ${SOURCES_DIR}
+
+WORK_DIR=${3:-$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}}
+ls -l ${ROOT_DIR}
+ls -l ${WORK_DIR}
+
+ARCHIVE_FILE=$(ls ${WORK_DIR}/*.tar.gz | head -1)
+if [[ "${ARCHIVE_FILE}" == "" ]]; then
+    echo "Can't find Percona Server build in ${WORK_DIR}/*.tar.gz"
+    exit 1
+fi
 
 if [[ ${CI_FS_MTR} == 'yes' ]]; then
     CI_FS_DOCKER_FLAG="--mount type=bind,source=/mnt/ci_disk_dir_${CMAKE_BUILD_TYPE},destination=/tmp/ci_disk_dir"
@@ -32,12 +57,13 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
     BOOTSTRAP_PROD_V1="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=prod --version="${KEYRING_VAULT_V1_VERSION}" --alias=v1 --port="9300")"
     export VAULT_V1_PROD_ROOT_TOKEN=$(echo "$BOOTSTRAP_PROD_V1" | grep "Production token" | awk -F ':' '{print $2}' | xargs)
     export VAULT_V1_PROD_MTR_TOKEN=$(echo "$BOOTSTRAP_PROD_V1" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
-    sudo install --owner=1001 --group=1001 /tmp/vault.d-v1-prod/ssl/ca.pem $SOURCES_DIR/vault-prod-v1-ca.pem
+    mkdir -p ${WORK_DIR}/cert
+    sudo install --owner=1001 --group=1001 /tmp/vault.d-v1-prod/ssl/ca.pem ${WORK_DIR}/cert/vault-prod-v1-ca.pem
 
     BOOTSTRAP_PROD_V2="$(bash $SCRIPTS_DIR/bootstrap-vault --mode=prod --version="${KEYRING_VAULT_V2_VERSION}" --alias=v2 --port="9500")"
     export VAULT_V2_PROD_ROOT_TOKEN=$(echo "$BOOTSTRAP_PROD_V2" | grep "Production token" | awk -F ':' '{print $2}' | xargs)
     export VAULT_V2_PROD_MTR_TOKEN=$(echo "$BOOTSTRAP_PROD_V2" | grep "MTR token" | awk -F ':' '{print $2}' | xargs)
-    sudo install --owner=1001 --group=1001 /tmp/vault.d-v2-prod/ssl/ca.pem $SOURCES_DIR/vault-prod-v2-ca.pem
+    sudo install --owner=1001 --group=1001 /tmp/vault.d-v2-prod/ssl/ca.pem ${WORK_DIR}/cert/vault-prod-v2-ca.pem
 
     VAULT_DOCKER_FLAG="--network bridge-vault"
 fi
@@ -46,9 +72,9 @@ docker run --rm --shm-size=32G \
     --tmpfs /dev/shm:rw,exec,size=32G \
     --security-opt seccomp=unconfined \
     --sysctl net.ipv6.conf.lo.disable_ipv6=0 \
-    --mount type=bind,source=${SOURCES_DIR},destination=/tmp/ps \
+    --mount type=bind,source=${SOURCES_DIR},destination=/tmp/sources \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
-    --mount type=bind,source=${BUILD_DIR},destination=/tmp/build \
+    --mount type=bind,source=${WORK_DIR},destination=/tmp/work \
     ${CI_FS_DOCKER_FLAG} \
     ${VAULT_DOCKER_FLAG} \
     public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE} \
@@ -56,10 +82,9 @@ docker run --rm --shm-size=32G \
     set -o errexit
     set -o xtrace
 
-    mkdir /tmp/results /tmp/ps_mtr_tempdir
+    mkdir /tmp/ps_mtr_tempdir
     export CMAKE_BUILD_TYPE='${CMAKE_BUILD_TYPE}'
     export ANALYZER_OPTS='${ANALYZER_OPTS}'
-    export HOTBACKUP_TESTING='${HOTBACKUP_TESTING}'
     export MTR_ARGS='${MTR_ARGS}'
     export MTR_REPEAT='${MTR_REPEAT}'
     export MTR_SUITES='${MTR_SUITES}'
@@ -79,22 +104,14 @@ docker run --rm --shm-size=32G \
     export VAULT_V2_PROD_ROOT_TOKEN='${VAULT_V2_PROD_ROOT_TOKEN}'
     export VAULT_V1_PROD_MTR_TOKEN='${VAULT_V1_PROD_MTR_TOKEN}'
     export VAULT_V2_PROD_MTR_TOKEN='${VAULT_V2_PROD_MTR_TOKEN}'
-    export DOCKER_OS='${DOCKER_OS//:/-}'
+    export DOCKER_OS='${SOURCE_IMAGE}'
     export WITH_ROCKSDB='${WITH_ROCKSDB}'
+    export KEEP_BUILD='${KEEP_BUILD}'
 
-    sudo chown mysql:mysql /tmp/build
-    mv /tmp/ps/*.pem /tmp/results || true
-    cp /tmp/ps/results/*.tar.gz /tmp/results
+    sudo chown mysql:mysql /tmp/work
+    sudo chown -R mysql:mysql /tmp/work/results || :
 
-    bash -x /tmp/scripts/test-binary-parallel-mtr /tmp/results /tmp/build
+    bash -x /tmp/scripts/test-binary-parallel-mtr /tmp/work/
 
-    mkdir /tmp/results/log
-    rsync -a --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' /tmp/results/PS/mysql-test/mtr_var /tmp/results/log
-    pwd
-    ls -la
-    sudo tar -C /tmp/results/log -czf "ps80-test-mtr_logs-${WORKER_NO}.tar.gz" mtr_var
-
-    sudo mv ./ps80-test-mtr_logs-${WORKER_NO}.tar.gz /tmp/ps/results/
-    sudo mv /tmp/results/*.xml /tmp/ps/results/
-    sudo chown $(id -u):$(id -g) /tmp/ps/results/*.xml
-"
+    sudo chown -R $(id -u):$(id -g) /tmp/work/results
+" 2>&1 | tee ${WORK_DIR}/mtr_test.log
