@@ -1,22 +1,38 @@
 #!/bin/bash
 
+# Build Percona Server using Docker image from "public.ecr.aws/e7j3v3n0/ps-build"
+#
+# usage:
+#   ./docker/run-build [Docker-OS] [Work-Dir]
+#
+# example:
+#   cd ps-build
+#   ./local/checkout
+#   ./docker/run-build ubuntu:jammy
+#   ./docker/run-test-parallel-mtr ubuntu:jammy
+
 set -o errexit
 set -o xtrace
+
+# decides if keep original build files or just ".tar.gz" archive
+KEEP_BUILD=${KEEP_BUILD:-no}
+
+DOCKER_OS=${1:-ubuntu:jammy}
+SOURCE_IMAGE=${DOCKER_OS//:/-}
 
 ROOT_DIR=$(cd $(dirname $0)/..; pwd -P)
 SCRIPTS_DIR=$ROOT_DIR/local
 SOURCES_DIR=$ROOT_DIR/sources
-DOCKER_OS=${1:-centos:7}
-SOURCE_IMAGE=${DOCKER_OS//[:\/]/-}
-BUILD_DIR=$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}
-rm -rf $BUILD_DIR
-mkdir $BUILD_DIR
+
+WORK_DIR=${2:-$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}}
+rm -rf $WORK_DIR
+mkdir $WORK_DIR
 
 docker run --rm \
     --cap-add SYS_PTRACE \
-    --mount type=bind,source=${SOURCES_DIR},destination=/tmp/ps \
+    --mount type=bind,source=${SOURCES_DIR},destination=/tmp/sources \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
-    --mount type=bind,source=${BUILD_DIR},destination=/tmp/build \
+    --mount type=bind,source=${WORK_DIR},destination=/tmp/work \
     public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE} \
     sh -c "
     set -o errexit
@@ -40,15 +56,14 @@ docker run --rm \
     export DIST_NAME='${DIST_NAME}'
     export SSL_VER='${SSL_VER}'
     export ZEN_FS_MTR='${ZEN_FS_MTR}'
-    export DOCKER_OS='${DOCKER_OS//:/-}'
+    export DOCKER_OS='${SOURCE_IMAGE}'
+    export KEEP_BUILD='${KEEP_BUILD}'
 
-    sudo chown mysql:mysql /tmp/ps /tmp/build /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/rocksdb/util /tmp/ps/storage/rocksdb/rocksdb_plugins/zenfs/fs || :
-    cp -r /tmp/source_downloads /tmp/build/source_downloads
-    bash -x /tmp/scripts/build-binary /tmp/build /tmp/ps
+    sudo chown mysql:mysql /tmp/work /tmp/sources /tmp/sources/mysql-test/collections /tmp/sources/storage/rocksdb/rocksdb/util /tmp/sources/rocksdb/util /tmp/sources/storage/rocksdb/rocksdb_plugins/zenfs/fs || :
+    cp -r /tmp/source_downloads /tmp/work/source_downloads
 
-    sudo rm -rf /tmp/ps/results
-    sudo mkdir /tmp/ps/results
-    sudo cp /tmp/build/*.tar.gz /tmp/ps/results/
-    sudo chown -R $(id -u):$(id -g) /tmp/ps/results
-    sudo chown $(id -u):$(id -g) /tmp/ps /tmp/ps/mysql-test/collections /tmp/ps/storage/rocksdb/rocksdb/util /tmp/ps/rocksdb/util /tmp/ps/storage/rocksdb/rocksdb_plugins/zenfs/fs || :
+    bash -x /tmp/scripts/build-binary /tmp/work /tmp/sources
+
+    rm -rf /tmp/work/source_downloads
+    sudo chown $(id -u):$(id -g) /tmp/work /tmp/sources /tmp/sources/mysql-test/collections /tmp/sources/storage/rocksdb/rocksdb/util /tmp/sources/rocksdb/util /tmp/sources/storage/rocksdb/rocksdb_plugins/zenfs/fs || :
 "

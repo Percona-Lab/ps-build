@@ -13,7 +13,7 @@ PXB80_PACKAGE_TO_DOWNLOAD = ''
 
 def ZEN_FS_MTR_SUPPORTED = false
 def LABEL = 'docker-32gb'
-
+WORK_DIR = 'work'
 
 // functions start here
 void syncDirToS3(String SRC_DIRECTORY, String DST_DIRECTORY, String EXCLUDE_PATTERN) {
@@ -59,7 +59,7 @@ void downloadFileFromS3(String SRC_DIRECTORY, String SRC_FILE_NAME, String DST_P
 }
 
 void downloadFilesForTests() {
-    downloadFileFromS3("${BUILD_TAG_BINARIES}", "binary.tar.gz", "./sources/results/binary.tar.gz")
+    downloadFileFromS3("${BUILD_TAG_BINARIES}", "binary.tar.gz", "./${WORK_DIR}/binary.tar.gz")
 }
 
 void prepareWorkspace(Integer WORKER_ID) {
@@ -70,7 +70,6 @@ void prepareWorkspace(Integer WORKER_ID) {
             if [[ "${WORKER_ID}" != "1" ]]; then
                 sudo git clean -xdf
             fi
-            rm -rf sources/results
             sudo git -C sources reset --hard || :
             sudo git -C sources clean -xdf   || :
 
@@ -150,7 +149,7 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
                         docker ps -q | xargs docker stop --time 1 || :
                         docker rm --force consul vault-prod-v{1..2} vault-dev-v{1..2} || :
                     fi
-                    ./docker/run-test-parallel-mtr ${DOCKER_OS} ${WORKER_ID}
+                    ./docker/run-test-parallel-mtr ${DOCKER_OS} ${WORKER_ID} ${WORKSPACE}/${WORK_DIR}
                 "
             """
         }  // withCredentials
@@ -172,9 +171,9 @@ void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS =
         }
 
         // This is questionable. Do we need resutl XMLs in S3 cache while Jenkins archives them as well?
-        syncDirToS3("./sources/results/", "${BUILD_TAG_BINARIES}", "binary.tar.gz")
-        step([$class: 'JUnitResultArchiver', testResults: 'sources/results/*.xml', healthScaleFactor: 1.0])
-        archiveArtifacts 'sources/results/*.xml,sources/results/ps80-test-mtr_logs-*.tar.gz'
+        syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", "mtr_var/*")
+        step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0])
+        archiveArtifacts "${WORK_DIR}/results/*.xml,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
     }
 }
 
@@ -214,7 +213,7 @@ void build(String SCRIPT) {
                     if [ \$(docker ps -q | wc -l) -ne 0 ]; then
                         docker ps -q | xargs docker stop --time 1 || :
                     fi
-                    eval ${SCRIPT} ${DOCKER_OS}
+                    eval KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
                 " 2>&1 | tee build.log
 
                 echo Archive build log: \$(date -u "+%s")
@@ -725,7 +724,7 @@ pipeline {
                         script {
                             boolean archive_public_url = false
                             BIN_FILE_NAME = sh(
-                                script: 'ls sources/results/*.tar.gz | head -1',
+                                script: "ls ${WORK_DIR}/*.tar.gz | head -1",
                                 returnStdout: true
                             ).trim()
                             LOG_FILE_NAME = sh(
@@ -734,7 +733,8 @@ pipeline {
                             ).trim()
                             if (BIN_FILE_NAME != "") {
                                 uploadFileToS3("$BIN_FILE_NAME", "$BUILD_TAG", "binary.tar.gz")
-                                sh "echo 'binary    - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG_BINARIES}/binary.tar.gz' >> public_url"
+                                sh "rm -f $BIN_FILE_NAME"
+                                sh "echo 'binary    - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/binary.tar.gz' >> public_url"
                                 archive_public_url = true
                             } else {
                                 echo 'Cannot find compiled archive log'
@@ -742,7 +742,7 @@ pipeline {
                             }
                             if (LOG_FILE_NAME != "") {
                                 uploadFileToS3("$LOG_FILE_NAME", "$BUILD_TAG", "build.log.gz")
-                                sh "echo 'build log - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG_BINARIES}/build.log.gz' >> public_url"
+                                sh "echo 'build log - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/build.log.gz' >> public_url"
                                 archive_public_url = true
                                 archiveArtifacts 'build.log.gz'
                                 sh """
