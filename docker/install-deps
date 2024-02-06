@@ -14,9 +14,23 @@ wget_loop() {
         sleep 1
     done
 }
+
+build_openssl(){
+    OPENSSL_VERSION=1.1.1w
+    rm -rf openssl-${OPENSSL_VERSION}* || true
+    cd /tmp
+    wget https://www.openssl.org/source/old/1.1.1/openssl-${OPENSSL_VERSION}.tar.gz
+    tar -xzf openssl-${OPENSSL_VERSION}.tar.gz
+    cd openssl-${OPENSSL_VERSION}
+    ./Configure --prefix=/usr --openssldir=/usr linux-x86_64
+    make
+    make install
+}
+
 #
 if [ -f /usr/bin/yum ]; then
   RHVER="$(rpm --eval %rhel)"
+  DIST="$(rpm --eval %dist)"
   rpm --eval %_arch > /etc/yum/vars/basearch
 
   if grep -q 'CentOS.* 8\.' /etc/redhat-release; then
@@ -32,10 +46,17 @@ if [ -f /usr/bin/yum ]; then
 
   PKGLIST+=" wget"
 
-  until yum -y install epel-release; do
-    echo "waiting"
-    sleep 1
-  done
+  if [[ "x${DIST}" == "x.amzn2" ]]; then
+      until amazon-linux-extras install epel -y; do
+        echo "waiting"
+        sleep 1
+      done
+  else
+      until yum -y install epel-release; do
+        echo "waiting"
+        sleep 1
+      done
+  fi
 
   if [[ ${RHVER} -eq 7 ]]; then
       # installing EndPoint repo to get 'git' 2.x.x package
@@ -45,6 +66,9 @@ if [ -f /usr/bin/yum ]; then
       done
       wget_loop 'endpoint-repo.x86_64.rpm' 'https://packages.endpointdev.com/rhel/7/os/x86_64/endpoint-repo.x86_64.rpm'
       yum -y install ${DOWNLOAD_ROOT}/endpoint-repo.x86_64.rpm
+      if [[ "x${DIST}" == "x.amzn2" ]]; then
+          sed -i 's/$releasever/7/g' /etc/yum.repos.d/endpoint.repo
+      fi
       rm -f ${DOWNLOAD_ROOT}/endpoint-repo.x86_64.rpm
   fi
 
@@ -70,11 +94,16 @@ if [ -f /usr/bin/yum ]; then
       PKGLIST+=" libedit-devel"
   fi
 
-  if [[ ${RHVER} -lt 8 ]] && [[ "$(rpm --eval %{_arch})" == "x86_64" ]]; then
+  if [[ ${RHVER} -lt 8 ]] && [[ "$(rpm --eval %{_arch})" == "x86_64" ]] && [[ "x${DIST}" != "x.amzn2" ]]; then
     until yum -y install centos-release-scl; do
       echo "waiting"
       sleep 1
     done
+  elif [[ "x${DIST}" == "x.amzn2" ]]; then
+    yum -y install http://mirror.centos.org/centos/7/os/x86_64/Packages/scl-utils-20130529-19.el7.x86_64.rpm \
+                   http://mirror.centos.org/centos/7/os/x86_64/Packages/scl-utils-build-20130529-19.el7.x86_64.rpm \
+                   http://mirror.centos.org/centos/7/extras/x86_64/Packages/centos-release-scl-rh-2-3.el7.centos.noarch.rpm \
+                   http://mirror.centos.org/centos/7/extras/x86_64/Packages/centos-release-scl-2-3.el7.centos.noarch.rpm || true
   fi
   until yum -y install ${PKGLIST}; do
     echo "waiting"
@@ -82,26 +111,33 @@ if [ -f /usr/bin/yum ]; then
   done
 
   if [[ ${RHVER} -eq 8 ]]; then
-      wget -O /etc/yum.repos.d/percona-dev.repo https://jenkins.percona.com/yum-repo/percona-dev.repo
       dnf config-manager --set-enabled powertools epel-playground
   fi
 
   PKGLIST=" \
-    gcc-c++ gperf ncurses-devel perl readline-devel openssl-devel jemalloc zip unzip \
+    gcc-c++ libtool gperf ncurses-devel perl readline-devel jemalloc zip unzip tar gzip \
     time zlib-devel libaio-devel bison cmake pam-devel jemalloc-devel valgrind \
     perl-Time-HiRes openldap-devel perl-Env perl-Data-Dumper libicu-devel perl-Sys-MemInfo \
     cpio perl-JSON perl-Digest perl-Digest-MD5 \
-    numactl-devel git which make rpm-build ccache libtool sudo libasan lz4-devel \
-    libzstd-devel tzdata zstd mysql-devel perl-DBI perl-DBD-mysql jq openssl perl-XML-Simple libcurl-devel perl-Test-Simple \
+    numactl-devel git which make rpm-build ccache sudo libasan lz4-devel \
+    libzstd-devel tzdata zstd mysql-devel perl-DBI perl-DBD-mysql jq perl-XML-Simple libcurl-devel perl-Test-Simple \
     cyrus-sasl-devel cyrus-sasl-scram krb5-devel libudev-devel python3-pip python3-devel libevent-devel \
     "
+  if [[ "x${DIST}" != "x.amzn2" ]]; then
+      PKGLIST+=" openssl-devel openssl "
+  fi
 
     if [[ ${RHVER} -eq 9 ]]; then
         PKGLIST+=" gflags-devel util-linux libtirpc-devel rpcgen"
     fi
 
     if [[ ${RHVER} -lt 9 ]]; then
-        PKGLIST+=" MySQL-python redhat-lsb-core"
+        if [[ ${RHVER} -eq 8 ]]; then
+            PKGLIST+=" python3-mysql"
+        else
+            PKGLIST+=" MySQL-python"
+        fi
+        PKGLIST+=" redhat-lsb-core"
     fi
 
     if [[ ${RHVER} -eq 8 ]] || [[ ${RHVER} -eq 9 ]]; then
@@ -123,7 +159,10 @@ if [ -f /usr/bin/yum ]; then
     fi
 
     if [[ ${RHVER} -eq 7 ]]; then
-        PKGLIST+=" go-toolset-7 libunwind-devel httpd24-curl openssl11 openssl11-devel"
+        PKGLIST+=" go-toolset-7 libunwind-devel httpd24-curl"
+        if [[ "x${DIST}" != "x.amzn2" ]]; then
+            PKGLIST+=" openssl11 openssl11-devel"
+        fi
         PKGLIST_DEVTOOLSET10+=" devtoolset-10-gcc-c++ devtoolset-10-binutils"
         PKGLIST_DEVTOOLSET10+=" devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel"
         PKGLIST_DEVTOOLSET10+=" devtoolset-10-libasan-devel devtoolset-10-libubsan-devel"
@@ -138,9 +177,14 @@ if [ -f /usr/bin/yum ]; then
 
 #   Percona-Server 8.0
     if [[ ${RHVER} -lt 8 ]]; then
-        PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils cmake3"
-        PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel boost-devel"
-        PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel devtoolset-7-libatomic-devel"
+        if [[ "x${DIST}" != "x.amzn2" ]]; then
+            PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils"
+            PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel"
+            PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel devtoolset-7-libatomic-devel"
+        else
+            PKGLIST+=" binutils valgrind-devel "
+        fi
+        PKGLIST+=" cmake3 boost-devel"
         PKGLIST+=" devtoolset-8-gcc-c++ devtoolset-8-binutils"
         PKGLIST+=" devtoolset-8-libasan-devel devtoolset-8-libubsan-devel"
         PKGLIST+=" devtoolset-8-valgrind devtoolset-8-valgrind-devel devtoolset-8-libatomic-devel perl-Digest-Perl-MD5 libedit-devel"
@@ -174,8 +218,12 @@ if [ -f /usr/bin/yum ]; then
         ln -fs /usr/bin/python3 /usr/bin/python
     fi
 
+    if [[ "x${DIST}" == "x.amzn2" ]]; then
+        build_openssl
+    fi
+
     # Install mysqlclient by pip as there's no candidate in repositories
-    if [[ ${RHVER} -eq 7 ]]; then
+    if [[ ${RHVER} -eq 7 ]] && [[ "x${DIST}" != "x.amzn2" ]]; then
         source /opt/rh/devtoolset-7/enable
     fi
     pip3 install mysqlclient
