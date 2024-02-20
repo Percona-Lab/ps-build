@@ -135,11 +135,11 @@ void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
 
 void cleanWorkspace(Integer WORKER_ID) {
     echo "[INFO] Worker ${WORKER_ID}: cleaning up workspace."
-    sh """
+    sh '''
         # "git clean" doesn't remove "sources/" because of ".gitignore"
         sudo git clean -xdf || :
         sudo rm -rf sources
-    """
+    '''
 }
 
 void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
@@ -233,12 +233,7 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
 
             // This is questionable. Do we need result XMLs in S3 cache while Jenkins archives them as well?
             syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
-            step([
-                $class: 'JUnitResultArchiver',
-                testResults: "${WORK_DIR}/results/*.xml",
-                healthScaleFactor: 1.0,
-                keepLongStdio: false
-            ])
+            step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0, keepLongStdio: false])
 
             // cleanup before marking success
             cleanWorkspace(WORKER_ID)
@@ -277,14 +272,16 @@ void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS =
 
 void checkoutSources() {
     echo 'Checkout PS sources'
-    sh '''
-        # sudo is needed for better node recovery after compilation failure
-        # if building failed on compilation stage directory will have files owned by docker user
-        sudo git reset --hard
-        sudo git clean -xdf || :
-        sudo rm -rf sources
-        ./local/checkout
-    '''
+    withCredentials([string(credentialsId: 'JNKPercona', variable: 'JNKPercona_token')]) {
+        sh '''
+            # sudo is needed for better node recovery after compilation failure
+            # if building failed on compilation stage directory will have files owned by docker user
+            sudo git reset --hard
+            sudo git clean -xdf || :
+            sudo rm -rf sources
+            ./local/checkout
+        '''
+    }
 }
 
 void build(String SCRIPT) {
@@ -311,24 +308,94 @@ void build(String SCRIPT) {
     }  // timeout
 }
 
+def getServerVersionFromFile(String filePath) {
+    // Call Bash to source the file and echo the version
+    def serverVersion = sh(
+        script: """#!/bin/bash
+            if [ ! -f "${filePath}" ]; then
+                echo "${filePath} not found!" >&2
+                exit 1
+            fi
+
+            source "${filePath}"
+            rm -f "${filePath}"
+
+            echo "\${MYSQL_VERSION_MAJOR}.\${MYSQL_VERSION_MINOR}.\${MYSQL_VERSION_PATCH}\${MYSQL_VERSION_EXTRA}"
+        """,
+        returnStdout: true
+    ).trim()
+
+    return serverVersion
+}
+
+def getServerVersion() {
+    echo 'Trying to get the server version'
+
+    withCredentials([string(credentialsId: 'JNKPercona', variable: 'JNKPercona_token')]) {
+        sh '''#!/bin/bash
+            set -xe
+
+            if [ -f /usr/bin/apt ]; then
+                sudo apt-get update
+            fi
+
+            if [[ $USE_PR == "true" ]]; then
+                if [ -f /usr/bin/yum ]; then
+                    sudo yum -y install jq
+                else
+                    sudo apt-get install -y jq
+                fi
+
+                GIT_REPO=$(curl -s https://api.github.com/repos/percona/percona-server/pulls/$BRANCH | jq -r '.head.repo.html_url')
+                BRANCH=$(curl -s https://api.github.com/repos/percona/percona-server/pulls/$BRANCH | jq -r '.head.ref')
+            fi
+
+            GIT_REPO_LINK=${GIT_REPO}
+            if [[ "${GIT_REPO}" =~ post-eol|private ]]; then
+                GIT_REPO_LINK=$(echo ${GIT_REPO} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
+            fi
+            RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
+            REPLY=$(curl -Is ${RAW_VERSION_LINK}/${BRANCH}/MYSQL_VERSION | head -n 1 | awk '{print $2}')
+            if [[ ${REPLY} != 200 ]]; then
+                curl ${RAW_VERSION_LINK}/${BRANCH}/VERSION -o ${WORKSPACE}/VERSION-${BUILD_NUMBER}
+            else
+                curl ${RAW_VERSION_LINK}/${BRANCH}/MYSQL_VERSION -o ${WORKSPACE}/VERSION-${BUILD_NUMBER}
+            fi
+         '''
+    } // withCredentials
+
+    return getServerVersionFromFile("${WORKSPACE}/VERSION-${BUILD_NUMBER}")
+}
+
 void setupTestSuitesSplit() {
-    def split_script = """#!/bin/bash
+    withCredentials([string(credentialsId: 'JNKPercona', variable: 'JNKPercona_token')]) {
+    withEnv(["SERVER_VERSION=${SERVER_VERSION}"]) {
+    sh '''#!/bin/bash
+        set -xe
+
         if [[ "${FULL_MTR}" == "yes" ]]; then
             # Try to get suites split from PS repo. If not present, fallback to hardcoded.
-            RAW_VERSION_LINK=\$(echo \${GIT_REPO%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
-            REPLY=\$(curl -Is \${RAW_VERSION_LINK}/${BRANCH}/mysql-test/suites-groups.sh | head -n 1 | awk '{print \$2}')
+            GIT_REPO_LINK=${GIT_REPO}
+            if [[ "${GIT_REPO}" =~ post-eol|private ]]; then
+                GIT_REPO_LINK=$(echo ${GIT_REPO} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
+            fi
+            RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
+
+            REPLY=$(curl -Is ${RAW_VERSION_LINK}/${BRANCH}/mysql-test/suites-groups.sh | head -n 1 | awk '{print $2}')
             CUSTOM_SPLIT=0
-            if [[ \${REPLY} != 200 ]]; then
+            if [[ ${REPLY} != 200 ]]; then
                 # The given branch does not contain customized suites-groups.sh file. Use default configuration.
                 echo "Using pipeline built-in MTR suites split"
                 cp ./jenkins/suites-groups.sh ${WORKSPACE}/suites-groups.sh
             else
                 echo "Using custom MTR suites split"
-                wget \${RAW_VERSION_LINK}/${BRANCH}/mysql-test/suites-groups.sh -O ${WORKSPACE}/suites-groups.sh
+                curl ${RAW_VERSION_LINK}/${BRANCH}/mysql-test/suites-groups.sh -o ${WORKSPACE}/suites-groups.sh
                 CUSTOM_SPLIT=1
             fi
+            curl ${RAW_VERSION_LINK}/${BRANCH}/mysql-test/mysql-test-run.pl -o ${WORKSPACE}/mysql-test-run.pl
+            grep opt_only_big_test ${WORKSPACE}/mysql-test-run.pl || { echo "ERROR: Parallel MTRs require server that supports --only-big-test"; exit 1; }
+
             # Check if split contain all suites
-            wget \${RAW_VERSION_LINK}/${BRANCH}/mysql-test/mysql-test-run.pl -O ${WORKSPACE}/mysql-test-run.pl
             chmod +x ${WORKSPACE}/suites-groups.sh
             set +e
             echo "Check if suites list is consistent with the one specified in mysql-test-run.pl"
@@ -338,28 +405,29 @@ void setupTestSuitesSplit() {
             else
                 set_suites ${CMAKE_BUILD_TYPE} ${SERVER_VERSION}
             fi
-            check_suites ${WORKSPACE}/mysql-test-run.pl
-            CHECK_RESULT=\$?
-            set -e
-            echo "CHECK_RESULT: \${CHECK_RESULT}"
+            set +x
+            check_suites ${WORKSPACE}/mysql-test-run.pl ${SERVER_VERSION}
+            CHECK_RESULT=$?
+            set -xe
+            echo "CHECK_RESULT: ${CHECK_RESULT}"
             # Fail only if this is built-in split.
-            if [[ \${CUSTOM_SPLIT} -eq 0 ]] && [[ \${CHECK_RESULT} -ne 0 ]]; then
+            if [[ ${CUSTOM_SPLIT} -eq 0 ]] && [[ ${CHECK_RESULT} -ne 0 ]]; then
                 echo "Default MTR split is inconsistent. Exiting."
                 exit 1
             fi
 
-            echo \${WORKER_1_MTR_SUITES} > ${WORKSPACE}/worker_1.suites
-            echo \${WORKER_2_MTR_SUITES} > ${WORKSPACE}/worker_2.suites
-            echo \${WORKER_3_MTR_SUITES} > ${WORKSPACE}/worker_3.suites
-            echo \${WORKER_4_MTR_SUITES} > ${WORKSPACE}/worker_4.suites
-            echo \${WORKER_5_MTR_SUITES} > ${WORKSPACE}/worker_5.suites
-            echo \${WORKER_6_MTR_SUITES} > ${WORKSPACE}/worker_6.suites
-            echo \${WORKER_7_MTR_SUITES} > ${WORKSPACE}/worker_7.suites
-            echo \${WORKER_8_MTR_SUITES} > ${WORKSPACE}/worker_8.suites
+            echo ${WORKER_1_MTR_SUITES} > ${WORKSPACE}/worker_1.suites
+            echo ${WORKER_2_MTR_SUITES} > ${WORKSPACE}/worker_2.suites
+            echo ${WORKER_3_MTR_SUITES} > ${WORKSPACE}/worker_3.suites
+            echo ${WORKER_4_MTR_SUITES} > ${WORKSPACE}/worker_4.suites
+            echo ${WORKER_5_MTR_SUITES} > ${WORKSPACE}/worker_5.suites
+            echo ${WORKER_6_MTR_SUITES} > ${WORKSPACE}/worker_6.suites
+            echo ${WORKER_7_MTR_SUITES} > ${WORKSPACE}/worker_7.suites
+            echo ${WORKER_8_MTR_SUITES} > ${WORKSPACE}/worker_8.suites
         fi
-    """
-    def split_script_output = sh(script: split_script, returnStdout: true)
-    echo split_script_output
+    '''
+    } // withEnv
+    } // withCredentials
 
     script {
         if (env.FULL_MTR == 'yes') {
@@ -512,38 +580,6 @@ void triggerAbortedTestWorkersRerun() {
             }
         }  // env.ALLOW_ABORTED_WORKERS_RERUN
     }
-}
-
-def getServerVersion() {
-    echo 'Trying to get the server version'
-    def serverVersion = sh(
-      script: """#!/bin/bash
-        if [ -f /usr/bin/apt ]; then
-            sudo apt-get update
-        fi
-
-        if [[ ${USE_PR} == "true" ]]; then
-            if [ -f /usr/bin/yum ]; then
-                sudo yum -y install jq
-            else
-                sudo apt-get install -y jq
-            fi
-
-            GIT_REPO=\$(curl -s https://api.github.com/repos/percona/percona-server/pulls/${BRANCH} | jq -r '.head.repo.html_url')
-            BRANCH=\$(curl -s https://api.github.com/repos/percona/percona-server/pulls/${BRANCH} | jq -r '.head.ref')
-        fi
-
-        RAW_VERSION_LINK=\$(echo \${GIT_REPO%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
-        wget \${RAW_VERSION_LINK}/\${BRANCH}/MYSQL_VERSION -O ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-        source ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-
-        rm -f ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-        echo "\${MYSQL_VERSION_MAJOR}.\${MYSQL_VERSION_MINOR}.\${MYSQL_VERSION_PATCH}"
-      """,
-      returnStdout: true
-    ).trim()
-
-    return serverVersion.readLines().last()
 }
 
 // functions end here

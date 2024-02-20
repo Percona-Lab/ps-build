@@ -112,6 +112,7 @@ docker run --rm --shm-size=32G \
     export VAULT_V1_PROD_MTR_TOKEN='${VAULT_V1_PROD_MTR_TOKEN}'
     export VAULT_V2_PROD_MTR_TOKEN='${VAULT_V2_PROD_MTR_TOKEN}'
     export DOCKER_OS='${SOURCE_IMAGE}'
+    export GIT_REPO='${GIT_REPO}'
     export WITH_ROCKSDB='${WITH_ROCKSDB}'
     export KEEP_BUILD='${KEEP_BUILD}'
     export EXECUTE_SUITES_ONE_BY_ONE='${EXECUTE_SUITES_ONE_BY_ONE}'

@@ -42,6 +42,12 @@ function execute() {
 
     start=`date +%s`
 
+    if [[ "${HAVE_JUNIT}" == "1" ]]; then
+        JUNIT_ARGS=" --junit-output=${RESULTS_DIR}/junit_${worker}.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${worker}"
+    else
+        JUNIT_ARGS=" --xml-report=${RESULTS_DIR}/junit_${worker}.xml"
+    fi
+
     MTR_ARGS_NORMAL=${MTR_ARGS}
 
     MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
@@ -53,8 +59,7 @@ function execute() {
         --max-test-fail=0 \
         ${MTR_ARGS_NORMAL} \
         ${extraOptions} \
-        --junit-output=${RESULTS_DIR}/junit_${worker}.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${worker}" || true
+        ${JUNIT_ARGS} || true
 
     ln -s $PWD/var $PWD/var_${worker}
     which rsync
@@ -242,6 +247,7 @@ cd ${EXTRACT_DIR}/mysql-test
 #
 # >>>> execute all unit tests at the beginning with main.1st only using an original build (not files for ".tar.gz" archive)
 if [[ $UNIT_TESTS == "1" ]]; then
+    # /tmp/sources is required by an original build in $BUILD_DIR to run unit tests
     tests="main.1st"
     suiteNoSlash="UNIT_TESTS"
     echo "Executing unit tests with $tests"
@@ -262,6 +268,14 @@ if [[ $UNIT_TESTS == "1" ]]; then
         )
     fi
 
+    ls -l /tmp/sources/mysql-test || :
+    grep -q "opt_junit_package" /tmp/sources/mysql-test/mysql-test-run.pl && HAVE_JUNIT=1 || HAVE_JUNIT=0
+    if [[ "${HAVE_JUNIT}" == "1" ]]; then
+        JUNIT_UNIT_TESTS_ARGS=" --junit-output=${RESULTS_DIR}/junit_${suiteNoSlash}.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.${suiteNoSlash}"
+    else
+        JUNIT_UNIT_TESTS_ARGS=" --xml-report=${RESULTS_DIR}/junit_${suiteNoSlash}.xml"
+    fi
+
     pushd ${BUILD_DIR}/mysql-test
     env "${MTR_VAULT_ARRAY[@]}" MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${PARALLEL} \
@@ -271,8 +285,7 @@ if [[ $UNIT_TESTS == "1" ]]; then
         ${MTR_ARGS} \
         --force \
         --max-test-fail=0 \
-        --junit-output=${RESULTS_DIR}/junit_${suiteNoSlash}.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.${suiteNoSlash}" || true
+        ${JUNIT_UNIT_TESTS_ARGS} || true
     popd
 
     ln -s ${BUILD_DIR}/mysql-test/var $PWD/var_${suiteNoSlash}
@@ -326,6 +339,9 @@ MTR_ARGS="${MTR_ARGS} --no-unit-tests"
 
 
 # >>>> main MTR execution loop starts here
+# Check if --junit-package option is avail from mysql-test-run.pl
+grep -q "opt_junit_package" ${EXTRACT_DIR}/mysql-test/mysql-test-run.pl && HAVE_JUNIT=1 || HAVE_JUNIT=0
+
 split_suites "$MTR_SUITES"
 
 echo "MTR normal suites: $suitesNormal"
@@ -376,6 +392,12 @@ if [[ "${CI_FS_MTR}" == 'yes' ]]; then
     done
     set -x
 
+    if [[ "${HAVE_JUNIT}" == "1" ]]; then
+        JUNIT_CI_FS_ARGS=" --junit-output=${RESULTS_DIR}/junit_ci_fs.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.ci_fs"
+    else
+        JUNIT_CI_FS_ARGS=" --xml-report=${RESULTS_DIR}/junit_ci_fs.xml"
+    fi
+
     MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --result-file \
         --force ${MYSQLD_ENV} \
@@ -388,8 +410,7 @@ if [[ "${CI_FS_MTR}" == 'yes' ]]; then
         --vardir="/tmp/ci_disk_dir/var" \
         ${CI_TESTS} \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${RESULTS_DIR}/junit_ci_fs.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.ci_fs" || true
+        ${JUNIT_CI_FS_ARGS} || true
 
     ln -s /tmp/ci_disk_dir/var $PWD/var_ci_fs
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ci_fs ${RESULTS_DIR}/mtr_var
@@ -428,6 +449,12 @@ if [[ "${SERVER_VERSION}" != 5.7.* && "${WITH_PS_PROTOCOL}" == 'yes' ]]; then
     done
     set -x
 
+    if [[ "${HAVE_JUNIT}" == "1" ]]; then
+        JUNIT_PS_PROTOCOL_ARGS=" --junit-output=${RESULTS_DIR}/junit_ps_protocol.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.ps_protocol"
+    else
+        JUNIT_PS_PROTOCOL_ARGS=" --xml-report=${RESULTS_DIR}/junit_ps_protocol.xml"
+    fi
+
     MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --result-file \
         --force ${MYSQLD_ENV} \
@@ -439,8 +466,7 @@ if [[ "${SERVER_VERSION}" != 5.7.* && "${WITH_PS_PROTOCOL}" == 'yes' ]]; then
         ${MTR_ARGS_PS} \
         ${PS_TESTS} \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${RESULTS_DIR}/junit_ps_protocol.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.ps_protocol" || true
+        ${JUNIT_PS_PROTOCOL_ARGS} || true
 
     ln -s $PWD/var $PWD/var_ps_protocol
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ps_protocol ${RESULTS_DIR}/mtr_var
@@ -471,6 +497,12 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     fi
 
     echo "Running tests with Hashicorp Vault in Dev mode"
+    if [[ "${HAVE_JUNIT}" == "1" ]]; then
+        JUNIT_VAULT_V1_DEV_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v1.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_dev_v1"
+    else
+        JUNIT_VAULT_V1_DEV_TC_ARGS=" --xml-report=${RESULTS_DIR}/junit_keyring_vault_dev_v1.xml"
+    fi
+
     MTR_VAULT_ADDRESS=${VAULT_V1_DEV_ADDRESS} \
     MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_DEV_ROOT_TOKEN} \
     MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_DEV_MTR_TOKEN} \
@@ -483,14 +515,19 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV} \
         ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v1.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_dev_v1" || true
+        ${JUNIT_VAULT_V1_DEV_TC_ARGS} || true
 
     ln -s $PWD/var $PWD/var_kv1_dev
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv1_dev ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_kv1_dev
+
+    if [[ "${HAVE_JUNIT}" == "1" ]]; then
+        JUNIT_VAULT_V2_DEV_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v2.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_dev_v2"
+    else
+        JUNIT_VAULT_V2_DEV_TC_ARGS=" --xml-report=${RESULTS_DIR}/junit_keyring_vault_dev_v2.xml"
+    fi
 
     MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
     MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_DEV_ROOT_TOKEN} \
@@ -504,8 +541,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV} \
         ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v2.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_dev_v2" || true
+        ${JUNIT_VAULT_V2_DEV_TC_ARGS} || true
 
     ln -s $PWD/var $PWD/var_kv2_dev
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv2_dev ${RESULTS_DIR}/mtr_var
@@ -514,6 +550,12 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     rm -rf $PWD/var_kv2_dev
 
     echo "Running tests with Hashicorp Vault in Production mode"
+    if [[ "${HAVE_JUNIT}" == "1" ]]; then
+        JUNIT_VAULT_V1_PROD_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v1.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_prod_v1"
+    else
+        JUNIT_VAULT_V1_PROD_TC_ARGS=" --xml-report=${RESULTS_DIR}/junit_keyring_vault_prod_v1.xml"
+    fi
+
     MTR_VAULT_ADDRESS=${VAULT_V1_PROD_ADDRESS} \
     MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_PROD_ROOT_TOKEN} \
     MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_PROD_MTR_TOKEN} \
@@ -527,14 +569,19 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV} \
         ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v1.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_prod_v1" || true
+        ${JUNIT_VAULT_V1_PROD_TC_ARGS} || true
 
     ln -s $PWD/var $PWD/var_kv1_prod
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv1_prod ${RESULTS_DIR}/mtr_var
 
     killall -9 mysqld || true
     rm -rf $PWD/var_kv1_prod
+
+    if [[ "${HAVE_JUNIT}" == "1" ]]; then
+        JUNIT_VAULT_V2_PROD_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v2.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_prod_v2"
+    else
+        JUNIT_VAULT_V2_PROD_TC_ARGS=" --xml-report=${RESULTS_DIR}/junit_keyring_vault_prod_v2.xml"
+    fi
 
     MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
     MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_PROD_ROOT_TOKEN} \
@@ -549,8 +596,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV} \
         ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v2.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_prod_v2" || true
+        ${JUNIT_VAULT_V2_PROD_TC_ARGS} || true
 
     ln -s $PWD/var $PWD/var_kv2_prod
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv2_prod ${RESULTS_DIR}/mtr_var
