@@ -151,7 +151,7 @@ fi
 # Check mecab
 # ------------------------------------------------------------------------------
 # force to use mecab everywhere (except RHEL)
-if [ -e /etc/redhat-release ]; then
+if [ -e /etc/redhat-release -o "$(rpm --eval %dist)" = ".amzn2" ]; then
     WITH_MECAB=""
 else
     WITH_MECAB="system"

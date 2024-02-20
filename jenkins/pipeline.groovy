@@ -4,11 +4,10 @@ if (params.MTR_ARGS.contains('--big-test')) {
 
 pipeline {
     parameters {
-        string(
-            defaultValue: 'https://github.com/percona/percona-server',
+        choice(
+            choices: 'https://github.com/percona/percona-server\nhttps://github.com/percona/mysql-5.7-post-eol',
             description: 'URL to percona-server repository',
-            name: 'GIT_REPO',
-            trim: true)
+            name: 'GIT_REPO')
         string(
             defaultValue: '5.7',
             description: 'Tag/Branch for percona-server repository',
@@ -35,7 +34,7 @@ pipeline {
             name: 'TOKUBACKUP_BRANCH',
             trim: true)
         choice(
-            choices: 'centos:6\ncentos:7\ncentos:8\ni386/centos:6\noraclelinux:9\nubuntu:xenial\nubuntu:bionic\nubuntu:focal\nubuntu:jammy\ndebian:stretch\ndebian:buster\ndebian:bullseye\ndebian:bookworm',
+            choices: 'centos:6\ncentos:7\ncentos:8\ni386/centos:6\noraclelinux:9\nubuntu:xenial\nubuntu:bionic\nubuntu:focal\nubuntu:jammy\ndebian:stretch\ndebian:buster\ndebian:bullseye\ndebian:bookworm\namazonlinux:2',
             description: 'OS version for compilation',
             name: 'DOCKER_OS')
         choice(
@@ -164,17 +163,22 @@ pipeline {
                     currentBuild.displayName = "${BUILD_NUMBER} ${CMAKE_BUILD_TYPE}/${DOCKER_OS}"
                 }
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: '10ee734d-bbd1-4b4b-a611-5a2765ef9d47', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                  withCredentials([string(credentialsId: 'JNKPercona', variable: 'JNKPercona_token')]) {
                     sh 'echo Prepare: \$(date -u "+%s")'
                     echo 'Checking Percona Server branch version, JEN-913 prevent wrong version run'
                     sh '''
                         MY_BRANCH_BASE_MAJOR=5
                         MY_BRANCH_BASE_MINOR=7
-                        RAW_VERSION_LINK=$(echo ${GIT_REPO%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
+                        GIT_REPO_LINK=${GIT_REPO}
+                        if [[ "${GIT_REPO}" =~ "post-eol" ]]; then
+                            GIT_REPO_LINK=$(echo ${GIT_REPO} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
+                        fi
+                        RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
                         REPLY=$(curl -Is ${RAW_VERSION_LINK}/${BRANCH}/MYSQL_VERSION | head -n 1 | awk '{print $2}')
                         if [[ ${REPLY} != 200 ]]; then
-                            wget ${RAW_VERSION_LINK}/${BRANCH}/VERSION -O ${WORKSPACE}/VERSION-${BUILD_NUMBER}
+                            curl ${RAW_VERSION_LINK}/${BRANCH}/VERSION -o ${WORKSPACE}/VERSION-${BUILD_NUMBER}
                         else
-                            wget ${RAW_VERSION_LINK}/${BRANCH}/MYSQL_VERSION -O ${WORKSPACE}/VERSION-${BUILD_NUMBER}
+                            curl ${RAW_VERSION_LINK}/${BRANCH}/MYSQL_VERSION -o ${WORKSPACE}/VERSION-${BUILD_NUMBER}
                         fi
                         source ${WORKSPACE}/VERSION-${BUILD_NUMBER}
                         if [[ ${MYSQL_VERSION_MAJOR} -ne ${MY_BRANCH_BASE_MAJOR} || ${MYSQL_VERSION_MINOR} -ne ${MY_BRANCH_BASE_MINOR} ]] ; then
@@ -225,6 +229,7 @@ pipeline {
                         fi
                     '''
                 }
+              }
             }
         }
         stage('Archive Build') {
