@@ -87,7 +87,9 @@ fi
 #
 # force to use mecab everywhere (except RHEL)
 if [[ ! -e /etc/redhat-release ]]; then
-    MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
+    if [[ "$(rpm --eval %dist)" != ".amzn2" ]]; then
+        MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
+    fi
 fi
 #
 status=0

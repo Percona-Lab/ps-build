@@ -14,9 +14,11 @@
       lightweight-checkout: true
       script-path: jenkins/pipeline.groovy
     parameters:
-    - string:
+    - choice:
         name: GIT_REPO
-        default: "https://github.com/percona/percona-server"
+        choices:
+        - "https://github.com/percona/percona-server"
+        - "https://github.com/percona/mysql-5.7-post-eol"
         description: URL to percona-server repository
     - string:
         name: BRANCH
@@ -54,6 +56,7 @@
         - debian:buster
         - debian:bullseye
         - debian:bookworm
+        - amazonlinux:2
         description: OS version for compilation
     - choice:
         name: JOB_CMAKE
