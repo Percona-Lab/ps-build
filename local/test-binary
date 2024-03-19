@@ -34,6 +34,7 @@ fi
 
 if [ -f /usr/bin/yum ]; then
     RHVER="$(rpm --eval %rhel)"
+    DIST="$(rpm --eval %dist)"
 fi
 
 OPENSSL_HEADER="/usr/include/openssl/opensslv.h"
@@ -87,7 +88,7 @@ fi
 #
 # force to use mecab everywhere (except RHEL)
 if [[ ! -e /etc/redhat-release ]]; then
-    if [[ "$(rpm --eval %dist)" != ".amzn2" ]]; then
+    if [[ "${DIST}" != ".amzn2" ]]; then
         MTR_ARGS+=" --mysqld=--loose-mecab-rc-file=/etc/mecabrc"
     fi
 fi
@@ -103,6 +104,9 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
     fi
 
+  if [[ "${DIST}" != ".amzn2" ]]; then
+      JUNIT_MAIN_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.main"
+  fi
   MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=$(grep -c ^processor /proc/cpuinfo) \
         --result-file \
@@ -111,14 +115,16 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         ${MTR_ARGS} \
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
-        --junit-output=${WORKDIR_ABS}/junit.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.main" || true
+        ${JUNIT_MAIN_TC_ARGS} || true
 fi
 
 
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
   MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
 
+  if [[ "${DIST}" != ".amzn2" ]]; then
+      JUNIT_TOKUDB_HOTBACKUP_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_tokudb_hotbackup.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb_hotbackup"
+  fi
   MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
@@ -128,8 +134,7 @@ if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "$
         ${MTR_ARGS} \
         --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --suite tokudb.backup \
-        --junit-output=${WORKDIR_ABS}/junit_tokudb_hotbackup.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb_hotbackup" || true
+        ${JUNIT_TOKUDB_HOTBACKUP_TC_ARGS} || true
 fi
 
 # if there's tokudb plugin compiled run tokudb tests else exit with previous status
@@ -140,6 +145,9 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
   ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
 
     MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
+    if [[ "${DIST}" != ".amzn2" ]]; then
+        JUNIT_TOKUDB_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_tokudb.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb"
+    fi
     MTR_BUILD_THREAD=auto \
         ./mtr --suite=engines/iuds,engines/funcs \
             --mysqld=--default-storage-engine=tokudb --mysqld=--default-tmp-storage-engine=tokudb \
@@ -148,18 +156,19 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
             --mysqld=--loose-tokudb_auto_analyze=0 --mysqld=--loose-tokudb_analyze_in_background=false \
             ${TOKUDB_ENGINES_MTR_ARGS} \
             ${ANALYZER_MTR_ARGS} \
-            --junit-output=${WORKDIR_ABS}/junit_tokudb.xml \
-            --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb" || true
+            ${JUNIT_TOKUDB_TC_ARGS} || true
 fi
 
 # if all tests are disabled, run only one small test to prevent test stage issue and perform simle test of binary file
 if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] && [[ "${DEFAULT_TESTING}" = 'no' ]] ; then
+    if [[ "${DIST}" != ".amzn2" ]]; then
+        JUNIT_SMALL_TC_ARGS=" --junit-output=${WORKDIR_ABS}/small.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.small"
+    fi
     MTR_BUILD_THREAD=auto ./mtr \
         --force \
         --max-test-fail=0 \
         main.1st \
-        --junit-output=${WORKDIR_ABS}/small.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.small" || true
+        ${JUNIT_SMALL_TC_ARGS} || true
 fi
 
 if [[ "${CI_FS_MTR}" = 'yes' ]]; then
@@ -168,6 +177,9 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         CI_TESTS+=" $CI_TESTS_TMP"
     done
 
+    if [[ "${DIST}" != ".amzn2" ]]; then
+        JUNIT_CI_FS_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs"
+    fi
     MTR_BUILD_THREAD=auto ./mtr \
         --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
         --max-test-fail=0 \
@@ -178,8 +190,7 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         --vardir="/tmp/ci_disk_dir" \
         ${CI_TESTS} \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true
+        ${JUNIT_CI_FS_TC_ARGS} || true
 fi
 
 if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[ ${DOCKER_OS} != 'i386/centos-6' ]]; then
@@ -190,6 +201,9 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
     fi
 
     echo "Running tests with Hashicorp Vault in Dev mode"
+    if [[ "${DIST}" != ".amzn2" ]]; then
+        JUNIT_VAULT_V1_DEV_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v1.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1"
+    fi
     MTR_VAULT_ADDRESS=${VAULT_V1_DEV_ADDRESS} \
     MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_DEV_TOKEN} \
     MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_DEV_MTR_TOKEN} \
@@ -203,9 +217,11 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --unit-tests \
         --suite=keyring_vault \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v1.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1" || true
+        ${JUNIT_VAULT_V1_DEV_TC_ARGS} || true
 
+    if [[ "${DIST}" != ".amzn2" ]]; then
+        JUNIT_VAULT_V2_DEV_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v2.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v2"
+    fi
     MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
     MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_DEV_TOKEN} \
     MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_DEV_MTR_TOKEN} \
@@ -219,10 +235,12 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --unit-tests \
         --suite=keyring_vault \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v2.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v2" || true
+        ${JUNIT_VAULT_V2_DEV_TC_ARGS} || true
 
     echo "Running tests with Hashicorp Vault in Production mode"
+    if [[ "${DIST}" != ".amzn2" ]]; then
+        JUNIT_VAULT_V1_PROD_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v1.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v1"
+    fi
     MTR_VAULT_ADDRESS=${VAULT_V1_PROD_ADDRESS} \
     MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_PROD_ROOT_TOKEN} \
     MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_PROD_MTR_TOKEN} \
@@ -237,9 +255,11 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --unit-tests \
         --suite=keyring_vault \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v1.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v1" || true
+        ${JUNIT_VAULT_V1_PROD_TC_ARGS} || true
 
+    if [[ "${DIST}" != ".amzn2" ]]; then
+        JUNIT_VAULT_V2_PROD_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v2.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2"
+    fi
     MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
     MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_PROD_ROOT_TOKEN} \
     MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_PROD_MTR_TOKEN} \
@@ -254,8 +274,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         --unit-tests \
         --suite=keyring_vault \
         ${ANALYZER_MTR_ARGS} \
-        --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v2.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
+        ${JUNIT_VAULT_V2_PROD_TC_ARGS} || true
 fi
 
 exit $status
