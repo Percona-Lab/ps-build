@@ -82,6 +82,8 @@ docker run --rm \
 
     bash -x /tmp/scripts/test-binary /tmp/results
 
-    sudo mv /tmp/results/*.xml /tmp/ps/results/
-    sudo chown $(id -u):$(id -g) /tmp/ps/results/*.xml
+    if [[ ${DOCKER_OS} == 'amazonlinux-2' ]]; then
+        sudo mv /tmp/results/*.xml /tmp/ps/results/
+        sudo chown $(id -u):$(id -g) /tmp/ps/results/*.xml
+    fi
 "
