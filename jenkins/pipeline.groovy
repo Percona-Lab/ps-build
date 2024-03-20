@@ -306,7 +306,11 @@ pipeline {
                         build log - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/build.log.gz
                     " > public_url
                 '''
-                step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
+                script {
+                    if (params.DOCKER_OS != 'amazonlinux:2') {
+                        step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
+                    }
+                }
                 archiveArtifacts 'build.log.gz,*.xml,public_url'
             }
         }
