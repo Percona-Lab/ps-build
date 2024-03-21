@@ -307,7 +307,7 @@ pipeline {
                     " > public_url
                 '''
                 script {
-                    if (params.DOCKER_OS != 'amazonlinux:2') {
+                    if (params.GIT_REPO.contains('post-eol')) {
                         step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
                     }
                 }
