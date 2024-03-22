@@ -307,7 +307,7 @@ pipeline {
                     " > public_url
                 '''
                 script {
-                    if (params.GIT_REPO.contains('post-eol')) {
+                    if (params.GIT_REPO ==~ 'post-eol') {
                         step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
                     }
                 }

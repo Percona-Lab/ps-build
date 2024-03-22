@@ -76,13 +76,14 @@ docker run --rm \
     export VAULT_V2_PROD_MTR_TOKEN='${VAULT_V2_PROD_MTR_TOKEN}'
 
     export DOCKER_OS='${DOCKER_OS//:/-}'
+    export GIT_REPO='${GIT_REPO}'
 
     mv /tmp/ps/*.pem /tmp/results || true
     cp /tmp/ps/results/*.tar.gz /tmp/results
 
     bash -x /tmp/scripts/test-binary /tmp/results
 
-    if [[ ${DOCKER_OS} == 'amazonlinux-2' ]]; then
+    if [[ ! ${GIT_REPO} =~ 'post-eol' ]]; then
         sudo mv /tmp/results/*.xml /tmp/ps/results/
         sudo chown $(id -u):$(id -g) /tmp/ps/results/*.xml
     fi
