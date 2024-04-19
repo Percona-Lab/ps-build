@@ -4,10 +4,11 @@ if (params.MTR_ARGS.contains('--big-test')) {
 
 pipeline {
     parameters {
-        choice(
-            choices: 'https://github.com/percona/percona-server\nhttps://github.com/percona/mysql-5.7-post-eol',
+        string(
+            defaultValue: 'https://github.com/percona/percona-server',
             description: 'URL to percona-server repository',
-            name: 'GIT_REPO')
+            name: 'GIT_REPO',
+            trim: true)
         string(
             defaultValue: '5.7',
             description: 'Tag/Branch for percona-server repository',
