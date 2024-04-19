@@ -15,11 +15,9 @@
         artifact-days-to-keep: -1
         artifact-num-to-keep: 10
     parameters:
-    - choice:
+    - string:
         name: GIT_REPO
-        choices:
-        - "https://github.com/percona/percona-server"
-        - "https://github.com/percona/mysql-5.7-post-eol"
+        default: "https://github.com/percona/percona-server"
         description: URL to percona-server repository
     - string:
         name: BRANCH
