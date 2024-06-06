@@ -56,6 +56,7 @@
                             "oraclelinux:9":   { build('oraclelinux:9') },
                             "ubuntu:focal":    { build('ubuntu:focal') },
                             "ubuntu:jammy":    { build('ubuntu:jammy') },
+                            "ubuntu:noble":    { build('ubuntu:noble') },
                             "debian:bullseye": { build('debian:bullseye') },
                             "debian:bookworm": { build('debian:bookworm') },
                         )
