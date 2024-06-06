@@ -265,7 +265,7 @@ if [ -f /usr/bin/apt-get ]; then
         libsasl2-dev libsasl2-modules-gssapi-mit libkrb5-dev libudev-dev libzstd-dev libsys-meminfo-perl \
     "
 
-    if [[ ${DIST} == "bookworm" ]]; then
+    if [[ ${DIST} == "bookworm" ]] || [[ ${DIST} == "noble" ]]; then
         PKGLIST+=" gsasl-common"
     else
         PKGLIST+=" libgsasl7"
@@ -281,8 +281,12 @@ if [ -f /usr/bin/apt-get ]; then
         PKGLIST+=" gcc-8 g++-8"
     fi
 
-    if [[ ${DIST} == 'jammy' ]] || [[ ${DIST} == 'bullseye' ]] || [[ ${DIST} == 'bookworm' ]]; then
+    if [[ ${DIST} == 'jammy' ]] || [[ ${DIST} == 'bullseye' ]] || [[ ${DIST} == 'bookworm' ]] || [[ ${DIST} == "noble" ]]; then
         PKGLIST+=" libgflags-dev util-linux"
+    fi
+
+    if [[ ${DIST} == "noble" ]]; then
+        PKGLIST+=" libtirpc-dev"
     fi
 
     until apt-get -y install ${PKGLIST}; do

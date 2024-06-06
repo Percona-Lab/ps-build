@@ -57,6 +57,7 @@
                             "ubuntu:bionic":   { build('ubuntu:bionic') },
                             "ubuntu:focal":    { build('ubuntu:focal') },
                             "ubuntu:jammy":    { build('ubuntu:jammy') },
+                            "ubuntu:noble":    { build('ubuntu:noble') },
                             "debian:buster":   { build('debian:buster') },
                             "debian:bullseye": { build('debian:bullseye') },
                             "debian:bookworm": { build('debian:bookworm') },
