@@ -158,6 +158,8 @@ if [ -f /usr/bin/yum ]; then
         done
     elif [[ ${RHVER} -eq 8 ]]; then
         yum -y install centos-release-stream
+        sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+        sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
         until yum -y install ${PKGLIST_DEVTOOLSET10} ${PKGLIST_DEVTOOLSET11} ${PKGLIST_DEVTOOLSET12}; do
             echo "waiting"
             sleep 1
