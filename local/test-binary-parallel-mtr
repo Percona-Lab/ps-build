@@ -169,7 +169,7 @@ if [[ $UNIT_TESTS == "1" ]]; then
     fi
 
     pushd ${BUILD_DIR}/mysql-test
-    env -i "${MTR_VAULT_ARRAY[@]}" MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
+    env "${MTR_VAULT_ARRAY[@]}" MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${PARALLEL} \
         --result-file \
         --unit-tests-report \
