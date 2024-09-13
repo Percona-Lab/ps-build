@@ -144,6 +144,7 @@ if [ -f /usr/bin/yum ]; then
         # Next packages are required by 8.0.33
         PKGLIST_DEVTOOLSET12+=" gcc-toolset-12-gcc gcc-toolset-12-gcc-c++ gcc-toolset-12-binutils"
         PKGLIST_DEVTOOLSET12+=" gcc-toolset-12-annobin-annocheck gcc-toolset-12-annobin-plugin-gcc"
+        PKGLIST_DEVTOOLSET12+=" gcc-toolset-12-libatomic-devel"
     fi
 
     if [[ ${RHVER} -eq 8 ]]; then
@@ -151,11 +152,13 @@ if [ -f /usr/bin/yum ]; then
         PKGLIST_DEVTOOLSET10+=" gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils gcc-toolset-10-annobin"
         PKGLIST_DEVTOOLSET10+=" gcc-toolset-10-valgrind gcc-toolset-10-valgrind-devel gcc-toolset-10-libatomic-devel"
         PKGLIST_DEVTOOLSET10+=" gcc-toolset-10-libasan-devel gcc-toolset-10-libubsan-devel"
+        PKGLIST_DEVTOOLSET10+=" gcc-toolset-10-libatomic-devel"
 
         # Next packages are required by 8.0.29
         PKGLIST_DEVTOOLSET11+=" gcc-toolset-11-gcc-c++ gcc-toolset-11-binutils gcc-toolset-11-annobin"
         PKGLIST_DEVTOOLSET11+=" gcc-toolset-11-valgrind gcc-toolset-11-valgrind-devel gcc-toolset-11-libatomic-devel"
         PKGLIST_DEVTOOLSET11+=" gcc-toolset-11-libasan-devel gcc-toolset-11-libubsan-devel"
+        PKGLIST_DEVTOOLSET10+=" gcc-toolset-11-libatomic-devel"
     fi
 
     if [[ ${RHVER} -eq 7 ]]; then
@@ -166,11 +169,13 @@ if [ -f /usr/bin/yum ]; then
         PKGLIST_DEVTOOLSET10+=" devtoolset-10-gcc-c++ devtoolset-10-binutils"
         PKGLIST_DEVTOOLSET10+=" devtoolset-10-valgrind devtoolset-10-valgrind-devel devtoolset-10-libatomic-devel"
         PKGLIST_DEVTOOLSET10+=" devtoolset-10-libasan-devel devtoolset-10-libubsan-devel"
+        PKGLIST_DEVTOOLSET10+=" devtoolset-10-libatomic-devel"
 
         # Next packages are required by 8.0.29
         PKGLIST_DEVTOOLSET11+=" devtoolset-11-gcc-c++ devtoolset-11-binutils"
         PKGLIST_DEVTOOLSET11+=" devtoolset-11-valgrind devtoolset-11-valgrind-devel devtoolset-11-libatomic-devel"
         PKGLIST_DEVTOOLSET11+=" devtoolset-11-libasan-devel devtoolset-11-libubsan-devel"
+        PKGLIST_DEVTOOLSET11+=" devtoolset-11-libatomic-devel"
     fi
 
 # Percona-Server
@@ -181,6 +186,7 @@ if [ -f /usr/bin/yum ]; then
             PKGLIST+=" devtoolset-7-gcc-c++ devtoolset-7-binutils"
             PKGLIST+=" devtoolset-7-libasan-devel devtoolset-7-libubsan-devel"
             PKGLIST+=" devtoolset-7-valgrind devtoolset-7-valgrind-devel devtoolset-7-libatomic-devel"
+            PKGLIST+=" devtoolset-7-libatomic-devel"
         else
             PKGLIST+=" binutils valgrind-devel "
         fi
@@ -188,6 +194,7 @@ if [ -f /usr/bin/yum ]; then
         PKGLIST+=" devtoolset-8-gcc-c++ devtoolset-8-binutils"
         PKGLIST+=" devtoolset-8-libasan-devel devtoolset-8-libubsan-devel"
         PKGLIST+=" devtoolset-8-valgrind devtoolset-8-valgrind-devel devtoolset-8-libatomic-devel perl-Digest-Perl-MD5 libedit-devel"
+        PKGLIST+=" devtoolset-8-libatomic-devel"
     fi
 
     until yum -y install ${PKGLIST} ; do
@@ -265,6 +272,7 @@ if [ -f /usr/bin/apt-get ]; then
         tzdata golang libunwind-dev zstd python3-mysqldb libdbi-perl libdbd-mysql-perl \
         cpio jq openssl libxml-simple-perl \
         libsasl2-dev libsasl2-modules-gssapi-mit libkrb5-dev libudev-dev libzstd-dev libsys-meminfo-perl \
+        libatomic1 \
     "
 
     if [[ ${DIST} == "bookworm" ]] || [[ ${DIST} == "noble" ]]; then
