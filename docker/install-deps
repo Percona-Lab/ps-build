@@ -27,15 +27,19 @@ build_openssl(){
     make install
 }
 
+switch_to_vault_repo() {
+    sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* || true
+    sed -i 's|#\s*baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* || true
+}
+
 #
 if [ -f /usr/bin/yum ]; then
   RHVER="$(rpm --eval %rhel)"
   DIST="$(rpm --eval %dist)"
   rpm --eval %_arch > /etc/yum/vars/basearch
 
-  if grep -q 'CentOS.* 8\.' /etc/redhat-release; then
-      sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
-      sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+  if [ "x${RHVER}" = "x8" -o "x${RHVER}" = "x7" ]; then
+      switch_to_vault_repo
   fi
 
   until yum -y update; do
@@ -99,11 +103,13 @@ if [ -f /usr/bin/yum ]; then
       echo "waiting"
       sleep 1
     done
+    switch_to_vault_repo
   elif [[ "x${DIST}" == "x.amzn2" ]]; then
-    yum -y install http://mirror.centos.org/centos/7/os/x86_64/Packages/scl-utils-20130529-19.el7.x86_64.rpm \
-                   http://mirror.centos.org/centos/7/os/x86_64/Packages/scl-utils-build-20130529-19.el7.x86_64.rpm \
-                   http://mirror.centos.org/centos/7/extras/x86_64/Packages/centos-release-scl-rh-2-3.el7.centos.noarch.rpm \
-                   http://mirror.centos.org/centos/7/extras/x86_64/Packages/centos-release-scl-2-3.el7.centos.noarch.rpm || true
+    yum -y install http://vault.centos.org/centos/7/os/x86_64/Packages/scl-utils-20130529-19.el7.x86_64.rpm \
+                   http://vault.centos.org/centos/7/os/x86_64/Packages/scl-utils-build-20130529-19.el7.x86_64.rpm \
+                   http://vault.centos.org/centos/7/extras/x86_64/Packages/centos-release-scl-rh-2-3.el7.centos.noarch.rpm \
+                   http://vault.centos.org/centos/7/extras/x86_64/Packages/centos-release-scl-2-3.el7.centos.noarch.rpm || true
+    switch_to_vault_repo
   fi
   until yum -y install ${PKGLIST}; do
     echo "waiting"
@@ -207,10 +213,10 @@ if [ -f /usr/bin/yum ]; then
             echo "waiting"
             sleep 1
         done
+        switch_to_vault_repo
     elif [[ ${RHVER} -eq 8 ]]; then
         yum -y install centos-release-stream
-        sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
-        sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+        switch_to_vault_repo
         until yum -y install ${PKGLIST_DEVTOOLSET10} ${PKGLIST_DEVTOOLSET11} ${PKGLIST_DEVTOOLSET12}; do
             echo "waiting"
             sleep 1
