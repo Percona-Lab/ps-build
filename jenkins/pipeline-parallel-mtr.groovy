@@ -449,8 +449,8 @@ void validatePsBranch() {
                 sudo apt-get install -y jq
             fi
 
-            GIT_REPO=\$(curl https://api.github.com/repos/percona/percona-server/pulls/${BRANCH} | jq -r '.head.repo.html_url')
-            BRANCH=\$(curl https://api.github.com/repos/percona/percona-server/pulls/${BRANCH} | jq -r '.head.ref')
+            GIT_REPO=\$(curl -s https://api.github.com/repos/percona/percona-server/pulls/${BRANCH} | jq -r '.head.repo.html_url')
+            BRANCH=\$(curl -s https://api.github.com/repos/percona/percona-server/pulls/${BRANCH} | jq -r '.head.ref')
         fi
 
         RAW_VERSION_LINK=\$(echo \${GIT_REPO%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
