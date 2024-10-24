@@ -15,7 +15,7 @@ set -o xtrace
 ROOT_DIR=$(cd $(dirname $0)/..; pwd -P)/sources
 
 if [ ! -d "${ROOT_DIR}" ]; then
-    if [[ "${GIT_REPO}" =~ "post-eol" ]]; then
+    if [[ "${GIT_REPO}" =~ post-eol|private ]]; then
         GIT_REPO=$(echo ${GIT_REPO} | sed -e "s|github|${JNKPercona_token}@github|")
     fi
     git clone "${GIT_REPO:-https://github.com/percona/percona-server}" "${ROOT_DIR}"

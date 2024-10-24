@@ -171,7 +171,7 @@ pipeline {
                         MY_BRANCH_BASE_MAJOR=5
                         MY_BRANCH_BASE_MINOR=7
                         GIT_REPO_LINK=${GIT_REPO}
-                        if [[ "${GIT_REPO}" =~ "post-eol" ]]; then
+                        if [[ "${GIT_REPO}" =~ post-eol|private ]]; then
                             GIT_REPO_LINK=$(echo ${GIT_REPO} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
                         fi
                         RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
@@ -308,7 +308,7 @@ pipeline {
                     " > public_url
                 '''
                 script {
-                    if (!(params.GIT_REPO ==~ 'post-eol')) {
+                    if (!(params.GIT_REPO ==~ '.*(post-eol|private).*')) {
                         step([$class: 'JUnitResultArchiver', testResults: '*.xml', healthScaleFactor: 1.0])
                     }
                 }

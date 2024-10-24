@@ -104,7 +104,7 @@ if [[ "${DEFAULT_TESTING}" != "no" ]]; then
         MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
     fi
 
-  if [[ ! "${GIT_REPO}" =~ "post-eol" ]]; then
+  if [[ ! "${GIT_REPO}" =~ post-eol|private ]]; then
       JUNIT_MAIN_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.main"
   fi
   MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
@@ -122,7 +122,7 @@ fi
 if [[ "$HOTBACKUP_TESTING" != "no" ]] && [[ -n "${TOKUDB_PLUGIN}" ]] && [[ -n "${HOTBACKUP_LIB}" ]] && [[ -n "${HOTBACKUP_PLUGIN}" ]]; then
   MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${HOTBACKUP_LIB}:${JEMALLOC}:${EATMYDATA}"
 
-  if [[ ! "${GIT_REPO}" =~ "post-eol" ]]; then
+  if [[ ! "${GIT_REPO}" =~ post-eol|private ]]; then
       JUNIT_TOKUDB_HOTBACKUP_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_tokudb_hotbackup.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb_hotbackup"
   fi
   MTR_BUILD_THREAD=auto ./mtr \
@@ -145,7 +145,7 @@ if [[ "${TOKUDB_ENGINES_MTR}" = "yes" ]] && [[ -n "${TOKUDB_PLUGIN}" ]]; then
   ln -s ${HOTBACKUP_PLUGIN} lib/mysql/plugin/tokudb_backup.so
 
     MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
-    if [[ ! "${GIT_REPO}" =~ "post-eol" ]]; then
+    if [[ ! "${GIT_REPO}" =~ post-eol|private ]]; then
         JUNIT_TOKUDB_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_tokudb.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.tokudb"
     fi
     MTR_BUILD_THREAD=auto \
@@ -161,7 +161,7 @@ fi
 
 # if all tests are disabled, run only one small test to prevent test stage issue and perform simle test of binary file
 if [[ "${TOKUDB_ENGINES_MTR}" = 'no' ]] && [[ "${HOTBACKUP_TESTING}" = 'no' ]] && [[ "${DEFAULT_TESTING}" = 'no' ]] ; then
-    if [[ ! "${GIT_REPO}" =~ "post-eol" ]]; then
+    if [[ ! "${GIT_REPO}" =~ post-eol|private ]]; then
         JUNIT_SMALL_TC_ARGS=" --junit-output=${WORKDIR_ABS}/small.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.small"
     fi
     MTR_BUILD_THREAD=auto ./mtr \
@@ -177,7 +177,7 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         CI_TESTS+=" $CI_TESTS_TMP"
     done
 
-    if [[ ! "${GIT_REPO}" =~ "post-eol" ]]; then
+    if [[ ! "${GIT_REPO}" =~ post-eol|private ]]; then
         JUNIT_CI_FS_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_ci_fs.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs"
     fi
     MTR_BUILD_THREAD=auto ./mtr \
@@ -201,7 +201,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
     fi
 
     echo "Running tests with Hashicorp Vault in Dev mode"
-    if [[ ! "${GIT_REPO}" =~ "post-eol" ]]; then
+    if [[ ! "${GIT_REPO}" =~ post-eol|private ]]; then
         JUNIT_VAULT_V1_DEV_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v1.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1"
     fi
     MTR_VAULT_ADDRESS=${VAULT_V1_DEV_ADDRESS} \
@@ -219,7 +219,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         ${ANALYZER_MTR_ARGS} \
         ${JUNIT_VAULT_V1_DEV_TC_ARGS} || true
 
-    if [[ ! "${GIT_REPO}" =~ "post-eol" ]]; then
+    if [[ ! "${GIT_REPO}" =~ post-eol|private ]]; then
         JUNIT_VAULT_V2_DEV_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_keyring_vault_dev_v2.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v2"
     fi
     MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
@@ -238,7 +238,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         ${JUNIT_VAULT_V2_DEV_TC_ARGS} || true
 
     echo "Running tests with Hashicorp Vault in Production mode"
-    if [[ ! "${GIT_REPO}" =~ "post-eol" ]]; then
+    if [[ ! "${GIT_REPO}" =~ post-eol|private ]]; then
         JUNIT_VAULT_V1_PROD_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v1.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v1"
     fi
     MTR_VAULT_ADDRESS=${VAULT_V1_PROD_ADDRESS} \
@@ -257,7 +257,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]] && [[ ${DOCKER_OS} != 'centos-6' ]] && [[
         ${ANALYZER_MTR_ARGS} \
         ${JUNIT_VAULT_V1_PROD_TC_ARGS} || true
 
-    if [[ ! "${GIT_REPO}" =~ "post-eol" ]]; then
+    if [[ ! "${GIT_REPO}" =~ post-eol|private ]]; then
         JUNIT_VAULT_V2_PROD_TC_ARGS=" --junit-output=${WORKDIR_ABS}/junit_keyring_vault_prod_v2.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2"
     fi
     MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
