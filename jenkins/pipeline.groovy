@@ -258,9 +258,13 @@ pipeline {
                             sh '''
                                 git reset --hard
                                 git clean -xdf
-                                rm -rf sources/results
+                                ls -la ./ || true
+                                ls -la sources/ || true
+                                ls -la sources/results/ || true
+                                rm -rf sources/results/*
                                 until aws s3 cp --no-progress s3://ps-build-cache/${BUILD_TAG}/binary.tar.gz ./sources/results/binary.tar.gz; do
                                     sleep 5
+                                    mkdir -p sources/results
                                 done
 
                                 sudo yum -y install jq
