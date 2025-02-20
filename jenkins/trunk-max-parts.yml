@@ -67,10 +67,10 @@
     - copyartifact:
         project: percona-server-8.x-pipeline
         which-build: specific-build
-        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}"
+        build-number: "${TRIGGERED_BUILD_NUMBERS_percona_server_8_x_pipeline}"
         do-not-fingerprint: true
     - shell: |
-        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_8_0_pipeline}" > PIPELINE_BUILD_NUMBER
+        echo "${TRIGGERED_BUILD_NUMBERS_percona_server_8_x_pipeline}" > PIPELINE_BUILD_NUMBER
         gunzip build.log.gz
     publishers:
     - raw:
