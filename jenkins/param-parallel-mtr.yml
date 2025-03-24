@@ -195,6 +195,8 @@
           - ubuntu:noble
           - debian:bullseye
           - debian:bookworm
+    wrappers:
+      - build-user-vars  # Ensures BUILD_USER_ID is available
     builders:
     - trigger-builds:
       - project: percona-server-8.x-pipeline-parallel-mtr
@@ -202,6 +204,7 @@
         predefined-parameters: |
           DOCKER_OS=${DOCKER_OS}
           CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+          LAUNCHER_USER_ID=$BUILD_USER_ID
         block: true
         block-thresholds:
           build-step-failure-threshold: FAILURE
