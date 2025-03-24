@@ -541,7 +541,7 @@ def getUserEmail(userId) {
 def notifySlack(status, color, customMessage) {
     script {
         try {
-            def userId = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)?.userId ?: 'System'
+            def userId = params.LAUNCHER_USER_ID?.trim() ? params.LAUNCHER_USER_ID : currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)?.userId ?: 'System'
             def email = getUserEmail(userId)
             def slackUserId = fetchSlackUserId(email)
 
@@ -723,6 +723,10 @@ pipeline {
             defaultValue: '#test-jenkins',
             description: 'Slack channel',
             name: 'SLACK_CHANNEL')
+	hidden(
+            name: 'LAUNCHER_USER_ID',
+            defaultValue: '',
+            description: 'Internal parameter, do not modify')
     }
     agent {
         label 'micro-amazon'
