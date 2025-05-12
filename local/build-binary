@@ -15,7 +15,6 @@ WITH_ROUTER=${WITH_ROUTER:-ON}
 WITH_GCOV=${WITH_GCOV:-OFF}
 WITH_MYSQLX=${WITH_MYSQLX:-ON}
 WITH_KEYRING_VAULT=${WITH_KEYRING_VAULT:-ON}
-WITH_BORINGSSL=${WITH_BORINGSSL:-false}
 ANALYZER_OPTS=${ANALYZER_OPTS:-}
 MAKE_OPTS=${MAKE_OPTS:--j$(grep -c ^processor /proc/cpuinfo)}
 CMAKE_OPTS=${CMAKE_OPTS:-}
@@ -59,37 +58,6 @@ wget_loop "boost_${BOOST_VERSION}.tar.bz2" "http://downloads.sourceforge.net/boo
 RHVER=0
 if [[ -f /etc/redhat-release ]]; then
     RHVER="$(rpm --eval %rhel)"
-fi
-
-if [[ ${WITH_BORINGSSL} == "true" ]]; then
-    # ------------------------------------------------------------------------------
-    # compile boringssl libs
-    # ------------------------------------------------------------------------------
-    pushd ${BUILD_DIR}
-    git clone https://github.com/google/boringssl.git boringssl_sources
-    mkdir boringssl_sources/bin
-    cd boringssl_sources/bin
-    if [[ ${RHVER} -ne 0 ]]; then
-        if [[ ${RHVER} -eq 7 ]]; then
-            source /opt/rh/go-toolset-7/enable
-        fi
-        BORING_SSL_CMAKE=/usr/bin/cmake3
-    else
-        BORING_SSL_CMAKE=/usr/bin/cmake
-    fi
-    export GOCACHE="/tmp/boring_ssl_cache"
-    ${BORING_SSL_CMAKE} .. -DCMAKE_CXX_FLAGS="-fPIC" -DCMAKE_C_FLAGS="-fPIC"
-    if make -j$(nproc); then
-        mkdir -p ${BUILD_DIR}/boringssl_bin/lib
-        cp crypto/libcrypto.a ${BUILD_DIR}/boringssl_bin/lib/libcrypto_pic.a
-        cp ssl/libssl.a ${BUILD_DIR}/boringssl_bin/lib/libssl_pic.a
-        cp -r ../include ${BUILD_DIR}/boringssl_bin/
-        CMAKE_OPTS+=" -DWITH_SSL=system -DCMAKE_PREFIX_PATH=${BUILD_DIR}/boringssl_bin"
-    else
-        echo "BoringSSL compilation failed."
-        exit 1
-    fi
-    unset GOCACHE
 fi
 
 # ------------------------------------------------------------------------------
