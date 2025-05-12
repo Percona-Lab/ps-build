@@ -194,6 +194,12 @@
         name: SLACK_CHANNEL
         default: '#ps-upstream-merges'
         description: Slack channel
+    - string:
+        name: JENKINS_SCRIPTS_REPO
+        default: 'https://github.com/Percona-Lab/ps-build'
+    - string:
+        name: JENKINS_SCRIPTS_BRANCH
+        default: '8.0'
     - hidden:
         name: LAUNCHER_USER_ID
         default: ''

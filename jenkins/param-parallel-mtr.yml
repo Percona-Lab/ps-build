@@ -177,6 +177,17 @@
         name: ALLOW_ABORTED_WORKERS_RERUN
         default: true
         description: "Rerun aborted workers"
+    - string:
+        name: SLACK_CHANNEL
+        default: '#ps-upstream-merges'
+        description: Slack channel for messages when a job was finished
+    - string:
+        name: JENKINS_SCRIPTS_REPO
+        default: '{scripts_repo}'
+        description: Download the build scripts from this repository, except for the Groovy script referenced by the path defined in pipeline-parallel-mtr.yml
+    - string:
+        name: JENKINS_SCRIPTS_BRANCH
+        default: '{scripts_branch}'
     axes:
       - axis:
          type: user-defined

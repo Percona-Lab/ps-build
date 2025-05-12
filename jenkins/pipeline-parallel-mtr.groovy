@@ -1,6 +1,4 @@
 PIPELINE_TIMEOUT = 24
-JENKINS_SCRIPTS_BRANCH = '8.0'
-JENKINS_SCRIPTS_REPO = 'https://github.com/Percona-Lab/ps-build'
 AWS_CREDENTIALS_ID = 'c8b933cd-b8ca-41d5-b639-33fe763d3f68'
 MAX_S3_RETRIES = 12
 S3_ROOT_DIR = 's3://ps-build-cache'
