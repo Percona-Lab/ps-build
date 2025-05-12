@@ -19,8 +19,8 @@
 #    and another executes only bit tests.
 
 
-# usage: set_suites <BUILD_TYPE>
-function set_suites() {
+# usage: set_suites_80 <BUILD_TYPE>
+function set_suites_80() {
   if [[ "$1" == "RelWithDebInfo" ]]; then
     echo "Setting WORKER_x_MTR_SUITES for BUILD_TYPE=RelWithDebInfo"
     # Unit tests will be executed by worker 1
@@ -46,6 +46,80 @@ function set_suites() {
   fi
 }
 
+# usage: set_suites_84 <BUILD_TYPE>
+function set_suites_84() {
+  if [[ "$1" == "RelWithDebInfo" ]]; then
+    echo "Setting WORKER_x_MTR_SUITES for BUILD_TYPE=RelWithDebInfo"
+    # Unit tests will be executed by worker 1
+    WORKER_1_MTR_SUITES="main|nobig,percona|nobig,binlog_nogtid,innodb_undo,test_services,service_sys_var_registration,connection_control,service_status_var_registration,service_udf_registration,interactive_utilities"
+    WORKER_2_MTR_SUITES="main|big,percona|big"
+    WORKER_3_MTR_SUITES="innodb,percona_innodb"
+    WORKER_4_MTR_SUITES="auth_sec,component_audit_log_filter,component_encryption_udf,component_masking_functions,percona-pam-for-mysql,procfs,rpl_encryption,audit_null,engines/iuds,engines/funcs,group_replication,jp,stress"
+    WORKER_5_MTR_SUITES="rpl,rpl_gtid,rpl_nogtid,binlog,sys_vars,funcs_2,opt_trace,json,collations"
+    WORKER_6_MTR_SUITES="innodb_gis,perfschema,parts,clone,query_rewrite_plugins,funcs_1"
+    WORKER_7_MTR_SUITES="rocksdb,rocksdb_stress,rocksdb_rpl,innodb_zip,information_schema,rocksdb_sys_vars"
+    WORKER_8_MTR_SUITES="component_keyring_file,innodb_fts,x,encryption,sysschema,binlog_gtid,gcol,federated,test_service_sql_api,gis,secondary_engine"
+  else # Debug (and everything different from "RelWithDebInfo")
+    echo "Setting WORKER_x_MTR_SUITES for BUILD_TYPE=Debug"
+    # Unit tests will be executed by worker 1
+    WORKER_1_MTR_SUITES="main|nobig,percona|nobig,binlog_nogtid,innodb_undo,test_services,service_sys_var_registration,connection_control,service_status_var_registration,service_udf_registration,interactive_utilities"
+    WORKER_2_MTR_SUITES="main|big,percona|big"
+    WORKER_3_MTR_SUITES="innodb,percona_innodb"
+    WORKER_4_MTR_SUITES="auth_sec,component_audit_log_filter,component_encryption_udf,component_masking_functions,percona-pam-for-mysql,procfs,rpl_encryption,audit_null,engines/iuds,engines/funcs,group_replication,jp,stress"
+    WORKER_5_MTR_SUITES="rpl,rpl_gtid,rpl_nogtid,binlog,sys_vars,funcs_2,opt_trace,json,collations"
+    WORKER_6_MTR_SUITES="innodb_gis,perfschema,parts,clone,query_rewrite_plugins,funcs_1"
+    WORKER_7_MTR_SUITES="rocksdb,rocksdb_stress,rocksdb_rpl,innodb_zip,information_schema,rocksdb_sys_vars"
+    WORKER_8_MTR_SUITES="component_keyring_file,innodb_fts,x,encryption,sysschema,binlog_gtid,gcol,federated,test_service_sql_api,gis,secondary_engine"
+  fi
+}
+
+# usage: set_suites_9x <BUILD_TYPE>
+function set_suites_9x() {
+  if [[ "$1" == "RelWithDebInfo" ]]; then
+    echo "Setting WORKER_x_MTR_SUITES for BUILD_TYPE=RelWithDebInfo"
+    # Unit tests will be executed by worker 1
+    WORKER_1_MTR_SUITES="main|nobig,percona|nobig,binlog_nogtid,innodb_undo,test_services,service_sys_var_registration,connection_control,service_status_var_registration,service_udf_registration,interactive_utilities"
+    WORKER_2_MTR_SUITES="main|big,percona|big"
+    WORKER_3_MTR_SUITES="innodb,percona_innodb"
+    WORKER_4_MTR_SUITES="component_connection_control,auth_sec,component_audit_log_filter,component_encryption_udf,component_masking_functions,percona-pam-for-mysql,procfs,rpl_encryption,audit_null,engines/iuds,engines/funcs,group_replication,jp,stress"
+    WORKER_5_MTR_SUITES="rpl,rpl_gtid,rpl_nogtid,binlog,sys_vars,funcs_2,opt_trace,json,collations"
+    WORKER_6_MTR_SUITES="innodb_gis,perfschema,parts,clone,query_rewrite_plugins,funcs_1"
+    WORKER_7_MTR_SUITES="rocksdb,rocksdb_stress,rocksdb_rpl,innodb_zip,information_schema,rocksdb_sys_vars"
+    WORKER_8_MTR_SUITES="component_keyring_file,innodb_fts,x,encryption,sysschema,binlog_gtid,gcol,federated,test_service_sql_api,gis,secondary_engine"
+  else # Debug (and everything different from "RelWithDebInfo")
+    echo "Setting WORKER_x_MTR_SUITES for BUILD_TYPE=Debug"
+    # Unit tests will be executed by worker 1
+    WORKER_1_MTR_SUITES="main|nobig,percona|nobig,binlog_nogtid,innodb_undo,test_services,service_sys_var_registration,connection_control,service_status_var_registration,service_udf_registration,interactive_utilities"
+    WORKER_2_MTR_SUITES="main|big,percona|big"
+    WORKER_3_MTR_SUITES="innodb,percona_innodb"
+    WORKER_4_MTR_SUITES="component_connection_control,auth_sec,component_audit_log_filter,component_encryption_udf,component_masking_functions,percona-pam-for-mysql,procfs,rpl_encryption,audit_null,engines/iuds,engines/funcs,group_replication,jp,stress"
+    WORKER_5_MTR_SUITES="rpl,rpl_gtid,rpl_nogtid,binlog,sys_vars,funcs_2,opt_trace,json,collations"
+    WORKER_6_MTR_SUITES="innodb_gis,perfschema,parts,clone,query_rewrite_plugins,funcs_1"
+    WORKER_7_MTR_SUITES="rocksdb,rocksdb_stress,rocksdb_rpl,innodb_zip,information_schema,rocksdb_sys_vars"
+    WORKER_8_MTR_SUITES="component_keyring_file,innodb_fts,x,encryption,sysschema,binlog_gtid,gcol,federated,test_service_sql_api,gis,secondary_engine"
+  fi
+}
+
+# usage: set_suites <BUILD_TYPE> <SERVER_VERSION>
+function set_suites() {
+  local server_version="$2"
+
+  case "$server_version" in
+    8.0.*)
+      set_suites_80 $1
+      ;;
+    8.4.*)
+      set_suites_84 $1
+      ;;
+    9.*)
+      set_suites_9x $1
+      ;;
+    *)
+      echo "Unsupported server version: $server_version"
+      return 1
+      ;;
+  esac
+}
 
 # usage: check_suites <path_to_mysql-test-run.pl>
 function check_suites() {
@@ -154,17 +228,3 @@ function check_suites() {
 
   return ${failure}
 }
-
-
-# This code will be run when this script is included as "source"
-if [[ "$BUILD_TYPE" != "" ]]; then
-  echo "Using BUILD_TYPE=$BUILD_TYPE"
-  set_suites $BUILD_TYPE
-fi
-
-case "$1" in
-  'check')
-    set_suites ${3:-$BUILD_TYPE}
-    check_suites $2
-    ;;
-esac

@@ -35,6 +35,18 @@ rm -rf ${INSTALL_DIR}
 mkdir -p ${BUILD_DIR} ${INSTALL_DIR} ${DOWNLOAD_DIR}
 SOURCEDIR=$(cd ${2:-$(dirname $0)/../sources}; pwd -P)
 
+# ------------------------------------------------------------------------------
+# get MySQL version
+# ------------------------------------------------------------------------------
+if [ -f $SOURCEDIR/VERSION ]; then
+    source "$SOURCEDIR/VERSION"
+elif [ -f $SOURCEDIR/MYSQL_VERSION ]; then
+    source "$SOURCEDIR/MYSQL_VERSION"
+else
+    echo "NO VERSION file found"
+    exit 1
+fi
+MYSQL_VERSION="$MYSQL_VERSION_MAJOR.$MYSQL_VERSION_MINOR.$MYSQL_VERSION_PATCH"
 
 # ------------------------------------------------------------------------------
 # download external libs
@@ -51,8 +63,11 @@ wget_loop() {
     fi
 }
 
-BOOST_VERSION=$(grep 'SET(BOOST_PACKAGE_NAME' ${SOURCEDIR}/cmake/boost.cmake | sed -re 's/.*([0-9]+_[0-9]+_[0-9]+).*/\1/')
-wget_loop "boost_${BOOST_VERSION}.tar.bz2" "http://downloads.sourceforge.net/boost/boost/${BOOST_VERSION//_/.}/boost_${BOOST_VERSION}.tar.bz2"
+# Boost is not required for MySQL/PS 8.4.x or 9.y.z
+if [[ "${MYSQL_VERSION}" == 8.0.* ]]; then
+    BOOST_VERSION=$(grep 'SET(BOOST_PACKAGE_NAME' ${SOURCEDIR}/cmake/boost.cmake | sed -re 's/.*([0-9]+_[0-9]+_[0-9]+).*/\1/')
+    wget_loop "boost_${BOOST_VERSION}.tar.bz2" "http://downloads.sourceforge.net/boost/boost/${BOOST_VERSION//_/.}/boost_${BOOST_VERSION}.tar.bz2"
+fi
 
 RHVER=0
 if [[ -f /etc/redhat-release ]]; then
@@ -78,18 +93,9 @@ fi
 # ------------------------------------------------------------------------------
 # set version
 # ------------------------------------------------------------------------------
-if [ -f $SOURCEDIR/VERSION ]; then
-    source "$SOURCEDIR/VERSION"
-elif [ -f $SOURCEDIR/MYSQL_VERSION ]; then
-    source "$SOURCEDIR/MYSQL_VERSION"
-else
-    echo "NO VERSION file found"
-    exit 1
-fi
 if [[ -n "$(which git)" ]] && [[ -d "$SOURCEDIR/.git" ]]; then
     REVISION="$(cd "$SOURCEDIR"; git rev-parse --short HEAD)"
 fi
-MYSQL_VERSION="$MYSQL_VERSION_MAJOR.$MYSQL_VERSION_MINOR.$MYSQL_VERSION_PATCH"
 PERCONA_SERVER_VERSION="$(echo $MYSQL_VERSION_EXTRA | sed 's/^-//')"
 PRODUCT="Percona-Server-$MYSQL_VERSION-$PERCONA_SERVER_VERSION"
 PRODUCT_FULL="Percona-Server-${MYSQL_VERSION}-${PERCONA_SERVER_VERSION}${BUILD_COMMENT}-${TAG}$(uname -s)${DIST_NAME}.${TARGET_ARCH}${SSL_VER}"
@@ -114,7 +120,6 @@ if [[ -f /opt/rh/devtoolset-8/enable ]]; then
     source /opt/rh/devtoolset-8/enable
 fi
 
-
 # ------------------------------------------------------------------------------
 # Check mecab
 # ------------------------------------------------------------------------------
@@ -125,7 +130,9 @@ else
     WITH_MECAB="system"
 fi
 
-CMAKE_OPTS+=" -DWITH_KEYRING_VAULT=ON -DWITH_KEYRING_VAULT_TEST=ON"
+if [[ "${MYSQL_VERSION}" == 8.0.* ]]; then
+    CMAKE_OPTS+=" -DWITH_KEYRING_VAULT=ON -DWITH_KEYRING_VAULT_TEST=ON"
+fi
 
 # ------------------------------------------------------------------------------
 # Set WITH_SSL
@@ -134,6 +141,15 @@ if [[ "${DOCKER_OS}" = "centos-7" ]]; then
   WITH_SSL="openssl11"
 else
   WITH_SSL="system"
+fi
+
+# ------------------------------------------------------------------------------
+# gcc-10 is minimum supported compiler version for PS 8.2
+# ------------------------------------------------------------------------------
+if [[ "$(printf '%s\n' "$MYSQL_VERSION" "8.2.0" | sort -V | head -n1)" == "8.2.0" ]]; then
+    if [[ "${DOCKER_OS}" = "ubuntu-focal" ]]; then
+        CMAKE_OPTS+=" -DCMAKE_C_COMPILER=gcc-10 -DCMAKE_CXX_COMPILER=g++-10"
+    fi
 fi
 
 # ------------------------------------------------------------------------------
@@ -153,7 +169,6 @@ pushd ${BUILD_DIR}
         -DWITH_PROTOBUF=bundled \
         -DWITH_RAPIDJSON=bundled \
         -DWITH_ICU=bundled \
-        -DWITH_READLINE=system \
         -DBUILD_CONFIG=mysql_release \
         -DWITH_PAM=ON \
         -DWITH_NUMA=ON \

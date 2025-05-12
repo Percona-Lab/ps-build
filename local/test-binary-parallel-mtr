@@ -34,6 +34,14 @@ prlimit
 ulimit -a
 echo "*******************************************************"
 
+if [[ "${SERVER_VERSION}" == 8.0.* ]]; then
+    MTR_ARGS_KV_SUITE="--suite=keyring_vault"
+else
+    MTR_ARGS_KV_SUITE="--suite=component_keyring_vault"
+fi
+echo "SERVER_VERSION=$SERVER_VERSION"
+echo "MTR_ARGS_KV_SUITE=$MTR_ARGS_KV_SUITE"
+
 TESTCASE_TIMEOUT=30
 PARALLEL=$(grep -c ^processor /proc/cpuinfo)
 # CentOS 7
@@ -465,8 +473,8 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         --parallel=$PARALLEL \
         --retry=0 \
         ${MTR_ARGS_KV} \
+        ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
-        --suite=keyring_vault \
         --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v1.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1" || true
 
@@ -486,7 +494,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         --parallel=$PARALLEL \
         --retry=0 \
         ${MTR_ARGS_KV} \
-        --suite=keyring_vault \
+        ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
         --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v2.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v2" || true
@@ -509,7 +517,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         --parallel=$PARALLEL \
         --retry=0 \
         ${MTR_ARGS_KV} \
-        --suite=keyring_vault \
+        ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
         --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v1.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v1" || true
@@ -531,7 +539,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         --parallel=$PARALLEL \
         --retry=0 \
         ${MTR_ARGS_KV} \
-        --suite=keyring_vault \
+        ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
         --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v2.xml \
         --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
