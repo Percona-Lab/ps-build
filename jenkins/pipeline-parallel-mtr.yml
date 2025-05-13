@@ -1,17 +1,20 @@
-- job:
-    name: percona-server-8.0-pipeline-parallel-mtr
+- job-template:
+    name: percona-server-{ps_version}-pipeline-parallel-mtr
     project-type: pipeline
     description: |
         <b>Do not make changes to the pipeline definition via the web interface!<br>
         (Do not use 'Configure' option on the left for changing the pipeline definition)<br>
-        Change the YAML files and Groovy scripts in the <a href="https://github.com/Percona-Lab/ps-build/tree/8.0/jenkins">git repo</a> instead.</b>
+        Change <a href="{scripts_repo}/tree/{scripts_branch}/jenkins/pipeline-parallel-mtr.yml">pipeline-parallel-mtr.yml</a>
+           and <a href="{scripts_repo}/tree/{scripts_branch}/jenkins/pipeline-parallel-mtr.groovy">pipeline-parallel-mtr.groovy</a>
+        in the <a href="{scripts_repo}/tree/{scripts_branch}/jenkins">git repo</a> instead.</b><br>
+        Then update pipeline with "jenkins-jobs --server ps80.cd update jenkins/pipeline-parallel-mtr.yml".
     concurrent: true
     pipeline-scm:
       scm:
         - git:
-            url: https://github.com/Percona-Lab/ps-build
+            url: "{scripts_repo}"
             branches:
-            - "8.0"
+            - "{scripts_branch}"
             wipe-workspace: false
       lightweight-checkout: true
       script-path: jenkins/pipeline-parallel-mtr.groovy
@@ -26,7 +29,7 @@
         description: URL to percona-server repository
     - string:
         name: BRANCH
-        default: "8.0"
+        default: ""
         description: Tag/Branch for percona-server repository
     - string:
         name: CUSTOM_BUILD_NAME
@@ -38,14 +41,7 @@
         description: "Check only if you pass PR number to BRANCH field"
     - choice:
         name: DOCKER_OS
-        choices:
-        - centos:8
-        - oraclelinux:9
-        - ubuntu:focal
-        - ubuntu:jammy
-        - ubuntu:noble
-        - debian:bullseye
-        - debian:bookworm
+        choices: '{docker_os_list}'
         description: OS version for compilation
     - choice:
         name: CMAKE_BUILD_TYPE
@@ -58,6 +54,11 @@
         choices:
         - /usr/bin/cmake
         description: path to cmake binary
+    - choice:
+        name: COMPILER
+        choices:
+        - default
+        description: compiler version e.g. gcc-15 or clang-20
     - choice:
         name: ANALYZER_OPTS
         choices:
@@ -121,7 +122,7 @@
         choices:
         - "no"
         - "yes"
-        description: Run mtr --suite=keyring_vault
+        description: Run mtr --suite=component_keyring_vault or --suite=keyring_vault for 8.0
     - string:
         name: KEYRING_VAULT_V1_VERSION
         default: "0.9.6"
@@ -196,11 +197,62 @@
         description: Slack channel
     - string:
         name: JENKINS_SCRIPTS_REPO
-        default: 'https://github.com/Percona-Lab/ps-build'
+        default: '{scripts_repo}'
+        description: Download the build scripts from this repository, except for the Groovy script referenced by the path defined in pipeline-parallel-mtr.yml
     - string:
         name: JENKINS_SCRIPTS_BRANCH
-        default: '8.0'
+        default: '{scripts_branch}'
     - hidden:
         name: LAUNCHER_USER_ID
         default: ''
         description: Internal parameter, do not modify
+    - hidden:
+        name: PIPELINE_NAME
+        default: 'percona-server-{ps_version}-pipeline-parallel-mtr'
+        description: 'Internal pipeline name (hidden)'
+
+- project:
+    name: pipeline-parallel-mtr-8.0
+    ps_version: 8.0
+    scripts_repo: https://github.com/Percona-Lab/ps-build
+    scripts_branch: '8.0'
+    docker_os_list:
+      - centos:8
+      - oraclelinux:9
+      - ubuntu:focal
+      - ubuntu:jammy
+      - ubuntu:noble
+      - debian:bullseye
+      - debian:bookworm
+    jobs:
+      - percona-server-{ps_version}-pipeline-parallel-mtr
+
+- project:
+    name: pipeline-parallel-mtr-8.x
+    ps_version: 8.x
+    scripts_repo: https://github.com/Percona-Lab/ps-build
+    scripts_branch: '8.0'
+    docker_os_list:
+      - centos:8
+      - oraclelinux:9
+      - ubuntu:focal
+      - ubuntu:jammy
+      - ubuntu:noble
+      - debian:bullseye
+      - debian:bookworm
+    jobs:
+      - percona-server-{ps_version}-pipeline-parallel-mtr
+
+- project:
+    name: pipeline-parallel-mtr-9.x
+    ps_version: 9.x
+    scripts_repo: https://github.com/Percona-Lab/ps-build
+    scripts_branch: '8.0'
+    docker_os_list:
+      - centos:8
+      - oraclelinux:9
+      - ubuntu:jammy
+      - ubuntu:noble
+      - debian:bookworm
+    jobs:
+      - percona-server-{ps_version}-pipeline-parallel-mtr

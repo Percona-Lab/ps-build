@@ -66,7 +66,7 @@ wget_loop() {
 # Boost is not required for MySQL/PS 8.4.x or 9.y.z
 if [[ "${MYSQL_VERSION}" == 8.0.* ]]; then
     BOOST_VERSION=$(grep 'SET(BOOST_PACKAGE_NAME' ${SOURCEDIR}/cmake/boost.cmake | sed -re 's/.*([0-9]+_[0-9]+_[0-9]+).*/\1/')
-    wget_loop "boost_${BOOST_VERSION}.tar.bz2" "http://downloads.sourceforge.net/boost/boost/${BOOST_VERSION//_/.}/boost_${BOOST_VERSION}.tar.bz2"
+    wget_loop "boost_${BOOST_VERSION}.tar.bz2" "https://archives.boost.io/release/${BOOST_VERSION//_/.}/source/boost_${BOOST_VERSION}.tar.bz2"
 fi
 
 RHVER=0
