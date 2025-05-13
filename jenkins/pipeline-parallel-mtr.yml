@@ -1,17 +1,17 @@
-- job:
-    name: percona-server-8.x-pipeline-parallel-mtr
+- job-template:
+    name: percona-server-{ps_version}-pipeline-parallel-mtr
     project-type: pipeline
     description: |
         <b>Do not make changes to the pipeline definition via the web interface!<br>
         (Do not use 'Configure' option on the left for changing the pipeline definition)<br>
-        Change the YAML files and Groovy scripts in the <a href="https://github.com/Percona-Lab/ps-build/tree/8.x/jenkins">git repo</a> instead.</b>
+        Change the YAML files and Groovy scripts in the <a href="{scripts_repo}/tree/{scripts_branch}/jenkins">git repo</a> instead.</b>
     concurrent: true
     pipeline-scm:
       scm:
         - git:
-            url: https://github.com/Percona-Lab/ps-build
+            url: "{scripts_repo}"
             branches:
-            - "8.x"
+            - "{scripts_branch}"
             wipe-workspace: false
       lightweight-checkout: true
       script-path: jenkins/pipeline-parallel-mtr.groovy
@@ -38,14 +38,7 @@
         description: "Check only if you pass PR number to BRANCH field"
     - choice:
         name: DOCKER_OS
-        choices:
-        - centos:8
-        - oraclelinux:9
-        - ubuntu:focal
-        - ubuntu:jammy
-        - ubuntu:noble
-        - debian:bullseye
-        - debian:bookworm
+        choices: '{docker_os_list}'
         description: OS version for compilation
     - choice:
         name: CMAKE_BUILD_TYPE
@@ -196,7 +189,45 @@
         description: Slack channel
     - string:
         name: JENKINS_SCRIPTS_REPO
-        default: 'https://github.com/Percona-Lab/ps-build'
+        default: '{scripts_repo}'
+        description: Download build scripts from this repo (except Groovy script defined in pipeline-parallel-mtr.yml)
     - string:
         name: JENKINS_SCRIPTS_BRANCH
-        default: '8.x'
+        default: '{scripts_branch}'
+    - hidden:
+        name: JOB_NAME
+        default: 'percona-server-{ps_version}-pipeline-parallel-mtr'
+        description: 'Internal pipeline name (hidden)'
+
+
+- project:
+    name: pipeline-parallel-mtr-9.x
+    ps_version: 9.x
+    # scripts_repo: https://github.com/inikep/ps-build
+    scripts_repo: https://github.com/Percona-Lab/ps-build
+    scripts_branch: 8.x
+    docker_os_list:
+      - centos:8
+      - oraclelinux:9
+      - ubuntu:jammy
+      - ubuntu:noble
+      - debian:bookworm
+    jobs:
+      - percona-server-{ps_version}-pipeline-parallel-mtr
+
+- project:
+    name: pipeline-parallel-mtr-8.x
+    ps_version: 8.x
+    # scripts_repo: https://github.com/inikep/ps-build
+    scripts_repo: https://github.com/Percona-Lab/ps-build
+    scripts_branch: 8.x
+    docker_os_list:
+      - centos:8
+      - oraclelinux:9
+      - ubuntu:focal
+      - ubuntu:jammy
+      - ubuntu:noble
+      - debian:bullseye
+      - debian:bookworm
+    jobs:
+      - percona-server-{ps_version}-pipeline-parallel-mtr

@@ -375,7 +375,7 @@ void triggerAbortedTestWorkersRerun() {
             echo "rerun needed: $rerunNeeded"
             if (rerunNeeded) {
                 echo "restarting aborted workers"
-                build job: 'percona-server-8.x-pipeline-parallel-mtr',
+                build job: "${params.JOB_NAME}",
                 wait: false,
                 parameters: [
                     string(name:'BUILD_NUMBER_BINARIES', value: BUILD_NUMBER_BINARIES_FOR_RERUN),
@@ -525,7 +525,7 @@ def notifySlack(status, color, customMessage) {
                 .replace("{userId}", userId)
                 .replace("{email}", email)
                 .replace("{slackUserId}", slackUserId)
-                .replace("{jobName}", env.JOB_NAME)
+                .replace("{jobName}", "${env.JOB_NAME} #${env.BUILD_NUMBER}")
 
             slackSend botUser: true,
                 channel: "#${env.SLACK_CHANNEL}",
@@ -552,12 +552,13 @@ pipeline {
         skipStagesAfterUnstable()
         timeout(time: 6, unit: 'DAYS')
         buildDiscarder(logRotator(numToKeepStr: '200', artifactNumToKeepStr: '200'))
-        copyArtifactPermission('percona-server-8.x-param-parallel-mtr');
     }
     stages {
         stage('Prepare') {
             steps {
                 script {
+                    copyArtifactPermission(params.JOB_NAME);
+                    echo "JOB_NAME = ${params.JOB_NAME}"
                     echo "NODE_NAME = ${env.NODE_NAME}"
                     echo "JENKINS_SCRIPTS_BRANCH: $JENKINS_SCRIPTS_BRANCH"
                     echo "JENKINS_SCRIPTS_REPO: $JENKINS_SCRIPTS_REPO"
