@@ -83,7 +83,7 @@ if [ -f /usr/bin/yum ]; then
         sleep 1
       done
 
-      dnf config-manager --set-enabled powertools epel-playground
+      dnf config-manager --set-enabled powertools
       PKGLIST+=" libedit-devel"
   fi
 
@@ -115,10 +115,6 @@ if [ -f /usr/bin/yum ]; then
     echo "waiting"
     sleep 1
   done
-
-  if [[ ${RHVER} -eq 8 ]]; then
-      dnf config-manager --set-enabled powertools epel-playground
-  fi
 
   PKGLIST=" \
     rsync gcc-c++ libtool gperf ncurses-devel perl readline-devel jemalloc zip unzip tar gzip \
