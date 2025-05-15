@@ -55,15 +55,14 @@ docker run --rm \
     export TAG='${TAG}'
     export DIST_NAME='${DIST_NAME}'
     export SSL_VER='${SSL_VER}'
-    export ZEN_FS_MTR='${ZEN_FS_MTR}'
     export DOCKER_OS='${SOURCE_IMAGE}'
     export KEEP_BUILD='${KEEP_BUILD}'
 
-    sudo chown mysql:mysql /tmp/work /tmp/sources /tmp/sources/mysql-test/collections /tmp/sources/storage/rocksdb/rocksdb/util /tmp/sources/rocksdb/util /tmp/sources/storage/rocksdb/rocksdb_plugins/zenfs/fs || :
+    sudo chown mysql:mysql /tmp/work /tmp/sources /tmp/sources/mysql-test/collections || :
     cp -r /tmp/source_downloads /tmp/work/source_downloads
 
     bash -x /tmp/scripts/build-binary /tmp/work /tmp/sources
 
     rm -rf /tmp/work/source_downloads
-    sudo chown $(id -u):$(id -g) /tmp/work /tmp/sources /tmp/sources/mysql-test/collections /tmp/sources/storage/rocksdb/rocksdb/util /tmp/sources/rocksdb/util /tmp/sources/storage/rocksdb/rocksdb_plugins/zenfs/fs || :
+    sudo chown $(id -u):$(id -g) /tmp/work /tmp/sources /tmp/sources/mysql-test/collections || :
 "
