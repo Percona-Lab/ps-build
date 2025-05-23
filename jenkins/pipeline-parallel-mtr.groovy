@@ -6,12 +6,11 @@ S3_ROOT_DIR = 's3://ps-build-cache'
 WORKER_ABORTED = new boolean[9]
 BUILD_NUMBER_BINARIES_FOR_RERUN = 0
 BUILD_TRIGGER_BY = ''
-PXB24_PACKAGE_TO_DOWNLOAD = ''
-PXB80_PACKAGE_TO_DOWNLOAD = ''
-
-def LABEL = 'docker-32gb'
 WORK_DIR = 'work'
 SERVER_VERSION = '1.0.0'
+
+LABEL = ''
+MICRO_LABEL = ''
 
 // functions start here
 void syncDirToS3(String SRC_DIRECTORY, String DST_DIRECTORY, String EXCLUDE_PATTERN) {
@@ -400,7 +399,7 @@ void triggerAbortedTestWorkersRerun() {
                             string(name:'KEYRING_VAULT_MTR', value: env.KEYRING_VAULT_MTR),
                             string(name:'KEYRING_VAULT_V1_VERSION', value: env.KEYRING_VAULT_V1_VERSION),
                             string(name:'KEYRING_VAULT_V2_VERSION', value: env.KEYRING_VAULT_V2_VERSION),
-                            string(name:'LABEL', value: env.LABEL),
+                            string(name:'CLOUD', value: env.CLOUD),
                     string(name:'FULL_MTR', value:'no'),
                     string(name:'WORKER_1_MTR_SUITES', value: WORKER_1_RERUN_SUITES),
                     string(name:'WORKER_2_MTR_SUITES', value: WORKER_2_RERUN_SUITES),
@@ -539,9 +538,18 @@ def notifySlack(status, color, customMessage) {
     }
 }
 
+if (params.CLOUD == 'Hetzner') {
+    LABEL = 'docker-x64'
+    MICRO_LABEL = 'launcher-x64'
+} else {
+    // by default fallback to AWS
+    LABEL = 'docker-32gb'
+    MICRO_LABEL = 'micro-amazon'
+}
+
 pipeline {
     agent {
-        label 'micro-amazon'
+        label MICRO_LABEL
     }
     options {
         skipDefaultCheckout()
@@ -557,7 +565,7 @@ pipeline {
                     echo "NODE_NAME = ${env.NODE_NAME}"
                     echo "JENKINS_SCRIPTS_BRANCH: $JENKINS_SCRIPTS_BRANCH"
                     echo "JENKINS_SCRIPTS_REPO: $JENKINS_SCRIPTS_REPO"
-                    echo "Using instances with LABEL ${LABEL} for build and test stages"
+                    echo "Using instances from cloud ${CLOUD} with LABEL ${LABEL} for build and test stages"
                 }
                 git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
 

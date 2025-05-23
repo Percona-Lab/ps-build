@@ -131,11 +131,11 @@
         default: "1.9.0"
         description: Specifies version of Hashicorp Vault for V2 tests
     - choice:
-        name: LABEL
+        name: CLOUD
         choices:
-        - docker-32gb
-        - docker
-        description: Run build on specified instance type
+        - "Hetzner"
+        - "AWS"
+        description: "Host provider for Jenkins workers"
     - choice:
         name: FULL_MTR
         choices:
