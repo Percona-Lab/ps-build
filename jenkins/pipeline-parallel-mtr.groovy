@@ -7,6 +7,7 @@ WORKER_ABORTED = new boolean[9]
 BUILD_NUMBER_BINARIES_FOR_RERUN = 0
 BUILD_TRIGGER_BY = ''
 WORK_DIR = 'work'
+SERVER_VERSION = '1.0'
 
 LABEL = ''
 MICRO_LABEL = ''
@@ -135,6 +136,7 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
 
                 MTR_STANDALONE_TESTS="${STANDALONE_TESTS}"
                 export MTR_SUITES="${SUITES}"
+                export SERVER_VERSION="${SERVER_VERSION}"
 
                 aws ecr-public get-login-password --region us-east-1 | docker login -u AWS --password-stdin public.ecr.aws/e7j3v3n0
                 sg docker -c "
@@ -459,7 +461,7 @@ def validatePsBranch() {
       returnStdout: true
     ).trim()
 
-    return serverVersion
+    return serverVersion.readLines().last()
 }
 
 // functions end here
@@ -585,9 +587,9 @@ pipeline {
                 sh 'echo Prepare: \$(date -u "+%s")'
 
                 script {
-                    def serverVersion = validatePsBranch()
-                    echo "Extracted serverVersion: ${serverVersion}"
-                    setupTestSuitesSplit(serverVersion)
+                    SERVER_VERSION = validatePsBranch()
+                    echo "Extracted SERVER_VERSION: ${SERVER_VERSION}"
+                    setupTestSuitesSplit(SERVER_VERSION)
 
                     env.BUILD_TAG_BINARIES = "jenkins-${env.JOB_NAME}-${env.BUILD_NUMBER_BINARIES}"
                     BUILD_NUMBER_BINARIES_FOR_RERUN = env.BUILD_NUMBER_BINARIES

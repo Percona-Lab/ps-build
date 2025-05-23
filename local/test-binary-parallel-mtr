@@ -25,6 +25,7 @@ RESULTS_DIR=${WORKDIR}/results
 EXTRACT_DIR=${WORKDIR}/extract
 mkdir -p ${RESULTS_DIR}
 
+echo "SERVER_VERSION=$SERVER_VERSION"
 echo "*******************************************************"
 echo "Starting tests on worker ${WORKER_NO}"
 whoami
