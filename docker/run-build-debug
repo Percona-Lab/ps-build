@@ -56,7 +56,7 @@ docker run -it --rm \
     export DOCKER_OS='${SOURCE_IMAGE}'
     export KEEP_BUILD='${KEEP_BUILD}'
 
-    sudo chown mysql:mysql /tmp/work /tmp/sources /tmp/sources/mysql-test/collections || :
+    sudo chown mysql:mysql /tmp/work /tmp/sources /tmp/sources/mysql-test/collections /tmp/sources/storage/rocksdb/rocksdb/util /tmp/sources/rocksdb/util || :
     cp -r /tmp/source_downloads /tmp/work/source_downloads
 
     echo -------------------------------------------------------------------------------
@@ -71,5 +71,5 @@ docker run -it --rm \
     bash
 
     rm -rf /tmp/work/source_downloads
-    sudo chown $(id -u):$(id -g) /tmp/work /tmp/sources /tmp/sources/mysql-test/collections || :
+    sudo chown $(id -u):$(id -g) /tmp/work /tmp/sources /tmp/sources/mysql-test/collections /tmp/sources/storage/rocksdb/rocksdb/util /tmp/sources/rocksdb/util || :
 "
