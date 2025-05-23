@@ -124,11 +124,11 @@
         default: "1.9.0"
         description: Specifies version of Hashicorp Vault for V2 tests
     - choice:
-        name: LABEL
+        name: CLOUD
         choices:
-        - docker-32gb
-        - docker
-        description: Run build on specified instance type
+        - "Hetzner"
+        - "AWS"
+        description: "Host provider for Jenkins workers"
     - choice:
         name: FULL_MTR
         choices:
@@ -185,12 +185,12 @@
         description: "Rerun aborted workers"
     - string:
         name: SLACK_CHANNEL
-        default: '#test-jenkins'
-        description: Slack channel
+        default: '#ps-upstream-merges'
+        description: Slack channel for messages when a job was finished
     - string:
         name: JENKINS_SCRIPTS_REPO
         default: '{scripts_repo}'
-        description: Download build scripts from this repo (except Groovy script defined in pipeline-parallel-mtr.yml)
+        description: Download the build scripts from this repository, except for the Groovy script referenced by the path defined in pipeline-parallel-mtr.yml
     - string:
         name: JENKINS_SCRIPTS_BRANCH
         default: '{scripts_branch}'
