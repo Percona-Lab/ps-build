@@ -190,3 +190,11 @@
         name: ALLOW_ABORTED_WORKERS_RERUN
         default: true
         description: "Rerun aborted workers"
+    - string:
+        name: SLACK_CHANNEL
+        default: '#ps-upstream-merges'
+        description: Slack channel
+    - hidden:
+        name: LAUNCHER_USER_ID
+        default: ''
+        description: Internal parameter, do not modify
