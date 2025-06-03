@@ -384,6 +384,7 @@ void triggerAbortedTestWorkersRerun() {
                     string(name:'BRANCH', value: env.BRANCH),
                     string(name:'DOCKER_OS', value: env.DOCKER_OS),
                     string(name:'JOB_CMAKE', value: env.JOB_CMAKE),
+                    string(name:'COMPILER', value: env.COMPILER),
                     string(name:'CMAKE_BUILD_TYPE', value: env.CMAKE_BUILD_TYPE),
                     string(name:'ANALYZER_OPTS', value: env.ANALYZER_OPTS),
                             string(name:'WITH_ROCKSDB', value: env.WITH_ROCKSDB),

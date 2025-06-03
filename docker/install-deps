@@ -308,6 +308,17 @@ if [ -f /usr/bin/apt-get ]; then
 
     apt-get -y clean
 
+    if [[ ${DIST} == "focal" ]]; then
+        # Register gcc-9 and gcc-10 with update-alternatives
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100
+        # Set gcc and g++ to version 10
+        sudo update-alternatives --set gcc /usr/bin/gcc-10
+        sudo update-alternatives --set g++ /usr/bin/g++-10
+    fi
+
     if [[ -L /usr/bin/python ]]; then
         rm /usr/bin/python
     fi
@@ -333,10 +344,10 @@ sed -re "s/^(::1.*)\slocalhost\b(.*)$/\1 \2/g" /etc/hosts 1<> /etc/hosts
 
 # NB: resulting docker image will be used for building all branches: 5.6, 5.7, 8.0
 # boost 1.59.0 needed for percona-server 5.7
-wget_loop 'boost_1_59_0.tar.gz' 'http://downloads.sourceforge.net/boost/boost/1.59.0/boost_1_59_0.tar.gz'
+wget_loop 'boost_1_59_0.tar.gz' 'https://archives.boost.io/release/1.59.0/source/boost_1_59_0.tar.gz'
 
 # boost 1.77.0 needed for percona-server 8.0
-wget_loop 'boost_1_77_0.tar.bz2' 'http://downloads.sourceforge.net/boost/boost/1.77.0/boost_1_77_0.tar.bz2'
+wget_loop 'boost_1_77_0.tar.bz2' 'https://archives.boost.io/release/1.77.0/source/boost_1_77_0.tar.bz2'
 
 # googletest 1.8.0 needed for percona-server versions 5.6 and 5.7
 wget_loop 'googletest-release-1.8.0.zip' 'https://github.com/google/googletest/archive/release-1.8.0.zip'
