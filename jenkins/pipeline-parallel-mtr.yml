@@ -44,6 +44,11 @@
         choices: '{docker_os_list}'
         description: OS version for compilation
     - choice:
+        name: COMPILER
+        choices:
+        - default
+        description: compiler version (default = use system compiler)
+    - choice:
         name: CMAKE_BUILD_TYPE
         choices:
         - RelWithDebInfo

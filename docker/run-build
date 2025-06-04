@@ -33,6 +33,7 @@ docker run --rm \
     --mount type=bind,source=${SOURCES_DIR},destination=/tmp/sources \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
     --mount type=bind,source=${WORK_DIR},destination=/tmp/work \
+    --mount type=bind,source=${ROOT_DIR}/.ccache,destination=/tmp/ccache \
     public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE} \
     sh -c "
     set -o errexit
@@ -52,6 +53,15 @@ docker run --rm \
     export TAG='${TAG}'
     export DIST_NAME='${DIST_NAME}'
     export SSL_VER='${SSL_VER}'
+
+    # ccache environment (ensure they're exported inside container)
+    export USE_CCACHE='${USE_CCACHE:-true}'
+    export CCACHE_DIR='${CCACHE_DIR:-/tmp/ccache}'
+    export CCACHE_COMPRESS='${CCACHE_COMPRESS:-1}'
+    export CCACHE_COMPRESSLEVEL='${CCACHE_COMPRESSLEVEL:-1}'
+    export CCACHE_CPP2='${CCACHE_CPP2:-1}'
+    export CCACHE_MAXSIZE='${CCACHE_MAXSIZE:-8G}'
+    export CCACHE_BASEDIR='/tmp/sources'
     export DOCKER_OS='${SOURCE_IMAGE}'
     export KEEP_BUILD='${KEEP_BUILD}'
 

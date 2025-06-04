@@ -48,11 +48,6 @@
         - /usr/bin/cmake
         description: path to cmake binary
     - choice:
-        name: COMPILER
-        choices:
-        - default
-        description: compiler version e.g. gcc-15 or clang-20
-    - choice:
         name: ANALYZER_OPTS
         choices:
         -
@@ -184,6 +179,18 @@
         name: ALLOW_ABORTED_WORKERS_RERUN
         default: true
         description: "Rerun aborted workers"
+    - choice:
+        name: CACHE_RETENTION_DAYS
+        choices:
+        - "14"
+        - "7"
+        - "21"
+        - "30"
+        description: "S3 cache retention period in days (lifecycle rules configured for these values)"
+    - string:
+        name: CCACHE_MAXSIZE
+        default: "8G"
+        description: "Maximum ccache size (e.g., 8G, 16G, 32G)"
     - string:
         name: SLACK_CHANNEL
         default: '#ps-upstream-merges'

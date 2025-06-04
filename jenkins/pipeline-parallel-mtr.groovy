@@ -1,3 +1,8 @@
+library changelog: false, identifier: "lib@master", retriever: modernSCM([
+    $class: 'GitSCMSource',
+    remote: 'https://github.com/Percona-Lab/jenkins-pipelines.git'
+])
+
 PIPELINE_TIMEOUT = 24
 AWS_CREDENTIALS_ID = 'c8b933cd-b8ca-41d5-b639-33fe763d3f68'
 MAX_S3_RETRIES = 12
@@ -208,7 +213,7 @@ void build(String SCRIPT) {
                     if [ \$(docker ps -q | wc -l) -ne 0 ]; then
                         docker ps -q | xargs docker stop --time 1 || :
                     fi
-                    eval KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
+                    eval USE_CCACHE=true KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
                 " 2>&1 | tee build.log
 
                 echo Archive build log: \$(date -u "+%s")
@@ -576,6 +581,7 @@ pipeline {
                     if (BUILD_TRIGGER_BY == " (null)") {
                         BUILD_TRIGGER_BY = " "
                     }
+                    
                     currentBuild.displayName = "${BUILD_NUMBER} ${CMAKE_BUILD_TYPE}/${DOCKER_OS}${BUILD_TRIGGER_BY} ${CUSTOM_BUILD_NAME}"
                 }
 
@@ -606,7 +612,115 @@ pipeline {
                         git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
 
                         checkoutSources()
+
+                        script {
+                            // Set BUILD_PARAMS_TYPE based on ANALYZER_OPTS
+                            if (env.ANALYZER_OPTS) {
+                                if (env.ANALYZER_OPTS.contains('ASAN')) {
+                                    env.BUILD_PARAMS_TYPE = 'asan'
+                                } else if (env.ANALYZER_OPTS.contains('VALGRIND')) {
+                                    env.BUILD_PARAMS_TYPE = 'valgrind'
+                                } else if (env.ANALYZER_OPTS.contains('UBSAN')) {
+                                    env.BUILD_PARAMS_TYPE = 'ubsan'
+                                } else if (env.ANALYZER_OPTS.contains('MSAN')) {
+                                    env.BUILD_PARAMS_TYPE = 'msan'
+                                } else {
+                                    env.BUILD_PARAMS_TYPE = 'standard'
+                                }
+                            } else {
+                                env.BUILD_PARAMS_TYPE = 'standard'
+                            }
+
+                            // Extract MySQL version from sources
+                            def versionFile = sh(returnStdout: true, script: """
+                                if [ -f sources/VERSION ]; then
+                                    cat sources/VERSION
+                                elif [ -f sources/MYSQL_VERSION ]; then
+                                    cat sources/MYSQL_VERSION
+                                fi
+                            """).trim()
+
+                            if (versionFile) {
+                                def mysqlVersion = sh(returnStdout: true, script: """
+                                    echo "${versionFile}" | grep -E '^MYSQL_VERSION_MAJOR|^MYSQL_VERSION_MINOR|^MYSQL_VERSION_PATCH' | cut -d= -f2 | paste -sd'.' -
+                                """).trim()
+                                env.MYSQL_VERSION = mysqlVersion
+                            }
+
+                            // Extract compiler version for ccache key
+                            def CC_COMPILER = ""
+                            if (env.COMPILER && env.COMPILER != 'default') {
+                                CC_COMPILER = env.COMPILER
+                            } else {
+                                CC_COMPILER = env.CC ?: 'gcc'
+                            }
+
+                            env.COMPILER_VERSION = sh(returnStdout: true, script: """
+                                COMPILER="${CC_COMPILER}"
+                                if [[ "\$COMPILER" == *"clang"* ]]; then
+                                    \$COMPILER --version | grep -o "clang version.*" | awk '{print \$3}'
+                                else
+                                    # For gcc, use -v to get consistent version format
+                                    \$COMPILER -v 2>&1 | tail -1 | awk '{print \$3}'
+                                fi || echo ''
+                            """).trim()
+
+                            // Create TOOLSET variable combining compiler and version
+                            env.TOOLSET = sh(returnStdout: true, script: """
+                                COMPILER="${CC_COMPILER}"
+                                VERSION="${env.COMPILER_VERSION}"
+                                if [[ "\$COMPILER" == *"clang"* ]]; then
+                                    echo "clang-\$VERSION"
+                                else
+                                    echo "gcc-\$VERSION"
+                                fi
+                            """).trim()
+
+                            echo "COMPILER: ${env.COMPILER}"
+                            echo "CC_COMPILER: ${CC_COMPILER}"
+                            echo "COMPILER_VERSION: ${env.COMPILER_VERSION}"
+                            echo "TOOLSET: ${env.TOOLSET}"
+
+                            // Determine build type suffix for special builds
+                            env.BUILD_TYPE_SUFFIX = ""
+                            if (env.ANALYZER_OPTS) {
+                                if (env.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) {
+                                    env.BUILD_TYPE_SUFFIX = "-asan"
+                                } else if (env.ANALYZER_OPTS.contains('-DWITH_VALGRIND=ON')) {
+                                    env.BUILD_TYPE_SUFFIX = "-valgrind"
+                                }
+                            }
+                        }
+
+                        // Download ccache using shared library
+                        ccacheDownload([
+                            awsCredentialsId: AWS_CREDENTIALS_ID,
+                            buildParamsType: env.BUILD_PARAMS_TYPE,
+                            cacheRetentionDays: env.CACHE_RETENTION_DAYS,
+                            cmakeBuildType: env.CMAKE_BUILD_TYPE + (env.BUILD_TYPE_SUFFIX ?: ''),
+                            dockerOs: env.DOCKER_OS,
+                            forceCacheMiss: env.FORCE_CACHE_MISS == 'true',
+                            mysqlVersion: SERVER_VERSION,
+                            s3Bucket: S3_ROOT_DIR + '/',
+                            toolset: env.TOOLSET,
+                            workspace: env.WORKSPACE
+                        ])
+
                         build("./docker/run-build")
+
+                        // Upload ccache using shared library
+                        ccacheUpload([
+                            awsCredentialsId: AWS_CREDENTIALS_ID,
+                            buildParamsType: env.BUILD_PARAMS_TYPE,
+                            cacheRetentionDays: env.CACHE_RETENTION_DAYS,
+                            cacheSize: env.CACHE_SIZE,
+                            cmakeBuildType: env.CMAKE_BUILD_TYPE + (env.BUILD_TYPE_SUFFIX ?: ''),
+                            dockerOs: env.DOCKER_OS,
+                            mysqlVersion: SERVER_VERSION,
+                            s3Bucket: S3_ROOT_DIR + '/',
+                            toolset: env.TOOLSET,
+                            workspace: env.WORKSPACE
+                        ])
 
                         script {
                             boolean archive_public_url = false

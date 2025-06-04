@@ -49,6 +49,29 @@ fi
 MYSQL_VERSION="$MYSQL_VERSION_MAJOR.$MYSQL_VERSION_MINOR.$MYSQL_VERSION_PATCH"
 
 # ------------------------------------------------------------------------------
+# Setup ccache if enabled
+# ------------------------------------------------------------------------------
+if [[ "${USE_CCACHE}" == "true" ]]; then
+    echo "Setting up ccache..."
+
+    # Check if ccache is available
+    if command -v ccache &> /dev/null; then
+        ccache --version
+
+        # Add ccache to CMake options
+        CMAKE_OPTS="${CMAKE_OPTS} -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+
+        # Show initial statistics
+        echo "Initial ccache statistics:"
+        ccache -s
+    else
+        echo "WARNING: ccache not found, continuing without cache"
+        USE_CCACHE=0
+    fi
+fi
+
+
+# ------------------------------------------------------------------------------
 # download external libs
 # ------------------------------------------------------------------------------
 wget_loop() {
@@ -183,7 +206,7 @@ pushd ${BUILD_DIR}
     make -j$(nproc) DESTDIR=${INSTALL_DIR} install | tee ${WORKDIR}/make_install.log
 popd
 
-# GCOV instrumentation files for coverage report. 
+# GCOV instrumentation files for coverage report.
 if [[ ${WITH_GCOV} == 'ON' ]]; then
     pushd ${SOURCEDIR}
     wget https://raw.githubusercontent.com/Percona-QA/percona-qa/master/Coverage/dgcov.pl
@@ -197,6 +220,12 @@ fi
 
 tar -C ${INSTALL_DIR}/usr/local --owner=0 --group=0 -czf "${WORKDIR}/$PRODUCT_FULL.tar.gz" $PRODUCT_FULL
 rm -rf ${INSTALL_DIR}
+
+# Show final ccache statistics
+if [[ "${USE_CCACHE}" == "true" && -n $(command -v ccache) ]]; then
+    echo "Final ccache statistics:"
+    ccache -s
+fi
 
 if [[ "${KEEP_BUILD}" != "yes" ]]; then
     rm -rf ${BUILD_DIR}

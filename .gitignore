@@ -3,3 +3,4 @@ jenkins/result/
 sources/
 *~
 .DS_Store
+.ccache/
