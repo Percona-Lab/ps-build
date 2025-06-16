@@ -51,7 +51,7 @@ MYSQL_VERSION="$MYSQL_VERSION_MAJOR.$MYSQL_VERSION_MINOR.$MYSQL_VERSION_PATCH"
 # ------------------------------------------------------------------------------
 # Setup ccache if enabled
 # ------------------------------------------------------------------------------
-if [[ "${USE_CCACHE}" == "true" ]]; then
+if [[ "${USE_CCACHE}" == "yes" ]]; then
     echo "Setting up ccache..."
 
     # Check if ccache is available
