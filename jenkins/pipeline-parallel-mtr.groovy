@@ -4,6 +4,10 @@ library changelog: false, identifier: "lib@master", retriever: modernSCM([
 ])
 
 // Cache configuration constants
+// These values are hardcoded based on team requirements:
+// - CCACHE_MAXSIZE: 8GB is sufficient for all build types including sanitizers
+// - Retention: 60 days for normal builds, 120 days for ASAN/Valgrind builds
+// NOTE: S3 bucket lifecycle rules must be configured to support 60 and 120 day retention periods
 final String CCACHE_MAXSIZE = '8G'
 final int CACHE_RETENTION_DAYS_NORMAL = 60
 final int CACHE_RETENTION_DAYS_SANITIZER = 120
