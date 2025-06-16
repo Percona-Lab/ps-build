@@ -55,7 +55,7 @@ docker run --rm \
     export SSL_VER='${SSL_VER}'
 
     # ccache environment (ensure they're exported inside container)
-    export USE_CCACHE='${USE_CCACHE:-true}'
+    export USE_CCACHE='${USE_CCACHE:-yes}'
     export CCACHE_DIR='${CCACHE_DIR:-/tmp/ccache}'
     export CCACHE_COMPRESS='${CCACHE_COMPRESS:-1}'
     export CCACHE_COMPRESSLEVEL='${CCACHE_COMPRESSLEVEL:-1}'

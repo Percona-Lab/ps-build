@@ -222,7 +222,7 @@ void build(String SCRIPT) {
                     if [ \$(docker ps -q | wc -l) -ne 0 ]; then
                         docker ps -q | xargs docker stop --time 1 || :
                     fi
-                    eval USE_CCACHE=true KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
+                    eval USE_CCACHE=yes KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
                 " 2>&1 | tee build.log
 
                 echo Archive build log: \$(date -u "+%s")
@@ -657,12 +657,7 @@ pipeline {
                             }
 
                             // Extract compiler version for ccache key
-                            def CC_COMPILER = ""
-                            if (env.COMPILER && env.COMPILER != 'default') {
-                                CC_COMPILER = env.COMPILER
-                            } else {
-                                CC_COMPILER = env.CC ?: 'gcc'
-                            }
+                            def CC_COMPILER = env.CC ?: 'gcc'
 
                             env.COMPILER_VERSION = sh(returnStdout: true, script: """
                                 COMPILER="${CC_COMPILER}"
@@ -675,37 +670,24 @@ pipeline {
                             """).trim()
 
                             // Create TOOLSET variable combining compiler and version
-                            env.TOOLSET = sh(returnStdout: true, script: """
-                                COMPILER="${CC_COMPILER}"
-                                VERSION="${env.COMPILER_VERSION}"
-                                if [[ "\$COMPILER" == *"clang"* ]]; then
-                                    echo "clang-\$VERSION"
-                                else
-                                    echo "gcc-\$VERSION"
-                                fi
-                            """).trim()
+                            if ("${CC_COMPILER}".contains("clang")) {
+                                env.TOOLSET = "clang-${env.COMPILER_VERSION}"
+                            } else {
+                                env.TOOLSET = "gcc-${env.COMPILER_VERSION}"
+                            }
 
                             echo "COMPILER: ${env.COMPILER}"
                             echo "CC_COMPILER: ${CC_COMPILER}"
                             echo "COMPILER_VERSION: ${env.COMPILER_VERSION}"
                             echo "TOOLSET: ${env.TOOLSET}"
 
-                            // Determine build type suffix for special builds
-                            env.BUILD_TYPE_SUFFIX = ""
-                            if (env.ANALYZER_OPTS) {
-                                if (env.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) {
-                                    env.BUILD_TYPE_SUFFIX = "-asan"
-                                } else if (env.ANALYZER_OPTS.contains('-DWITH_VALGRIND=ON')) {
-                                    env.BUILD_TYPE_SUFFIX = "-valgrind"
-                                }
-                            }
                         }
 
                         // Download ccache using shared library
                         ccacheDownload([
                             awsCredentialsId: AWS_CREDENTIALS_ID,
                             buildParamsType: env.BUILD_PARAMS_TYPE,
-                            cmakeBuildType: env.CMAKE_BUILD_TYPE + (env.BUILD_TYPE_SUFFIX ?: ''),
+                            cmakeBuildType: env.CMAKE_BUILD_TYPE,
                             dockerOs: env.DOCKER_OS,
                             forceCacheMiss: env.FORCE_CACHE_MISS == 'true',
                             serverVersion: SERVER_VERSION,
@@ -720,7 +702,7 @@ pipeline {
                         ccacheUpload([
                             awsCredentialsId: AWS_CREDENTIALS_ID,
                             buildParamsType: env.BUILD_PARAMS_TYPE,
-                            cmakeBuildType: env.CMAKE_BUILD_TYPE + (env.BUILD_TYPE_SUFFIX ?: ''),
+                            cmakeBuildType: env.CMAKE_BUILD_TYPE,
                             dockerOs: env.DOCKER_OS,
                             serverVersion: SERVER_VERSION,
                             s3Bucket: S3_ROOT_DIR + '/',
