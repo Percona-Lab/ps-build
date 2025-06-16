@@ -687,6 +687,7 @@ pipeline {
                         ccacheDownload([
                             awsCredentialsId: AWS_CREDENTIALS_ID,
                             buildParamsType: env.BUILD_PARAMS_TYPE,
+                            cloud: params.CLOUD,
                             cmakeBuildType: env.CMAKE_BUILD_TYPE,
                             dockerOs: env.DOCKER_OS,
                             forceCacheMiss: env.FORCE_CACHE_MISS == 'true',
@@ -702,6 +703,7 @@ pipeline {
                         ccacheUpload([
                             awsCredentialsId: AWS_CREDENTIALS_ID,
                             buildParamsType: env.BUILD_PARAMS_TYPE,
+                            cloud: params.CLOUD,
                             cmakeBuildType: env.CMAKE_BUILD_TYPE,
                             dockerOs: env.DOCKER_OS,
                             serverVersion: SERVER_VERSION,
