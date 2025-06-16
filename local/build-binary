@@ -222,7 +222,7 @@ tar -C ${INSTALL_DIR}/usr/local --owner=0 --group=0 -czf "${WORKDIR}/$PRODUCT_FU
 rm -rf ${INSTALL_DIR}
 
 # Show final ccache statistics
-if [[ "${USE_CCACHE}" == "true" && -n $(command -v ccache) ]]; then
+if [[ "${USE_CCACHE}" == "yes" && -n $(command -v ccache) ]]; then
     echo "Final ccache statistics:"
     ccache -s
 fi
