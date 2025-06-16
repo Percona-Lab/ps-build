@@ -640,21 +640,6 @@ pipeline {
                                 env.BUILD_PARAMS_TYPE = 'standard'
                             }
 
-                            // Extract MySQL version from sources
-                            def versionFile = sh(returnStdout: true, script: """
-                                if [ -f sources/VERSION ]; then
-                                    cat sources/VERSION
-                                elif [ -f sources/MYSQL_VERSION ]; then
-                                    cat sources/MYSQL_VERSION
-                                fi
-                            """).trim()
-
-                            if (versionFile) {
-                                def mysqlVersion = sh(returnStdout: true, script: """
-                                    echo "${versionFile}" | grep -E '^MYSQL_VERSION_MAJOR|^MYSQL_VERSION_MINOR|^MYSQL_VERSION_PATCH' | cut -d= -f2 | paste -sd'.' -
-                                """).trim()
-                                env.MYSQL_VERSION = mysqlVersion
-                            }
 
                             // Extract compiler version for ccache key
                             def CC_COMPILER = env.CC ?: 'gcc'
