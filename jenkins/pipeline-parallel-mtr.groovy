@@ -3,6 +3,11 @@ library changelog: false, identifier: "lib@master", retriever: modernSCM([
     remote: 'https://github.com/Percona-Lab/jenkins-pipelines.git'
 ])
 
+// Cache configuration constants
+final String CCACHE_MAXSIZE = '8G'
+final int CACHE_RETENTION_DAYS_NORMAL = 60
+final int CACHE_RETENTION_DAYS_SANITIZER = 120
+
 PIPELINE_TIMEOUT = 24
 AWS_CREDENTIALS_ID = 'c8b933cd-b8ca-41d5-b639-33fe763d3f68'
 MAX_S3_RETRIES = 12
@@ -696,11 +701,10 @@ pipeline {
                         ccacheDownload([
                             awsCredentialsId: AWS_CREDENTIALS_ID,
                             buildParamsType: env.BUILD_PARAMS_TYPE,
-                            cacheRetentionDays: env.CACHE_RETENTION_DAYS,
                             cmakeBuildType: env.CMAKE_BUILD_TYPE + (env.BUILD_TYPE_SUFFIX ?: ''),
                             dockerOs: env.DOCKER_OS,
                             forceCacheMiss: env.FORCE_CACHE_MISS == 'true',
-                            mysqlVersion: SERVER_VERSION,
+                            serverVersion: SERVER_VERSION,
                             s3Bucket: S3_ROOT_DIR + '/',
                             toolset: env.TOOLSET,
                             workspace: env.WORKSPACE
@@ -712,11 +716,9 @@ pipeline {
                         ccacheUpload([
                             awsCredentialsId: AWS_CREDENTIALS_ID,
                             buildParamsType: env.BUILD_PARAMS_TYPE,
-                            cacheRetentionDays: env.CACHE_RETENTION_DAYS,
-                            cacheSize: env.CACHE_SIZE,
                             cmakeBuildType: env.CMAKE_BUILD_TYPE + (env.BUILD_TYPE_SUFFIX ?: ''),
                             dockerOs: env.DOCKER_OS,
-                            mysqlVersion: SERVER_VERSION,
+                            serverVersion: SERVER_VERSION,
                             s3Bucket: S3_ROOT_DIR + '/',
                             toolset: env.TOOLSET,
                             workspace: env.WORKSPACE
@@ -853,7 +855,7 @@ pipeline {
         }
     }
     post {
-	success {
+    success {
             script {
                 notifySlack(currentBuild.currentResult, '#36a64f', "[{jobName}]: is {status}! :rocket: Started by {userId} ({email} / <@{slackUserId}>).")
             }
