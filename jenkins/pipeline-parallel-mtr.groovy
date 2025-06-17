@@ -8,11 +8,15 @@ library changelog: false, identifier: "lib@master", retriever: modernSCM([
 // - CCACHE_MAXSIZE: 8GB is sufficient for all build types including sanitizers
 // - Retention: 60 days for normal builds, 120 days for ASAN/Valgrind builds
 // 
+// These constants override the default retention values in the ccacheUpload shared library:
+// - CACHE_RETENTION_DAYS_NORMAL: Used for standard builds
+// - CACHE_RETENTION_DAYS_SANITIZER: Used for ASAN/Valgrind builds (tested once per 90-day release cycle)
+//
 // S3 Lifecycle Configuration Requirements:
 // The S3 bucket must have lifecycle rules configured with tag-based expiration:
-// - Tag "retention-days" = "60" → Expire after 60 days
-// - Tag "retention-days" = "120" → Expire after 120 days
-// These tags are automatically set by ccacheUpload() based on the build type.
+// - Tag "RetentionDays" = "60" → Expire after 60 days
+// - Tag "RetentionDays" = "120" → Expire after 120 days
+// These tags are automatically set by ccacheUpload() based on the cacheRetentionDays parameter.
 // For configuration details, see PKG-769.
 //
 // Note for Hetzner Object Storage:
@@ -699,9 +703,14 @@ pipeline {
                         build("./docker/run-build")
 
                         // Upload ccache using shared library
+                        // Determine retention days based on build type
+                        def retentionDays = (env.BUILD_PARAMS_TYPE in ['asan', 'valgrind']) ? 
+                            CACHE_RETENTION_DAYS_SANITIZER : CACHE_RETENTION_DAYS_NORMAL
+                        
                         ccacheUpload([
                             awsCredentialsId: AWS_CREDENTIALS_ID,
                             buildParamsType: env.BUILD_PARAMS_TYPE,
+                            cacheRetentionDays: retentionDays,
                             cloud: params.CLOUD,
                             cmakeBuildType: env.CMAKE_BUILD_TYPE,
                             dockerOs: env.DOCKER_OS,
