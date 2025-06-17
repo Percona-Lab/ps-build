@@ -20,7 +20,8 @@ library changelog: false, identifier: "lib@master", retriever: modernSCM([
 // - Tag-based rules are NOT supported - only prefix-based or bucket-wide rules
 // - Lifecycle policies require versioning to be either disabled or enabled (not suspended)
 // - Current implementation uses tag-based retention which won't work on Hetzner
-// - TODO: Implement prefix-based paths for Hetzner (e.g., /ccache/60d/, /ccache/120d/)
+// - TODO: Implement prefix-based paths for Hetzner with expiry dates (e.g., /ccache/60d/, /ccache/120d/)
+//         to enable automatic object expiration via Hetzner lifecycle policies
 final String CCACHE_MAXSIZE = '8G'
 final int CACHE_RETENTION_DAYS_NORMAL = 60
 final int CACHE_RETENTION_DAYS_SANITIZER = 120
