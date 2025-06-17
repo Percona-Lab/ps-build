@@ -14,6 +14,14 @@ library changelog: false, identifier: "lib@master", retriever: modernSCM([
 // - Tag "retention-days" = "120" → Expire after 120 days
 // These tags are automatically set by ccacheUpload() based on the build type.
 // For configuration details, see PKG-769.
+//
+// Note for Hetzner Object Storage:
+// Hetzner S3-compatible storage supports lifecycle policies but with limitations:
+// - Tag-based rules are NOT supported - only prefix-based or bucket-wide rules
+// - Lifecycle policies require versioning to be either disabled or enabled (not suspended)
+// - For Hetzner deployments, consider using prefix-based organization:
+//   - /ccache/standard/ → 60 day expiration rule
+//   - /ccache/sanitizer/ → 120 day expiration rule
 final String CCACHE_MAXSIZE = '8G'
 final int CACHE_RETENTION_DAYS_NORMAL = 60
 final int CACHE_RETENTION_DAYS_SANITIZER = 120
