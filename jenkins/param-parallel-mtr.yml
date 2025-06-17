@@ -8,7 +8,9 @@
         Maybe just a single pipeline run is enough?<br>
         <b>Do not make changes to the pipeline definition via the web interface!<br>
         (Do not use 'Configure' option on the left for changing the pipeline definition)<br>
-        Change the YAML files and Groovy scripts in the <a href="{scripts_repo}/tree/{scripts_branch}/jenkins">git repo</a> instead.</b>
+        Change <a href="{scripts_repo}/tree/{scripts_branch}/jenkins/param-parallel-mtr.yml">param-parallel-mtr.yml</a>
+        in the <a href="{scripts_repo}/tree/{scripts_branch}/jenkins">git repo</a> instead.</b><br>
+        Then update pipeline with "jenkins-jobs --server ps80.cd update jenkins/param-parallel-mtr.yml".
     disabled: false
     concurrent: true
     auth-token: psparam80
@@ -113,7 +115,7 @@
         choices:
         - "no"
         - "yes"
-        description: Run mtr --suite=component_keyring_vault
+        description: Run mtr --suite=component_keyring_vault or --suite=keyring_vault for 8.0
     - string:
         name: KEYRING_VAULT_V1_VERSION
         default: "0.9.6"
@@ -260,18 +262,19 @@
         artifacts: 'PIPELINE_BUILD_NUMBER'
 
 - project:
-    name: param-parallel-mtr-9.x
-    ps_version: 9.x
-    ps_version_no_dot: 9_x
-    branch_name: release-9.2.0-1
-    # scripts_repo: https://github.com/inikep/ps-build
+    name: param-parallel-mtr-8.0
+    ps_version: 8.0
+    ps_version_no_dot: 8_0
+    branch_name: release-8.0.42-33
     scripts_repo: https://github.com/Percona-Lab/ps-build
-    scripts_branch: 8.x
+    scripts_branch: 8.0
     docker_os_list:
       - centos:8
       - oraclelinux:9
+      - ubuntu:focal
       - ubuntu:jammy
       - ubuntu:noble
+      - debian:bullseye
       - debian:bookworm
     jobs:
       - percona-server-{ps_version}-param-parallel-mtr
@@ -281,9 +284,8 @@
     ps_version: 8.x
     ps_version_no_dot: 8_x
     branch_name: release-8.4.5-5
-    # scripts_repo: https://github.com/inikep/ps-build
     scripts_repo: https://github.com/Percona-Lab/ps-build
-    scripts_branch: 8.x
+    scripts_branch: 8.0
     docker_os_list:
       - centos:8
       - oraclelinux:9
@@ -291,6 +293,22 @@
       - ubuntu:jammy
       - ubuntu:noble
       - debian:bullseye
+      - debian:bookworm
+    jobs:
+      - percona-server-{ps_version}-param-parallel-mtr
+
+- project:
+    name: param-parallel-mtr-9.x
+    ps_version: 9.x
+    ps_version_no_dot: 9_x
+    branch_name: release-9.2.0-1
+    scripts_repo: https://github.com/Percona-Lab/ps-build
+    scripts_branch: 8.0
+    docker_os_list:
+      - centos:8
+      - oraclelinux:9
+      - ubuntu:jammy
+      - ubuntu:noble
       - debian:bookworm
     jobs:
       - percona-server-{ps_version}-param-parallel-mtr
