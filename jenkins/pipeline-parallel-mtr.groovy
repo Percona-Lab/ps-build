@@ -7,7 +7,13 @@ library changelog: false, identifier: "lib@master", retriever: modernSCM([
 // These values are hardcoded based on team requirements:
 // - CCACHE_MAXSIZE: 8GB is sufficient for all build types including sanitizers
 // - Retention: 60 days for normal builds, 120 days for ASAN/Valgrind builds
-// NOTE: S3 bucket lifecycle rules must be configured to support 60 and 120 day retention periods
+// 
+// S3 Lifecycle Configuration Requirements:
+// The S3 bucket must have lifecycle rules configured with tag-based expiration:
+// - Tag "retention-days" = "60" → Expire after 60 days
+// - Tag "retention-days" = "120" → Expire after 120 days
+// These tags are automatically set by ccacheUpload() based on the build type.
+// For configuration details, see PKG-769.
 final String CCACHE_MAXSIZE = '8G'
 final int CACHE_RETENTION_DAYS_NORMAL = 60
 final int CACHE_RETENTION_DAYS_SANITIZER = 120
