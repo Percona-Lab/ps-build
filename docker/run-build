@@ -60,7 +60,7 @@ docker run --rm \
     export CCACHE_COMPRESS='${CCACHE_COMPRESS:-1}'
     export CCACHE_COMPRESSLEVEL='${CCACHE_COMPRESSLEVEL:-1}'
     export CCACHE_CPP2='${CCACHE_CPP2:-1}'
-    export CCACHE_MAXSIZE='8G'
+    export CCACHE_MAXSIZE='${CCACHE_MAXSIZE:-8G}'
     export CCACHE_BASEDIR='/tmp/sources'
     export DOCKER_OS='${SOURCE_IMAGE}'
     export KEEP_BUILD='${KEEP_BUILD}'

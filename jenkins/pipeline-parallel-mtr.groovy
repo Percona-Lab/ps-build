@@ -236,7 +236,7 @@ void build(String SCRIPT) {
                     if [ \$(docker ps -q | wc -l) -ne 0 ]; then
                         docker ps -q | xargs docker stop --time 1 || :
                     fi
-                    eval USE_CCACHE=yes KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
+                    eval USE_CCACHE=yes CCACHE_MAXSIZE=${CCACHE_MAXSIZE} KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
                 " 2>&1 | tee build.log
 
                 echo Archive build log: \$(date -u "+%s")
