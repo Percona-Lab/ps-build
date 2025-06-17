@@ -47,11 +47,9 @@
         choices:
         - /usr/bin/cmake
         description: path to cmake binary
-    - choice:
+    - string:
         name: COMPILER
-        choices:
-        - default
-        description: compiler version e.g. gcc-15 or clang-20
+        description: compiler version e.g. gcc-15 or clang-20 or use default system compiler if empty
     - choice:
         name: ANALYZER_OPTS
         choices:
