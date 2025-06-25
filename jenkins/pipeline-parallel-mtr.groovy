@@ -1,4 +1,4 @@
-library changelog: false, identifier: "lib@master", retriever: modernSCM([
+library changelog: false, identifier: 'lib@master', retriever: modernSCM([
     $class: 'GitSCMSource',
     remote: 'https://github.com/Percona-Lab/jenkins-pipelines.git'
 ])
@@ -7,7 +7,7 @@ library changelog: false, identifier: "lib@master", retriever: modernSCM([
 // These values are hardcoded based on team requirements:
 // - CCACHE_MAXSIZE: 8GB is sufficient for all build types including sanitizers
 // - Retention: 60 days for normal builds, 120 days for ASAN/Valgrind builds
-// 
+//
 // These constants override the default retention values in the ccacheUpload shared library:
 // - CACHE_RETENTION_DAYS_NORMAL: Used for standard builds
 // - CACHE_RETENTION_DAYS_SANITIZER: Used for ASAN/Valgrind builds (tested once per 90-day release cycle)
@@ -88,7 +88,7 @@ void downloadFileFromS3(String SRC_DIRECTORY, String SRC_FILE_NAME, String DST_P
 }
 
 void downloadFilesForTests() {
-    downloadFileFromS3("${BUILD_TAG_BINARIES}", "binary.tar.gz", "./${WORK_DIR}/binary.tar.gz")
+    downloadFileFromS3("${BUILD_TAG_BINARIES}", 'binary.tar.gz', "./${WORK_DIR}/binary.tar.gz")
 }
 
 void prepareWorkspace(Integer WORKER_ID) {
@@ -188,7 +188,7 @@ void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS =
         script {
             echo "JENKINS_SCRIPTS_BRANCH: ${JENKINS_SCRIPTS_BRANCH}"
             echo "JENKINS_SCRIPTS_REPO: ${JENKINS_SCRIPTS_REPO}"
-            sh "which git"
+            sh 'which git'
         }
         git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
         script {
@@ -198,7 +198,7 @@ void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS =
         }
 
         // This is questionable. Do we need resutl XMLs in S3 cache while Jenkins archives them as well?
-        syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", "mtr_var/*")
+        syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
         step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0])
         archiveArtifacts "${WORK_DIR}/results/*.xml,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
     }
@@ -220,15 +220,15 @@ void doTestWorkerJobWithGuard(Integer WORKER_ID, String SUITES, String STANDALON
 }
 
 void checkoutSources() {
-    echo "Checkout PS sources"
-    sh """
+    echo 'Checkout PS sources'
+    sh '''
         # sudo is needed for better node recovery after compilation failure
         # if building failed on compilation stage directory will have files owned by docker user
         sudo git reset --hard
         sudo git clean -xdf
         sudo rm -rf sources
         ./local/checkout
-    """
+    '''
 }
 
 void build(String SCRIPT) {
@@ -314,15 +314,15 @@ void setupTestSuitesSplit() {
         } else if (env.FULL_MTR == 'skip_mtr') {
             // It is possible that values are fetched from
             // suites-groups.sh file. Clean them.
-            echo "MTR execution skip requested!"
-            env.WORKER_1_MTR_SUITES = ""
-            env.WORKER_2_MTR_SUITES = ""
-            env.WORKER_3_MTR_SUITES = ""
-            env.WORKER_4_MTR_SUITES = ""
-            env.WORKER_5_MTR_SUITES = ""
-            env.WORKER_6_MTR_SUITES = ""
-            env.WORKER_7_MTR_SUITES = ""
-            env.WORKER_8_MTR_SUITES = ""
+            echo 'MTR execution skip requested!'
+            env.WORKER_1_MTR_SUITES = ''
+            env.WORKER_2_MTR_SUITES = ''
+            env.WORKER_3_MTR_SUITES = ''
+            env.WORKER_4_MTR_SUITES = ''
+            env.WORKER_5_MTR_SUITES = ''
+            env.WORKER_6_MTR_SUITES = ''
+            env.WORKER_7_MTR_SUITES = ''
+            env.WORKER_8_MTR_SUITES = ''
             env.CI_FS_MTR = 'no'
             env.WITH_PS_PROTOCOL = 'no'
             env.KEYRING_VAULT_MTR = 'no'
@@ -352,17 +352,17 @@ void triggerAbortedTestWorkersRerun() {
             echo "WORKER_7_ABORTED: ${WORKER_ABORTED[7]}"
             echo "WORKER_8_ABORTED: ${WORKER_ABORTED[8]}"
             def rerunNeeded = false
-            def WORKER_1_RERUN_SUITES = ""
-            def WORKER_2_RERUN_SUITES = ""
-            def WORKER_3_RERUN_SUITES = ""
-            def WORKER_4_RERUN_SUITES = ""
-            def WORKER_5_RERUN_SUITES = ""
-            def WORKER_6_RERUN_SUITES = ""
-            def WORKER_7_RERUN_SUITES = ""
-            def WORKER_8_RERUN_SUITES = ""
+            def WORKER_1_RERUN_SUITES = ''
+            def WORKER_2_RERUN_SUITES = ''
+            def WORKER_3_RERUN_SUITES = ''
+            def WORKER_4_RERUN_SUITES = ''
+            def WORKER_5_RERUN_SUITES = ''
+            def WORKER_6_RERUN_SUITES = ''
+            def WORKER_7_RERUN_SUITES = ''
+            def WORKER_8_RERUN_SUITES = ''
 
             if (WORKER_ABORTED[1]) {
-                echo "rerun worker 1"
+                echo 'rerun worker 1'
                 WORKER_1_RERUN_SUITES = env.WORKER_1_MTR_SUITES
                 rerunNeeded = true
             } else {
@@ -370,44 +370,44 @@ void triggerAbortedTestWorkersRerun() {
                 env.CI_FS_MTR = 'no'
             }
             if (WORKER_ABORTED[2]) {
-                echo "rerun worker 2"
+                echo 'rerun worker 2'
                 WORKER_2_RERUN_SUITES = env.WORKER_2_MTR_SUITES
                 rerunNeeded = true
             }
             if (WORKER_ABORTED[3]) {
-                echo "rerun worker 3"
+                echo 'rerun worker 3'
                 WORKER_3_RERUN_SUITES = env.WORKER_3_MTR_SUITES
                 rerunNeeded = true
             }
             if (WORKER_ABORTED[4]) {
-                echo "rerun worker 4"
+                echo 'rerun worker 4'
                 WORKER_4_RERUN_SUITES = env.WORKER_4_MTR_SUITES
                 rerunNeeded = true
             }
             if (WORKER_ABORTED[5]) {
-                echo "rerun worker 5"
+                echo 'rerun worker 5'
                 WORKER_5_RERUN_SUITES = env.WORKER_5_MTR_SUITES
                 rerunNeeded = true
             }
             if (WORKER_ABORTED[6]) {
-                echo "rerun worker 6"
+                echo 'rerun worker 6'
                 WORKER_6_RERUN_SUITES = env.WORKER_6_MTR_SUITES
                 rerunNeeded = true
             }
             if (WORKER_ABORTED[7]) {
-                echo "rerun worker 7"
+                echo 'rerun worker 7'
                 WORKER_7_RERUN_SUITES = env.WORKER_7_MTR_SUITES
                 rerunNeeded = true
             }
             if (WORKER_ABORTED[8]) {
-                echo "rerun worker 8"
+                echo 'rerun worker 8'
                 WORKER_8_RERUN_SUITES = env.WORKER_8_MTR_SUITES
                 rerunNeeded = true
             }
 
             echo "rerun needed: $rerunNeeded"
             if (rerunNeeded) {
-                echo "restarting aborted workers"
+                echo 'restarting aborted workers'
                 build job: "${params.PIPELINE_NAME}",
                 wait: false,
                 parameters: [
@@ -453,7 +453,7 @@ void triggerAbortedTestWorkersRerun() {
 }
 
 def validatePsBranch() {
-    echo "Validating PS branch version"
+    echo 'Validating PS branch version'
     def serverVersion = sh(
       script: """#!/bin/bash
         MY_BRANCH_BASE_MAJOR=8
@@ -500,24 +500,21 @@ def validatePsBranch() {
 // functions end here
 
 if ( (params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) ||
-    (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON')) )
-{
+    (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON')) ) {
     PIPELINE_TIMEOUT = 48
-}
+    }
 
-if (params.ANALYZER_OPTS.contains('-DWITH_VALGRIND=ON'))
-{
+if (params.ANALYZER_OPTS.contains('-DWITH_VALGRIND=ON')) {
     PIPELINE_TIMEOUT = 144
 }
 
 if ( ((params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) &&
      (params.ANALYZER_OPTS.contains('-DWITH_ASAN_SCOPE=ON')) &&
      (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON'))) ||
-     ((params.MTR_ARGS.contains('--big-test')) || (params.MTR_ARGS.contains('--only-big-test'))) )
-{
+     ((params.MTR_ARGS.contains('--big-test')) || (params.MTR_ARGS.contains('--only-big-test'))) ) {
     LABEL = 'docker-32gb'
     PIPELINE_TIMEOUT = 20
-}
+     }
 
 @NonCPS
 def fetchSlackUserId(email) {
@@ -555,11 +552,11 @@ def notifySlack(status, color, customMessage) {
 
             // Replace placeholders in the custom message
             def message = customMessage
-                .replace("{status}", status)
-                .replace("{userId}", userId)
-                .replace("{email}", email)
-                .replace("{slackUserId}", slackUserId)
-                .replace("{jobName}", "${env.JOB_NAME} #${env.BUILD_NUMBER}")
+                .replace('{status}', status)
+                .replace('{userId}', userId)
+                .replace('{email}', email)
+                .replace('{slackUserId}', slackUserId)
+                .replace('{jobName}', "${env.JOB_NAME} #${env.BUILD_NUMBER}")
 
             slackSend botUser: true,
                 channel: "#${env.SLACK_CHANNEL}",
@@ -594,7 +591,7 @@ pipeline {
         stage('Prepare') {
             steps {
                 script {
-                    copyArtifactPermission(params.PIPELINE_NAME);
+                    copyArtifactPermission(params.PIPELINE_NAME)
                     echo "PIPELINE_NAME = ${params.PIPELINE_NAME}"
                     echo "NODE_NAME = ${env.NODE_NAME}"
                     echo "JENKINS_SCRIPTS_BRANCH: $JENKINS_SCRIPTS_BRANCH"
@@ -605,10 +602,10 @@ pipeline {
 
                 script {
                     BUILD_TRIGGER_BY = " (${currentBuild.getBuildCauses()[0].userId})"
-                    if (BUILD_TRIGGER_BY == " (null)") {
-                        BUILD_TRIGGER_BY = " "
+                    if (BUILD_TRIGGER_BY == ' (null)') {
+                        BUILD_TRIGGER_BY = ' '
                     }
-                    
+
                     currentBuild.displayName = "${BUILD_NUMBER} ${CMAKE_BUILD_TYPE}/${DOCKER_OS}${BUILD_TRIGGER_BY} ${CUSTOM_BUILD_NAME}"
                 }
 
@@ -629,7 +626,7 @@ pipeline {
             agent { label LABEL }
             stages {
                 stage('Build') {
-                    when { expression { env.BUILD_NUMBER_BINARIES == '' }}
+                    when { expression { env.BUILD_NUMBER_BINARIES == '' } }
                     steps {
                         script {
                             echo "NODE_NAME = ${env.NODE_NAME}"
@@ -658,7 +655,6 @@ pipeline {
                                 env.BUILD_PARAMS_TYPE = 'standard'
                             }
 
-
                             // Extract compiler version for ccache key
                             def CC_COMPILER = env.CC ?: 'gcc'
 
@@ -673,7 +669,7 @@ pipeline {
                             """).trim()
 
                             // Create TOOLSET variable combining compiler and version
-                            if ("${CC_COMPILER}".contains("clang")) {
+                            if ("${CC_COMPILER}".contains('clang')) {
                                 env.TOOLSET = "clang-${env.COMPILER_VERSION}"
                             } else {
                                 env.TOOLSET = "gcc-${env.COMPILER_VERSION}"
@@ -683,7 +679,6 @@ pipeline {
                             echo "CC_COMPILER: ${CC_COMPILER}"
                             echo "COMPILER_VERSION: ${env.COMPILER_VERSION}"
                             echo "TOOLSET: ${env.TOOLSET}"
-
                         }
 
                         // Download ccache using shared library
@@ -700,13 +695,13 @@ pipeline {
                             workspace: env.WORKSPACE
                         ])
 
-                        build("./docker/run-build")
+                        build('./docker/run-build')
 
                         // Upload ccache using shared library
                         // Determine retention days based on build type
-                        def retentionDays = (env.BUILD_PARAMS_TYPE in ['asan', 'valgrind']) ? 
+                        def retentionDays = (env.BUILD_PARAMS_TYPE == 'asan' || env.BUILD_PARAMS_TYPE == 'valgrind') ?
                             CACHE_RETENTION_DAYS_SANITIZER : CACHE_RETENTION_DAYS_NORMAL
-                        
+
                         ccacheUpload([
                             awsCredentialsId: AWS_CREDENTIALS_ID,
                             buildParamsType: env.BUILD_PARAMS_TYPE,
@@ -730,8 +725,8 @@ pipeline {
                                 script: 'ls build.log.gz | head -1',
                                 returnStdout: true
                             ).trim()
-                            if (BIN_FILE_NAME != "") {
-                                uploadFileToS3("$BIN_FILE_NAME", "$BUILD_TAG", "binary.tar.gz")
+                            if (BIN_FILE_NAME != '') {
+                                uploadFileToS3("$BIN_FILE_NAME", "$BUILD_TAG", 'binary.tar.gz')
                                 sh "rm -f $BIN_FILE_NAME"
                                 sh "echo 'binary    - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/binary.tar.gz' >> public_url"
                                 archive_public_url = true
@@ -739,16 +734,16 @@ pipeline {
                                 echo 'Cannot find compiled archive log'
                                 currentBuild.result = 'FAILURE'
                             }
-                            if (LOG_FILE_NAME != "") {
-                                uploadFileToS3("$LOG_FILE_NAME", "$BUILD_TAG", "build.log.gz")
+                            if (LOG_FILE_NAME != '') {
+                                uploadFileToS3("$LOG_FILE_NAME", "$BUILD_TAG", 'build.log.gz')
                                 sh "echo 'build log - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/build.log.gz' >> public_url"
                                 archive_public_url = true
                                 archiveArtifacts 'build.log.gz'
-                                sh """
+                                sh '''
                                     gunzip build.log.gz
                                     echo "Additional artifacts:"
                                     ls | grep -xv "build.log\\|public_url" | xargs ls -l
-                                """
+                                '''
                                 recordIssues enabledForFailure: true, tools: [gcc(pattern: 'build.log')]
                             } else {
                                 echo 'Cannot find build log'
@@ -851,20 +846,20 @@ pipeline {
         }
     }
     post {
-    success {
+        success {
             script {
-                notifySlack(currentBuild.currentResult, '#36a64f', "[{jobName}]: is {status}! :rocket: Started by {userId} ({email} / <@{slackUserId}>).")
+                notifySlack(currentBuild.currentResult, '#36a64f', '[{jobName}]: is {status}! :rocket: Started by {userId} ({email} / <@{slackUserId}>).')
             }
         }
         failure {
             script {
-                notifySlack(currentBuild.currentResult, '#36a64f', "[{jobName}]: has {status}! :face_with_peeking_eye: Started by {userId} ({email} / <@{slackUserId}>).")
+                notifySlack(currentBuild.currentResult, '#36a64f', '[{jobName}]: has {status}! :face_with_peeking_eye: Started by {userId} ({email} / <@{slackUserId}>).')
             }
         }
         aborted {
             script {
                 def result = currentBuild.result ?: 'ABORTED'
-                notifySlack(currentBuild.currentResult, '#36a64f', "[{jobName}]: has {status}! :axe: Started by {userId} ({email} / <@{slackUserId}>).")
+                notifySlack(currentBuild.currentResult, '#36a64f', '[{jobName}]: has {status}! :axe: Started by {userId} ({email} / <@{slackUserId}>).')
             }
         }
         always {
