@@ -240,7 +240,7 @@ void build(String SCRIPT) {
                     if [ \$(docker ps -q | wc -l) -ne 0 ]; then
                         docker ps -q | xargs docker stop --time 1 || :
                     fi
-                    eval USE_CCACHE=yes CCACHE_MAXSIZE=${CCACHE_MAXSIZE} KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
+                    eval USE_CCACHE=yes CCACHE_MAXSIZE=${env.CCACHE_MAXSIZE} KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
                 " 2>&1 | tee build.log
 
                 echo Archive build log: \$(date -u "+%s")
@@ -638,6 +638,9 @@ pipeline {
                         checkoutSources()
 
                         script {
+                            // Set ccache size as environment variable
+                            env.CCACHE_MAXSIZE = CCACHE_MAXSIZE
+                            
                             // Set BUILD_PARAMS_TYPE based on ANALYZER_OPTS
                             if (env.ANALYZER_OPTS) {
                                 if (env.ANALYZER_OPTS.contains('ASAN')) {
@@ -698,22 +701,24 @@ pipeline {
                         build('./docker/run-build')
 
                         // Upload ccache using shared library
-                        // Determine retention days based on build type
-                        def retentionDays = (env.BUILD_PARAMS_TYPE == 'asan' || env.BUILD_PARAMS_TYPE == 'valgrind') ?
-                            CACHE_RETENTION_DAYS_SANITIZER : CACHE_RETENTION_DAYS_NORMAL
+                        script {
+                            // Determine retention days based on build type
+                            def retentionDays = (env.BUILD_PARAMS_TYPE == 'asan' || env.BUILD_PARAMS_TYPE == 'valgrind') ?
+                                CACHE_RETENTION_DAYS_SANITIZER : CACHE_RETENTION_DAYS_NORMAL
 
-                        ccacheUpload([
-                            awsCredentialsId: AWS_CREDENTIALS_ID,
-                            buildParamsType: env.BUILD_PARAMS_TYPE,
-                            cacheRetentionDays: retentionDays,
-                            cloud: params.CLOUD,
-                            cmakeBuildType: env.CMAKE_BUILD_TYPE,
-                            dockerOs: env.DOCKER_OS,
-                            serverVersion: SERVER_VERSION,
-                            s3Bucket: S3_ROOT_DIR + '/',
-                            toolset: env.TOOLSET,
-                            workspace: env.WORKSPACE
-                        ])
+                            ccacheUpload([
+                                awsCredentialsId: AWS_CREDENTIALS_ID,
+                                buildParamsType: env.BUILD_PARAMS_TYPE,
+                                cacheRetentionDays: retentionDays,
+                                cloud: params.CLOUD,
+                                cmakeBuildType: env.CMAKE_BUILD_TYPE,
+                                dockerOs: env.DOCKER_OS,
+                                serverVersion: SERVER_VERSION,
+                                s3Bucket: S3_ROOT_DIR + '/',
+                                toolset: env.TOOLSET,
+                                workspace: env.WORKSPACE
+                            ])
+                        }
 
                         script {
                             boolean archive_public_url = false
