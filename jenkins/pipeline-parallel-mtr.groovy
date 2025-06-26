@@ -698,22 +698,24 @@ pipeline {
                         build('./docker/run-build')
 
                         // Upload ccache using shared library
-                        // Determine retention days based on build type
-                        def retentionDays = (env.BUILD_PARAMS_TYPE == 'asan' || env.BUILD_PARAMS_TYPE == 'valgrind') ?
-                            CACHE_RETENTION_DAYS_SANITIZER : CACHE_RETENTION_DAYS_NORMAL
+                        script {
+                            // Determine retention days based on build type
+                            def retentionDays = (env.BUILD_PARAMS_TYPE == 'asan' || env.BUILD_PARAMS_TYPE == 'valgrind') ?
+                                CACHE_RETENTION_DAYS_SANITIZER : CACHE_RETENTION_DAYS_NORMAL
 
-                        ccacheUpload([
-                            awsCredentialsId: AWS_CREDENTIALS_ID,
-                            buildParamsType: env.BUILD_PARAMS_TYPE,
-                            cacheRetentionDays: retentionDays,
-                            cloud: params.CLOUD,
-                            cmakeBuildType: env.CMAKE_BUILD_TYPE,
-                            dockerOs: env.DOCKER_OS,
-                            serverVersion: SERVER_VERSION,
-                            s3Bucket: S3_ROOT_DIR + '/',
-                            toolset: env.TOOLSET,
-                            workspace: env.WORKSPACE
-                        ])
+                            ccacheUpload([
+                                awsCredentialsId: AWS_CREDENTIALS_ID,
+                                buildParamsType: env.BUILD_PARAMS_TYPE,
+                                cacheRetentionDays: retentionDays,
+                                cloud: params.CLOUD,
+                                cmakeBuildType: env.CMAKE_BUILD_TYPE,
+                                dockerOs: env.DOCKER_OS,
+                                serverVersion: SERVER_VERSION,
+                                s3Bucket: S3_ROOT_DIR + '/',
+                                toolset: env.TOOLSET,
+                                workspace: env.WORKSPACE
+                            ])
+                        }
 
                         script {
                             boolean archive_public_url = false
