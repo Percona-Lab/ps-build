@@ -193,10 +193,6 @@
     - string:
         name: JENKINS_SCRIPTS_BRANCH
         default: '{scripts_branch}'
-    - string:
-        name: CCACHE_MAXSIZE
-        default: "8G"
-        description: ccache size limit (e.g., 8G, 16G, 32G)
     axes:
       - axis:
          type: user-defined
