@@ -28,6 +28,9 @@ WORK_DIR=${2:-$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}}
 rm -rf $WORK_DIR
 mkdir $WORK_DIR
 
+# Ensure .ccache directory exists for Docker mounting
+mkdir -p "${ROOT_DIR}/.ccache"
+
 docker run --rm \
     --cap-add SYS_PTRACE \
     --mount type=bind,source=${SOURCES_DIR},destination=/tmp/sources \
