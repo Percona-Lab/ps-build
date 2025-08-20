@@ -19,6 +19,20 @@
 #    and another executes only bit tests.
 
 
+# is_version_equal_or_bigger <v1> <v2>
+# returns 0 if v1 >= v2, 1 otherwise
+function is_version_equal_or_bigger() {
+  local v1="$1"
+  local v2="$2"
+  local first=$(printf "%s\n%s\n" "$v2" "$v1" | sort -V | head -n1)   # sort -V sorts versions correctly
+
+  if [[ "$first" == "$v2" ]]; then
+    return 0  # v1 >= v2
+  else
+    return 1  # v1 < v2
+  fi
+}
+
 # usage: set_suites_80 <BUILD_TYPE>
 function set_suites_80() {
   if [[ "$1" == "RelWithDebInfo" ]]; then
@@ -73,8 +87,10 @@ function set_suites_84() {
   fi
 }
 
-# usage: set_suites_9x <BUILD_TYPE>
+# usage: set_suites_9x <BUILD_TYPE> <SERVER_VERSION>
 function set_suites_9x() {
+  local server_version="$2"
+
   if [[ "$1" == "RelWithDebInfo" ]]; then
     echo "Setting WORKER_x_MTR_SUITES for BUILD_TYPE=RelWithDebInfo"
     # Unit tests will be executed by worker 1
@@ -98,6 +114,10 @@ function set_suites_9x() {
     WORKER_7_MTR_SUITES="rocksdb,rocksdb_stress,rocksdb_rpl,innodb_zip,information_schema,rocksdb_sys_vars"
     WORKER_8_MTR_SUITES="component_keyring_file,innodb_fts,x,encryption,sysschema,binlog_gtid,gcol,federated,test_service_sql_api,gis,secondary_engine"
   fi
+
+  if is_version_equal_or_bigger "$server_version" "9.4"; then
+    WORKER_3_MTR_SUITES+=",jdv"
+  fi
 }
 
 # usage: set_suites <BUILD_TYPE> <SERVER_VERSION>
@@ -112,7 +132,7 @@ function set_suites() {
       set_suites_84 $1
       ;;
     9.*)
-      set_suites_9x $1
+      set_suites_9x $1 "$server_version"
       ;;
     *)
       echo "Unsupported server version: $server_version"
