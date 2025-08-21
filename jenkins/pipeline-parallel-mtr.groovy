@@ -91,7 +91,7 @@ void downloadFilesForTests() {
     downloadFileFromS3("${BUILD_TAG_BINARIES}", 'binary.tar.gz', "./${WORK_DIR}/binary.tar.gz")
 }
 
-void prepareWorkspace(Integer WORKER_ID) {
+void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
         sh """
             echo "prepareWorkspace for MTR worker ${WORKER_ID}"
@@ -100,10 +100,23 @@ void prepareWorkspace(Integer WORKER_ID) {
             # it's safe to use "git clean" as "sources/" are ignored with ".gitignore"
             sudo git clean -xdf
 
-            # sources exists only for WORKER #1 but not for retry/re-runs
-            if [ -d sources ]; then
-                sudo git -C sources reset --hard
-                sudo git -C sources clean -xdf
+            # "sources" required for running unit tests are valid only for "Test 1" (WORKER #1) but not for retry/re-runs
+            if [ "$WORKER_ID" = "1" ] && [ "$UNIT_TESTS" != "false" ]; then
+                if [ -d sources ]; then
+                    sudo cat sources/MYSQL_VERSION || :
+                    if ! sudo git -C sources status >/dev/null 2>&1; then
+                        echo "Warning: Git repo in ./sources is broken, removing it. It should happen only for re-runs."
+                        sudo GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null git -C sources -c safe.directory="$WORKSPACE/sources" log --oneline -10 || :
+                        sudo rm -rf sources
+                    else
+                        sudo git -C sources log --oneline -10
+                        sudo git -C sources reset --hard
+                        sudo git -C sources clean -xdf
+                        sudo git -C sources submodule update --init || :
+                    fi
+                else
+                    echo "Warning: Missing 'sources' for MTR worker ${WORKER_ID}. It should happen only for re-runs."
+                fi
             fi
 
             if [ -f /usr/bin/yum ]; then
@@ -196,15 +209,19 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
             git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
 
             script {
-                prepareWorkspace(WORKER_ID)
+                prepareWorkspace(WORKER_ID, UNIT_TESTS)
                 downloadFilesForTests()
                 doTests(WORKER_ID.toString(), SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
             }
+
+            echo "[INFO] Worker ${WORKER_ID} finished MTR testing."
 
             // This is questionable. Do we need result XMLs in S3 cache while Jenkins archives them as well?
             syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
             step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0])
             archiveArtifacts "${WORK_DIR}/results/*.xml,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
+
+            echo "[INFO] Worker ${WORKER_ID} completed successfully."
         } catch (err) {
             echo "[WARNING] Worker ${WORKER_ID} failed with error: ${err}"
             throw err // rethrow so outer catchError or pipeline failure handling still works
@@ -787,6 +804,7 @@ pipeline {
                                 beforeAgent true
                                 expression { (env.WORKER_1_MTR_SUITES?.trim() || env.MTR_STANDALONE_TESTS?.trim() || env.CI_FS_MTR?.trim() == 'yes' || env.KEYRING_VAULT_MTR?.trim() == 'yes' || env.WITH_PS_PROTOCOL?.trim() == 'yes') }
                             }
+                            // "Test 1" reuses the same instance as "Build" and inherits "sources" which are required for running unit tests
                             // agent { label LABEL }
                             steps {
                                 doTestWorkerJob(1, "${WORKER_1_MTR_SUITES}", "${MTR_STANDALONE_TESTS}", true, env.CI_FS_MTR?.trim() == 'yes', env.KEYRING_VAULT_MTR?.trim() == 'yes', env.WITH_PS_PROTOCOL?.trim() == 'yes')
