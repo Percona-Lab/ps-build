@@ -898,8 +898,12 @@ pipeline {
         }
         aborted {
             script {
-                def result = currentBuild.result ?: 'ABORTED'
                 notifySlack(currentBuild.currentResult, '#36a64f', '[{jobName}]: has {status}! :axe: Started by {userId} ({email} / <@{slackUserId}>).')
+            }
+        }
+        unstable {
+            script {
+                notifySlack(currentBuild.currentResult, '#36a64f', '[{jobName}]: is {status}! :warning: Started by {userId} ({email} / <@{slackUserId}>).')
             }
         }
         always {
