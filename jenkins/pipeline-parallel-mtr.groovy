@@ -661,7 +661,7 @@ pipeline {
                             // Extract compiler version for ccache key
                             def CC_COMPILER = env.CC ?: 'gcc'
 
-                            env.COMPILER_VERSION = sh(returnStdout: true, script: """
+                            env.COMPILER_VERSION = sh(returnStdout: true, script: """#!/bin/bash
                                 COMPILER="${CC_COMPILER}"
                                 if [[ "\$COMPILER" == *"clang"* ]]; then
                                     \$COMPILER --version | grep -o "clang version.*" | awk '{print \$3}'
