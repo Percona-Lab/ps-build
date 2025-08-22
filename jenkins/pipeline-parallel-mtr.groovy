@@ -183,40 +183,57 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
     }  // withCredentials
 }
 
-void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
-    timeout(time: PIPELINE_TIMEOUT, unit: 'HOURS')  {
-        script {
-            echo "JENKINS_SCRIPTS_BRANCH: ${JENKINS_SCRIPTS_BRANCH}"
-            echo "JENKINS_SCRIPTS_REPO: ${JENKINS_SCRIPTS_REPO}"
-            sh 'which git'
-        }
-        git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
-        script {
-            prepareWorkspace(WORKER_ID)
-            downloadFilesForTests()
-            doTests(WORKER_ID.toString(), SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
-        }
+void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
+    timeout(time: PIPELINE_TIMEOUT, unit: 'HOURS') {
+        try {
+            script {
+                echo "NODE_NAME = ${env.NODE_NAME}"
+                echo "JENKINS_SCRIPTS_BRANCH: ${JENKINS_SCRIPTS_BRANCH}"
+                echo "JENKINS_SCRIPTS_REPO: ${JENKINS_SCRIPTS_REPO}"
+                sh 'which git'
+            }
 
-        // This is questionable. Do we need resutl XMLs in S3 cache while Jenkins archives them as well?
-        syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
-        step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0])
-        archiveArtifacts "${WORK_DIR}/results/*.xml,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
+            git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
+
+            script {
+                prepareWorkspace(WORKER_ID)
+                downloadFilesForTests()
+                doTests(WORKER_ID.toString(), SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
+            }
+
+            // This is questionable. Do we need result XMLs in S3 cache while Jenkins archives them as well?
+            syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
+            step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0])
+            archiveArtifacts "${WORK_DIR}/results/*.xml,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
+        } catch (err) {
+            echo "[WARNING] Worker ${WORKER_ID} failed with error: ${err}"
+            throw err // rethrow so outer catchError or pipeline failure handling still works
+        }
     }
 }
 
 void doTestWorkerJobWithGuard(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
     catchError(buildResult: 'UNSTABLE') {
         script {
-            echo "NODE_NAME = ${env.NODE_NAME}"
             WORKER_ABORTED[WORKER_ID] = true
             echo "WORKER_${WORKER_ID.toString()}_ABORTED = true"
         }
-        doTestWorkerJob(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
+        doTestWorkerJobWithoutGuard(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
         script {
             WORKER_ABORTED[WORKER_ID] = false
             echo "WORKER_${WORKER_ID.toString()}_ABORTED = false"
         }
     } // catch
+}
+
+void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
+    script {
+        if (env.ALLOW_ABORTED_WORKERS_RERUN == 'true') {
+            doTestWorkerJobWithGuard(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
+        } else {
+            doTestWorkerJobWithoutGuard(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
+        }
+    }
 }
 
 void checkoutSources() {
@@ -772,7 +789,7 @@ pipeline {
                             }
                             // agent { label LABEL }
                             steps {
-                                doTestWorkerJobWithGuard(1, "${WORKER_1_MTR_SUITES}", "${MTR_STANDALONE_TESTS}", true, env.CI_FS_MTR?.trim() == 'yes', env.KEYRING_VAULT_MTR?.trim() == 'yes', env.WITH_PS_PROTOCOL?.trim() == 'yes')
+                                doTestWorkerJob(1, "${WORKER_1_MTR_SUITES}", "${MTR_STANDALONE_TESTS}", true, env.CI_FS_MTR?.trim() == 'yes', env.KEYRING_VAULT_MTR?.trim() == 'yes', env.WITH_PS_PROTOCOL?.trim() == 'yes')
                             }
                         }
                         stage('Test 2') {
@@ -782,7 +799,7 @@ pipeline {
                             }
                             agent { label LABEL }
                             steps {
-                                doTestWorkerJobWithGuard(2, "${WORKER_2_MTR_SUITES}")
+                                doTestWorkerJob(2, "${WORKER_2_MTR_SUITES}")
                             }
                         }
                         stage('Test 3') {
@@ -792,7 +809,7 @@ pipeline {
                             }
                             agent { label LABEL }
                             steps {
-                                doTestWorkerJobWithGuard(3, "${WORKER_3_MTR_SUITES}")
+                                doTestWorkerJob(3, "${WORKER_3_MTR_SUITES}")
                             }
                         }
                         stage('Test 4') {
@@ -802,7 +819,7 @@ pipeline {
                             }
                             agent { label LABEL }
                             steps {
-                                doTestWorkerJobWithGuard(4, "${WORKER_4_MTR_SUITES}")
+                                doTestWorkerJob(4, "${WORKER_4_MTR_SUITES}")
                             }
                         }
                         stage('Test 5') {
@@ -812,7 +829,7 @@ pipeline {
                             }
                             agent { label LABEL }
                             steps {
-                                doTestWorkerJobWithGuard(5, "${WORKER_5_MTR_SUITES}")
+                                doTestWorkerJob(5, "${WORKER_5_MTR_SUITES}")
                             }
                         }
                         stage('Test 6') {
@@ -822,7 +839,7 @@ pipeline {
                             }
                             agent { label LABEL }
                             steps {
-                                doTestWorkerJobWithGuard(6, "${WORKER_6_MTR_SUITES}")
+                                doTestWorkerJob(6, "${WORKER_6_MTR_SUITES}")
                             }
                         }
                         stage('Test 7') {
@@ -832,7 +849,7 @@ pipeline {
                             }
                             agent { label LABEL }
                             steps {
-                                doTestWorkerJobWithGuard(7, "${WORKER_7_MTR_SUITES}")
+                                doTestWorkerJob(7, "${WORKER_7_MTR_SUITES}")
                             }
                         }
                         stage('Test 8') {
@@ -842,7 +859,7 @@ pipeline {
                             }
                             agent { label LABEL }
                             steps {
-                                doTestWorkerJobWithGuard(8, "${WORKER_8_MTR_SUITES}")
+                                doTestWorkerJob(8, "${WORKER_8_MTR_SUITES}")
                             }
                         }
                     }
