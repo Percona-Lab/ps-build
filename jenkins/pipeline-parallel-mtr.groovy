@@ -95,12 +95,13 @@ void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
         sh """
             echo "prepareWorkspace for MTR worker ${WORKER_ID}"
+            whoami
+            ls -l
+
+            sudo git log --oneline -10
             sudo git reset --hard
 
-            # it's safe to use "git clean" as "sources/" are ignored with ".gitignore"
-            sudo git clean -xdf
-
-            # "sources" required for running unit tests are valid only for "Test 1" (WORKER #1) but not for retry/re-runs
+            # "sources" + "work/build" required for running unit tests are valid only for "Test 1" (WORKER #1) but not for retry/re-runs
             if [ "$WORKER_ID" = "1" ] && [ "$UNIT_TESTS" != "false" ]; then
                 if [ -d sources ]; then
                     sudo cat sources/MYSQL_VERSION || :
@@ -117,6 +118,10 @@ void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
                 else
                     echo "Warning: Missing 'sources' for MTR worker ${WORKER_ID}. It should happen only for re-runs."
                 fi
+            else
+                # "git clean" doesn't remove "sources/" because of ".gitignore"
+                sudo git clean -xdf
+                sudo rm -rf sources
             fi
 
             if [ -f /usr/bin/yum ]; then
@@ -126,6 +131,15 @@ void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
             fi
         """
     }
+}
+
+void cleanWorkspace(Integer WORKER_ID) {
+    echo "[INFO] Worker ${WORKER_ID}: cleaning up workspace."
+    sh """
+        # "git clean" doesn't remove "sources/" because of ".gitignore"
+        sudo git clean -xdf
+        sudo rm -rf sources
+    """
 }
 
 void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
@@ -220,6 +234,9 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
             syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
             step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0])
             archiveArtifacts "${WORK_DIR}/results/*.xml,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
+
+            // cleanup before marking success
+            cleanWorkspace(WORKER_ID)
 
             echo "[INFO] Worker ${WORKER_ID} completed successfully."
         } catch (err) {
@@ -804,7 +821,7 @@ pipeline {
                                 beforeAgent true
                                 expression { (env.WORKER_1_MTR_SUITES?.trim() || env.MTR_STANDALONE_TESTS?.trim() || env.CI_FS_MTR?.trim() == 'yes' || env.KEYRING_VAULT_MTR?.trim() == 'yes' || env.WITH_PS_PROTOCOL?.trim() == 'yes') }
                             }
-                            // "Test 1" reuses the same instance as "Build" and inherits "sources" which are required for running unit tests
+                            // "Test 1" reuses the same instance as "Build" and inherits "sources" + "work/build" which are required for running unit tests
                             // agent { label LABEL }
                             steps {
                                 doTestWorkerJob(1, "${WORKER_1_MTR_SUITES}", "${MTR_STANDALONE_TESTS}", true, env.CI_FS_MTR?.trim() == 'yes', env.KEYRING_VAULT_MTR?.trim() == 'yes', env.WITH_PS_PROTOCOL?.trim() == 'yes')
