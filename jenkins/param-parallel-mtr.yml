@@ -227,7 +227,10 @@
           unstable-threshold: never
           failure-threshold: FAILURE
     - shell: |
-        sudo find . -name "*.xml" -o -name "*.log" -delete
+        whoami
+        ls -l
+        sudo find . \( -name "*.xml" -o -name "*.log" \) -delete || echo "sudo cleanup skipped"
+        find . \( -name "*.xml" -o -name "*.log" \) -delete || echo "cleanup skipped"
     - copyartifact:
         project: percona-server-{ps_version}-pipeline-parallel-mtr
         which-build: specific-build
