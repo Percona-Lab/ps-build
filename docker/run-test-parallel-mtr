@@ -114,6 +114,7 @@ docker run --rm --shm-size=32G \
 
     bash -x /tmp/scripts/test-binary-parallel-mtr /tmp/work/
 
+    sudo chown $(id -u):$(id -g) /tmp/work
     sudo chown -R $(id -u):$(id -g) /tmp/work/results
 " 2>&1 | tee ${WORK_DIR}/mtr-test_${WORKER_NO}.log
 
