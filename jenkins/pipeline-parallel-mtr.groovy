@@ -229,6 +229,7 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
             }
 
             echo "[INFO] Worker ${WORKER_ID} finished MTR testing."
+            archiveArtifacts "${WORK_DIR}/*.log*,${WORK_DIR}/results/*.xml,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
 
             // This is questionable. Do we need result XMLs in S3 cache while Jenkins archives them as well?
             syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
@@ -238,7 +239,6 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
                 healthScaleFactor: 1.0,
                 keepLongStdio: false
             ])
-            archiveArtifacts "${WORK_DIR}/*.log*,${WORK_DIR}/results/*.xml,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
 
             // cleanup before marking success
             cleanWorkspace(WORKER_ID)
