@@ -17,19 +17,23 @@ pushd $ROOT_DIR
 
     if [ -n "${GIT_REPO}" ]; then
         git remote set-url origin "${GIT_REPO}"
-        git fetch --all
+        git fetch --all --tags
     fi
 
     git reset --hard
     git clean -xdf
 
     if [ -n "${BRANCH}" ]; then
+        git fetch --all --tags
         git checkout "${BRANCH}"
-    fi
-    if [ -n "${GIT_REPO}" -a -n "${BRANCH}" ]; then
-        git pull origin ${BRANCH}
+
+        # If BRANCH is actually a branch (not a tag or commit hash),
+        # make sure it matches the remote exactly (force-push safe)
+        if git rev-parse --abbrev-ref HEAD | grep -qv HEAD; then
+            git reset --hard "origin/${BRANCH}" || true
+        fi
     fi
 
-# update to the pinned revisions
+    # update to the pinned revisions
     git submodule update --init
 popd
