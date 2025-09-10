@@ -280,7 +280,7 @@
     name: param-parallel-mtr-8.0
     ps_version: 8.0
     ps_version_no_dot: '8_0'
-    branch_name: release-8.0.42-33
+    branch_name: release-8.0.43-34
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: 8.0
     docker_os_list:
@@ -298,7 +298,7 @@
     name: param-parallel-mtr-8.x
     ps_version: 8.x
     ps_version_no_dot: '8_x'
-    branch_name: release-8.4.5-5
+    branch_name: release-8.4.6-6
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: 8.0
     docker_os_list:
@@ -316,7 +316,7 @@
     name: param-parallel-mtr-9.x
     ps_version: 9.x
     ps_version_no_dot: '9_x'
-    branch_name: release-9.2.0-1
+    branch_name: release-9.4.0-1
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: 8.0
     docker_os_list:
