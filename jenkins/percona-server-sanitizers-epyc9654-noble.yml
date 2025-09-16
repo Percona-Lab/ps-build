@@ -69,6 +69,12 @@
         - "ON"
         - "OFF"
         description: Whether to build with support for X Plugin
+    - choice:
+        name: WITH_JS_LANG
+        choices:
+        - "OFF"
+        - "ON"
+        description: Whether to build JS Stored Programs component
     - string:
         name: CMAKE_OPTS
         default: "-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DROCKSDB_DISABLE_MARCH_NATIVE=1"
@@ -182,6 +188,7 @@
             echo WITH_ROCKSDB=$WITH_ROCKSDB
             echo WITH_ROUTER=$WITH_ROUTER
             echo WITH_MYSQLX=$WITH_MYSQLX
+            echo WITH_JS_LANG=$WITH_JS_LANG
             echo CMAKE_OPTS=$CMAKE_OPTS
             echo MAKE_OPTS=$MAKE_OPTS
             echo CI_FS_MTR=$CI_FS_MTR

@@ -80,6 +80,12 @@
         - "ON"
         - "OFF"
         description: Whether to build with support for X Plugin
+    - choice:
+        name: WITH_JS_LANG
+        choices:
+        - "OFF"
+        - "ON"
+        description: Whether to build JS Stored Programs component
     - string:
         name: CMAKE_OPTS
         default:

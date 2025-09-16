@@ -456,6 +456,7 @@ void triggerAbortedTestWorkersRerun() {
                             string(name:'WITH_ROCKSDB', value: env.WITH_ROCKSDB),
                             string(name:'WITH_ROUTER', value: env.WITH_ROUTER),
                             string(name:'WITH_MYSQLX', value: env.WITH_MYSQLX),
+                            string(name:'WITH_JS_LANG', value: env.WITH_JS_LANG),
                     string(name:'CMAKE_OPTS', value: env.CMAKE_OPTS),
                     string(name:'MAKE_OPTS', value: env.MAKE_OPTS),
                     string(name:'MTR_ARGS', value: env.MTR_ARGS),

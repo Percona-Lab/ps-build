@@ -8,8 +8,8 @@
 #      PS_BUILD_BRANCH - branch for ps-build repo e.g. "8.0"
 #      SKIP_BUILD = (yes no) - skip building a server from sources and use last build for a given PS_BUILD_BRANCH
 #      GIT_REPO, BRANCH - used by ./local/checkout
-#      JOB_CMAKE, COMPILER, CMAKE_BUILD_TYPE, WITH_ROCKSDB, WITH_ROUTER, WITH_GCOV, WITH_MYSQLX, ANALYZER_OPTS,
-#                        MAKE_OPTS, CMAKE_OPTS - used by local/build-binary
+#      JOB_CMAKE, COMPILER, CMAKE_BUILD_TYPE, WITH_ROCKSDB, WITH_ROUTER, WITH_GCOV, WITH_MYSQLX, WITH_JS_LANG,
+#                        ANALYZER_OPTS, MAKE_OPTS, CMAKE_OPTS - used by local/build-binary
 #      CMAKE_BUILD_TYPE, KEEP_BUILD, ANALYZER_OPTS, MTR_ARGS, MTR_REPEAT, MTR_SUITES, WORKER_NO, DOCKER_OS, CI_FS_MTR,
 #                        WITH_PS_PROTOCOL, KEYRING_VAULT_MTR, WITH_ROCKSDB - used by local/test-binary-parallel-mtr
 

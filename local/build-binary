@@ -14,6 +14,7 @@ WITH_ROCKSDB=${WITH_ROCKSDB:-ON}
 WITH_ROUTER=${WITH_ROUTER:-ON}
 WITH_GCOV=${WITH_GCOV:-OFF}
 WITH_MYSQLX=${WITH_MYSQLX:-ON}
+WITH_JS_LANG=${WITH_JS_LANG:-OFF}
 ANALYZER_OPTS=${ANALYZER_OPTS:-}
 MAKE_OPTS=${MAKE_OPTS:--j$(grep -c ^processor /proc/cpuinfo)}
 CMAKE_OPTS=${CMAKE_OPTS:-}
@@ -168,6 +169,18 @@ else
 fi
 
 # ------------------------------------------------------------------------------
+# Get prebuilt V8 if we are building with JS Stored Programs support
+# ------------------------------------------------------------------------------
+if [[ ${WITH_JS_LANG} == 'ON' ]]; then
+    V8_VERSION=$(grep 'SET(EXPECTED_V8_VERSION' ${SOURCEDIR}/cmake/v8.cmake | sed -re 's/.*"([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+    pushd ${DOWNLOAD_DIR}
+        wget --progress=dot:giga https://downloads.percona.com/downloads/packaging/v8_${V8_VERSION}.tar.gz
+        tar -xzf v8_${V8_VERSION}.tar.gz
+        rm -rf v8_${V8_VERSION}.tar.gz
+    popd
+fi
+
+# ------------------------------------------------------------------------------
 # Finaly, compile!
 # ------------------------------------------------------------------------------
 pushd ${BUILD_DIR}
@@ -177,6 +190,9 @@ pushd ${BUILD_DIR}
         -DWITH_ROCKSDB=${WITH_ROCKSDB} \
         -DWITH_ROUTER=${WITH_ROUTER} \
         -DWITH_MYSQLX=${WITH_MYSQLX} \
+        -DWITH_JS_LANG=${WITH_JS_LANG} \
+        -DV8_INCLUDE_DIR=${DOWNLOAD_DIR}/v8/include \
+        -DV8_LIB_DIR=${DOWNLOAD_DIR}/v8/out.gn/static/obj \
         -DWITH_MECAB=${WITH_MECAB} \
         -DENABLE_GCOV=${WITH_GCOV} \
         -DWITH_PACKAGE_FLAGS=OFF \
