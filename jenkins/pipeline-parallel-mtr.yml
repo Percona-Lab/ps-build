@@ -44,6 +44,12 @@
         choices: '{docker_os_list}'
         description: OS version for compilation
     - choice:
+        name: ARCH
+        choices:
+        - "x86_64"
+        - "aarch64"
+        description: CPU architecture for compilation
+    - choice:
         name: CMAKE_BUILD_TYPE
         choices:
         - Debug

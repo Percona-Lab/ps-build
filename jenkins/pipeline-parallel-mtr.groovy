@@ -471,6 +471,7 @@ void triggerAbortedTestWorkersRerun() {
                     string(name:'GIT_REPO', value: env.GIT_REPO),
                     string(name:'BRANCH', value: env.BRANCH),
                     string(name:'DOCKER_OS', value: env.DOCKER_OS),
+                    string(name:'ARCH', value: env.ARCH),
                     string(name:'JOB_CMAKE', value: env.JOB_CMAKE),
                     string(name:'COMPILER', value: env.COMPILER),
                     string(name:'CMAKE_BUILD_TYPE', value: env.CMAKE_BUILD_TYPE),
@@ -626,14 +627,14 @@ def notifySlack(status, color, customMessage) {
 }
 
 if (params.CLOUD == 'Hetzner') {
-    LABEL = 'docker-x64'
+    LABEL = (params.ARCH == 'aarch64') ? 'docker-aarch64' : 'docker-x64'
     MICRO_LABEL = 'launcher-x64'
 } else if (params.CLOUD == 'epyc9654') {
     LABEL = 'as-1015cs-tnr'
     MICRO_LABEL = 'launcher-x64'
 } else {
     // by default fallback to AWS
-    LABEL = 'docker-32gb'
+    LABEL = (params.ARCH == 'aarch64') ? 'docker-32gb-aarch64' : 'docker-32gb'
     MICRO_LABEL = 'micro-amazon'
 }
 
@@ -666,7 +667,7 @@ pipeline {
                         BUILD_TRIGGER_BY = ' '
                     }
 
-                    currentBuild.displayName = "${BUILD_NUMBER} ${CMAKE_BUILD_TYPE}/${DOCKER_OS}${BUILD_TRIGGER_BY} ${CUSTOM_BUILD_NAME}"
+                    currentBuild.displayName = "${BUILD_NUMBER} ${CMAKE_BUILD_TYPE}/${DOCKER_OS}/${ARCH}${BUILD_TRIGGER_BY} ${CUSTOM_BUILD_NAME}"
                 }
 
                 sh 'echo Prepare: \$(date -u "+%s")'
@@ -750,7 +751,7 @@ pipeline {
                             buildParamsType: env.BUILD_PARAMS_TYPE,
                             cloud: params.CLOUD,
                             cmakeBuildType: env.CMAKE_BUILD_TYPE,
-                            dockerOs: env.DOCKER_OS,
+                            dockerOs: (env.ARCH == 'aarch64') ? env.DOCKER_OS + '-aarch64' : env.DOCKER_OS,
                             forceCacheMiss: env.FORCE_CACHE_MISS == 'true',
                             serverVersion: SERVER_VERSION,
                             s3Bucket: S3_ROOT_DIR + '/',
@@ -772,7 +773,7 @@ pipeline {
                                 cacheRetentionDays: retentionDays,
                                 cloud: params.CLOUD,
                                 cmakeBuildType: env.CMAKE_BUILD_TYPE,
-                                dockerOs: env.DOCKER_OS,
+                                dockerOs: (env.ARCH == 'aarch64') ? env.DOCKER_OS + '-aarch64' : env.DOCKER_OS,
                                 serverVersion: SERVER_VERSION,
                                 s3Bucket: S3_ROOT_DIR + '/',
                                 toolset: env.TOOLSET,

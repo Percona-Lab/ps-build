@@ -19,6 +19,11 @@ KEEP_BUILD=${KEEP_BUILD:-no}
 DOCKER_OS=${1:-ubuntu:jammy}
 SOURCE_IMAGE=${DOCKER_OS//:/-}
 
+ARCH_SUFFIX=""
+if [[ $(uname -m) == "aarch64" ]]; then
+  ARCH_SUFFIX="-aarch64"
+fi
+
 ROOT_DIR=$(cd $(dirname $0)/..; pwd -P)
 SCRIPTS_DIR=$ROOT_DIR/local
 SOURCES_DIR=$ROOT_DIR/sources
@@ -32,7 +37,7 @@ docker run -it --rm \
     --mount type=bind,source=${SOURCES_DIR},destination=/tmp/sources \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
     --mount type=bind,source=${WORK_DIR},destination=/tmp/work \
-    public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE} \
+    public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE}${ARCH_SUFFIX} \
     sh -c "
     set -o errexit
 
