@@ -74,6 +74,33 @@ function execute() {
     echo KH,SUITES,${suites}-${logFileSuffix},time,$runtime
 }
 
+split_suites() {
+  local input="$1"
+  suitesNormal=""
+  suitesBig=""
+
+  # Split input by comma
+  IFS=',' read -ra suites <<< "$input"
+
+  for suite in "${suites[@]}"; do
+    case "$suite" in
+      *"|nobig")
+        suite_name="${suite%%|*}"
+        suitesNormal+="${suitesNormal:+,}$suite_name"
+        ;;
+      *"|big")
+        suite_name="${suite%%|*}"
+        suitesBig+="${suitesBig:+,}$suite_name"
+        ;;
+      *)
+        # No suffix → add to both
+        suitesNormal+="${suitesNormal:+,}$suite"
+        suitesBig+="${suitesBig:+,}$suite"
+        ;;
+    esac
+  done
+}
+
 WORKDIR=$(cd ${1:-./build}; pwd -P)
 BUILD_DIR=${WORKDIR}/build
 RESULTS_DIR=${WORKDIR}/results
@@ -276,46 +303,24 @@ fi
 # Running MTR test cases
 MTR_ARGS="${MTR_ARGS} --no-unit-tests"
 
-ARRAY_MTR_SUITES=($(echo $MTR_SUITES | sed 's/,/ /g'))
+
 # >>>> main MTR execution loop starts here
-for suite in "${ARRAY_MTR_SUITES[@]}"; do
-    only_big_tests_this=$ONLY_BIG_TEST
-    big_tests_this=$BIG_TEST
-
-    # suite may be in form:
-    # main
-    # main|big
-    # main|nobig
-    arrSuite=(${suite//|/ })
-    suite=${arrSuite[0]}
-    big=${arrSuite[1]}
-
-    if [[ "${big}" == "big" ]]; then
-        only_big_tests_this=1
-        # if big tests are executed or not depends on --big-tests
-    fi
-    if [[ "${big}" == "nobig" ]]; then
-        # if normal tests are executed or not depends on --big-tests
-        big_tests_this=0
-    fi
-
-    if [[ $only_big_tests_this == "0" ]]; then
-        suitesNormal+="$suite,"
-    fi
-
-    if [[ $big_tests_this == "1" ]]; then
-        suitesBig+="$suite,"
-    fi
-done
+split_suites "$MTR_SUITES"
 
 echo "MTR normal suites: $suitesNormal"
 echo "MTR big suites: $suitesBig"
 
 start=`date +%s`
 
-# execute $suites $parallel $extraOptions $logFileSuffix
-execute "$suitesNormal" "${PARALLEL}" "" ""
-execute "$suitesBig" "${PARALLEL}" "--only-big-test" "_bigtest"
+if [[ "$ONLY_BIG_TEST" == "1" ]]; then
+  execute "$suitesBig"    "${PARALLEL}" "--only-big-test" "_bigtest"
+elif [[ "$BIG_TEST" == "1" ]]; then
+  execute "$suitesNormal" "${PARALLEL}" "" ""
+  execute "$suitesBig" "   ${PARALLEL}" "--only-big-test" "_bigtest"
+else
+  # execute $suites $parallel $extraOptions $logFileSuffix
+  execute "$suitesNormal" "${PARALLEL}" "" ""
+fi
 # <<<< main MTR execution loop ends here
 
 
