@@ -19,6 +19,61 @@
 set -o errexit
 set -o xtrace
 
+function execute() {
+    local suites=$1
+    local parallel=$2
+    local extraOptions=$3
+    local logFileSuffix=$4
+
+    if [[ -z ${suites} ]]; then
+        return
+    fi
+
+    local worker="WORKER_${WORKER_NO}_${logFileSuffix}"
+    # ensure that there are not / in worker name (it can come from suites that have / in their names)
+    worker=${worker//"/"/"_"}
+
+    echo "Executing suites $suites, logFileSuffix: $logFileSuffix"
+
+    df -h
+    du /dev/shm
+    mount
+    ls -la /dev/shm
+    cat /proc/meminfo
+
+    start=`date +%s`
+
+    MTR_ARGS_NORMAL=${MTR_ARGS}
+
+    MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
+        --parallel=${parallel} \
+        --result-file \
+        --suite=$suites \
+        --suite-timeout=9999 \
+        --testcase-timeout=${TESTCASE_TIMEOUT} \
+        --force ${MYSQLD_ENV} \
+        --max-test-fail=0 \
+        ${MTR_ARGS_NORMAL} \
+        ${extraOptions} \
+        --junit-output=${RESULTS_DIR}/junit_${worker}.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${worker}" || true
+
+    ln -s $PWD/var $PWD/var_${worker}
+    which rsync
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${worker} ${RESULTS_DIR}/mtr_var
+
+    pgrep -f mysqld | xargs -r kill -9 2>/dev/null || true
+
+    rm -rf $PWD/var_${worker}
+
+    df -h
+    du -sh /dev/shm
+
+    end=`date +%s`
+    runtime=$((end-start))
+    echo KH,SUITES,${suites}-${logFileSuffix},time,$runtime
+}
+
 WORKDIR=$(cd ${1:-./build}; pwd -P)
 BUILD_DIR=${WORKDIR}/build
 RESULTS_DIR=${WORKDIR}/results
@@ -209,11 +264,11 @@ if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
 fi
 
 #
-# set options for "--mysqld-env"
+# adjustments for Valgrind
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
-    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${EATMYDATA}"
+    MYSQLD_ENV=--mysqld-env=\"LD_PRELOAD=${ADD_TO_LD_PRELOAD:-}${EATMYDATA}\"
 else
-    MYSQLD_ENV="${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}"
+    MYSQLD_ENV=--mysqld-env=\"LD_PRELOAD=${ADD_TO_LD_PRELOAD:-}${JEMALLOC}:${EATMYDATA}\"
 fi
 
 
@@ -258,82 +313,11 @@ echo "MTR big suites: $suitesBig"
 
 start=`date +%s`
 
-if [[ "$suitesNormal" != "" ]]; then
-    suitesNormal=${suitesNormal::-1};
-    suiteNoSlash="WORKER_${WORKER_NO}"
-    echo "Executing normal tests for suites $suitesNormal"
-
-    df -h
-    du /dev/shm
-    mount
-    ls -la /dev/shm
-    cat /proc/meminfo
-
-    MTR_ARGS_NORMAL=${MTR_ARGS}
-
-    MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
-        --parallel=${PARALLEL} \
-        --result-file \
-        --suite=$suitesNormal \
-        --suite-timeout=9999 \
-        --testcase-timeout=${TESTCASE_TIMEOUT} \
-        ${MTR_ARGS_NORMAL} \
-        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
-        --max-test-fail=0 \
-        --junit-output=${RESULTS_DIR}/junit_${suiteNoSlash}.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${suiteNoSlash}" || true
-
-    ln -s $PWD/var $PWD/var_${suiteNoSlash}
-    which rsync
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${suiteNoSlash} ${RESULTS_DIR}/mtr_var
-
-    killall -9 mysqld || true
-    rm -rf $PWD/var_${suiteNoSlash}
-
-    df -h
-    du -sh /dev/shm
-
-    end=`date +%s`
-    runtime=$((end-start))
-    echo KH,SUITE_NO_BIG,${suitesNormal},time,$runtime
-fi
-
-if [[ "$suitesBig" != "" ]]; then
-    suitesBig=${suitesBig::-1};
-    suiteNoSlash="WORKER_${WORKER_NO}"
-    echo "Executing big tests for suites $suitesBig"
-
-    MTR_ARGS_BIG=${MTR_ARGS}
-    MTR_ARGS_BIG+=" --only-big-test"
-    suiteNoSlash+="_bigtest"
-    TESTCASE_TIMEOUT_BIG=$((TESTCASE_TIMEOUT * 2))
-
-    MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
-        --parallel=${PARALLEL} \
-        --result-file \
-        --suite=$suitesBig \
-        --suite-timeout=9999 \
-        --testcase-timeout=${TESTCASE_TIMEOUT} \
-        ${MTR_ARGS_BIG} \
-        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
-        --max-test-fail=0 \
-        --junit-output=${RESULTS_DIR}/junit_${suiteNoSlash}.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${suiteNoSlash}" || true
-
-    ln -s $PWD/var $PWD/var_${suiteNoSlash}
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${suiteNoSlash} ${RESULTS_DIR}/mtr_var
-
-    killall -9 mysqld || true
-    rm -rf $PWD/var_${suiteNoSlash}
-
-    df -h
-    du -sh /dev/shm
-
-    end=`date +%s`
-    runtime=$((end-start))
-    echo KH,SUITE_TOTAL,${suitesBig},time,$runtime
-fi
+# execute $suites $parallel $extraOptions $logFileSuffix
+execute "$suitesNormal" "${PARALLEL}" "" ""
+execute "$suitesBig" "${PARALLEL}" "--only-big-test" "_bigtest"
 # <<<< main MTR execution loop ends here
+
 
 #
 # CI FS tests
@@ -370,7 +354,7 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
 
     MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --result-file \
-        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+        --force ${MYSQLD_ENV} \
         --max-test-fail=0 \
         --suite-timeout=9999 \
         --parallel=$PARALLEL \
@@ -422,7 +406,7 @@ if [[ "${WITH_PS_PROTOCOL}" = 'yes' ]]; then
 
     MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --result-file \
-        --force --mysqld-env="LD_PRELOAD=${MYSQLD_ENV}" \
+        --force ${MYSQLD_ENV} \
         --max-test-fail=0 \
         --suite-timeout=9999 \
         --parallel=$PARALLEL \
