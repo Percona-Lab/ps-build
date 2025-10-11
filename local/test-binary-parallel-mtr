@@ -15,9 +15,13 @@
 #      KEYRING_VAULT_MTR = (yes no)
 #      WITH_ROCKSDB = (ON OFF)
 #      KEEP_BUILD = (yes no)
+#      EXECUTE_SUITES_ONE_BY_ONE = (yes no)
 
 set -o errexit
 set -o xtrace
+
+# Execution mode. If suites should be executed one by one, or all together
+echo EXECUTE_SUITES_ONE_BY_ONE=$EXECUTE_SUITES_ONE_BY_ONE
 
 function execute() {
     local suites=$1
@@ -29,7 +33,7 @@ function execute() {
         return
     fi
 
-    local worker="WORKER_${WORKER_NO}_${logFileSuffix}"
+    local worker="WORKER_${WORKER_NO}${logFileSuffix}"
     # ensure that there are not / in worker name (it can come from suites that have / in their names)
     worker=${worker//"/"/"_"}
 
@@ -74,7 +78,26 @@ function execute() {
     echo KH,SUITES,${suites}-${logFileSuffix},time,$runtime
 }
 
-split_suites() {
+function executeSuites() {
+  local suites="$1"
+  local parallel="$2"
+  local extraOptions="$3"
+  local extraSuffix=${4:+-"$4"}
+
+  if [[ "${EXECUTE_SUITES_ONE_BY_ONE}" != "yes" ]]; then
+    # Run all suites together
+    execute "$suites" "$parallel" "$extraOptions" "$extraSuffix"
+  else
+    # Run suites one by one
+    IFS=',' read -ra suiteList <<< "$suites"
+    for suite in "${suiteList[@]}"; do
+      echo "Executing suite: $suite"
+      execute "$suite" "$parallel" "$extraOptions" "_${suite}${extraSuffix}"
+    done
+  fi
+}
+
+function split_suites() {
   local input="$1"
   suitesNormal=""
   suitesBig=""
@@ -310,16 +333,14 @@ split_suites "$MTR_SUITES"
 echo "MTR normal suites: $suitesNormal"
 echo "MTR big suites: $suitesBig"
 
-start=`date +%s`
-
 if [[ "$ONLY_BIG_TEST" == "1" ]]; then
-  execute "$suitesBig"    "${PARALLEL}" "--only-big-test" "_bigtest"
+  executeSuites "$suitesBig"    "${PARALLEL}" "--only-big-test" "big"
 elif [[ "$BIG_TEST" == "1" ]]; then
-  execute "$suitesNormal" "${PARALLEL}" "" ""
-  execute "$suitesBig" "   ${PARALLEL}" "--only-big-test" "_bigtest"
+  executeSuites "$suitesNormal" "${PARALLEL}" "" ""
+  executeSuites "$suitesBig"    "${PARALLEL}" "--only-big-test" "big"
 else
-  # execute $suites $parallel $extraOptions $logFileSuffix
-  execute "$suitesNormal" "${PARALLEL}" "" ""
+  # executeSuites $suites $parallel $extraOptions $logFileSuffix
+  executeSuites "$suitesNormal" "${PARALLEL}" "" ""
 fi
 # <<<< main MTR execution loop ends here
 

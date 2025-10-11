@@ -152,6 +152,12 @@
             yes - full MTR<br>
             no - run mtr suites based on variables WORKER_N_MTR_SUITES<br>
             skip_mtr - skip testing phase. Only build.
+    - choice:
+        name: EXECUTE_SUITES_ONE_BY_ONE
+        choices:
+        - "no"
+        - "yes"
+        description: Run each MTR suite separately or run MTR tests merged into 2 groups (normal and big tests) for each worker
     - string:
         name: WORKER_1_MTR_SUITES
         default: ""

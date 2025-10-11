@@ -16,6 +16,7 @@ set -o xtrace
 
 # decides if keep original build files or just ".tar.gz" archive
 KEEP_BUILD=${KEEP_BUILD:-no}
+EXECUTE_SUITES_ONE_BY_ONE=${EXECUTE_SUITES_ONE_BY_ONE:-no}
 
 DOCKER_OS=${1:-ubuntu:jammy}
 SOURCE_IMAGE=${DOCKER_OS//:/-}
@@ -108,6 +109,7 @@ docker run --rm --shm-size=32G \
     export DOCKER_OS='${SOURCE_IMAGE}'
     export WITH_ROCKSDB='${WITH_ROCKSDB}'
     export KEEP_BUILD='${KEEP_BUILD}'
+    export EXECUTE_SUITES_ONE_BY_ONE='${EXECUTE_SUITES_ONE_BY_ONE}'
 
     sudo chown mysql:mysql /tmp/work
     sudo chown -R mysql:mysql /tmp/work/results || :
