@@ -565,14 +565,6 @@ if (params.ANALYZER_OPTS.contains('-DWITH_VALGRIND=ON')) {
     PIPELINE_TIMEOUT = 144
 }
 
-if ( ((params.ANALYZER_OPTS.contains('-DWITH_ASAN=ON')) &&
-     (params.ANALYZER_OPTS.contains('-DWITH_ASAN_SCOPE=ON')) &&
-     (params.ANALYZER_OPTS.contains('-DWITH_UBSAN=ON'))) ||
-     ((params.MTR_ARGS.contains('--big-test')) || (params.MTR_ARGS.contains('--only-big-test'))) ) {
-    LABEL = 'docker-32gb'
-    PIPELINE_TIMEOUT = 20
-     }
-
 @NonCPS
 def fetchSlackUserId(email) {
     try {
