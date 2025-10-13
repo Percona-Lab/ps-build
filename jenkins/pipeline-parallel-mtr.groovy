@@ -333,7 +333,11 @@ void setupTestSuitesSplit() {
             set +e
             echo "Check if suites list is consistent with the one specified in mysql-test-run.pl"
             source ${WORKSPACE}/suites-groups.sh
-            set_suites ${CMAKE_BUILD_TYPE} ${SERVER_VERSION}
+            if [[ "${ANALYZER_OPTS}" == *"-DWITH_VALGRIND=ON"* ]]; then
+                set_suites Valgrind ${SERVER_VERSION}
+            else
+                set_suites ${CMAKE_BUILD_TYPE} ${SERVER_VERSION}
+            fi
             check_suites ${WORKSPACE}/mysql-test-run.pl
             CHECK_RESULT=\$?
             set -e
