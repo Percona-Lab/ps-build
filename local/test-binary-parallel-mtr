@@ -92,7 +92,7 @@ function executeSuites() {
     IFS=',' read -ra suiteList <<< "$suites"
     for suite in "${suiteList[@]}"; do
       echo "Executing suite: $suite"
-      execute "$suite" "$parallel" "$extraOptions" "_${suite}${extraSuffix}"
+      execute "$suite" "$parallel" "$extraOptions" ".${suite}${extraSuffix}"
     done
   fi
 }
@@ -274,7 +274,7 @@ if [[ $UNIT_TESTS == "1" ]]; then
         --force \
         --max-test-fail=0 \
         --junit-output=${RESULTS_DIR}/junit_${suiteNoSlash}.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.${suiteNoSlash}" || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.${suiteNoSlash}" || true
     popd
 
     ln -s ${BUILD_DIR}/mysql-test/var $PWD/var_${suiteNoSlash}
@@ -391,7 +391,7 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
         ${CI_TESTS} \
         ${ANALYZER_MTR_ARGS} \
         --junit-output=${RESULTS_DIR}/junit_ci_fs.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ci_fs" || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.ci_fs" || true
 
     ln -s /tmp/ci_disk_dir/var $PWD/var_ci_fs
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ci_fs ${RESULTS_DIR}/mtr_var
@@ -442,7 +442,7 @@ if [[ "${WITH_PS_PROTOCOL}" = 'yes' ]]; then
         ${PS_TESTS} \
         ${ANALYZER_MTR_ARGS} \
         --junit-output=${RESULTS_DIR}/junit_ps_protocol.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.ps_protocol" || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.ps_protocol" || true
 
     ln -s $PWD/var $PWD/var_ps_protocol
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ps_protocol ${RESULTS_DIR}/mtr_var
@@ -486,7 +486,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
         --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v1.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v1" || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_dev_v1" || true
 
     ln -s $PWD/var $PWD/var_kv1_dev
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv1_dev ${RESULTS_DIR}/mtr_var
@@ -507,7 +507,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
         --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v2.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_dev_v2" || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_dev_v2" || true
 
     ln -s $PWD/var $PWD/var_kv2_dev
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv2_dev ${RESULTS_DIR}/mtr_var
@@ -530,7 +530,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
         --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v1.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v1" || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_prod_v1" || true
 
     ln -s $PWD/var $PWD/var_kv1_prod
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv1_prod ${RESULTS_DIR}/mtr_var
@@ -552,7 +552,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         ${MTR_ARGS_KV_SUITE} \
         ${ANALYZER_MTR_ARGS} \
         --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v2.xml \
-        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_vault_prod_v2" || true
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_prod_v2" || true
 
     ln -s $PWD/var $PWD/var_kv2_prod
     rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv2_prod ${RESULTS_DIR}/mtr_var
