@@ -3,16 +3,12 @@
 '''
 1. For a given server version (8.0, 8.4) and build type (Debug/RelWithDebInfo) run full Jenkins test.
 
-2. Copy results from "Test Results" e.g.
-https://ps80.cd.percona.com/view/ASan+Valgrind/job/percona-server-TEST-pipeline-parallel-mtr/14/testReport/
-to text file. The format is following:
-ubuntu-noble.RelWithDebInfo.WORKER_4.group_replication-big	2 hr 59 min	0		654	+654	218	+218	872	+872
-ubuntu-noble.RelWithDebInfo.WORKER_5.rocksdb	1 hr 24 min	2	+2	89	+89	265	+265	356	+356
-ubuntu-noble.RelWithDebInfo.WORKER_7.main	1 hr 20 min	0		369	+369	1289	+1289	1658	+1658
+2. Copy results from "Artifacts" e.g.
+https://ps57.cd.percona.com/job/percona-server-5.7-pipeline-parallel-mtr/7/artifact/work/walltimes/
 
-3. Update manually results for UNIT_TESTS
+3. Run ../parse-mtr-results.py *.txt | sort > PS80-RelWithDebInfo.txt
 
-4. Run this script (e.g. "./gen-suites-groups.py results-PS80-Debug*") that:
+4. Run this script (e.g. "./gen-suites-groups.py PS80-RelWithDebInfo*") that:
 - Computes average runtime for each suite across all input files.
 - Divides suites into 8 groups so each group will take similar amount of time.
   The following suites are always assigned to WORKER_1:
@@ -24,6 +20,11 @@ ubuntu-noble.RelWithDebInfo.WORKER_7.main	1 hr 20 min	0		369	+369	1289	+1289	165
 import re
 import sys
 from collections import defaultdict
+
+def format_time(seconds):
+    hours, remainder = divmod(seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    return f"{int(hours)}h {int(minutes)}m {int(secs)}s"
 
 def time_to_seconds(time_str):
     hours = minutes = 0
@@ -45,12 +46,10 @@ def time_to_seconds(time_str):
 
     return hours * 3600 + minutes * 60 + seconds
 
+
 def parse_file(filename):
-    print("Parsing "+ filename, file=sys.stderr)
+    print("Parsing " + filename, file=sys.stderr)
     results = {}
-    suite_pattern = re.compile(
-        r'([^\s]+)\s+((?:\d+\s*hr\s*)?(?:\d+\s*min\s*)?(?:\d+(?:\.\d+)?\s*sec\s*)?(?:\d+(?:\.\d+)?\s*ms)?)'
-    )
 
     with open(filename, 'r') as f:
         for line in f:
@@ -58,19 +57,26 @@ def parse_file(filename):
             if not line:
                 continue
 
-            match = suite_pattern.match(line)
-            if not match:
+            # Expect format: <suite_name> <value>
+            parts = line.split()
+            if len(parts) != 2:
                 continue
 
-            full_name, runtime = match.groups()
-            suite_name = full_name.split('.')[-1]
+            full_name, value = parts
+            try:
+                seconds = int(value)  # or float(value) if needed
+            except ValueError:
+                continue
+
+            # Remove everything up to and including WORKER_X.
+            suite_name = full_name
+            suite_name = re.sub(r'^.*WORKER_\d+\.', '', suite_name)
 
             # Replacement adjustments
             suite_name = suite_name.replace("engines_funcs", "engines/funcs")
             suite_name = suite_name.replace("engines_iuds", "engines/iuds")
 
-            seconds = time_to_seconds(runtime)
-            results[suite_name] = (runtime.strip(), seconds)
+            results[suite_name] = (value, seconds)
 
     return results
 
@@ -79,13 +85,16 @@ def combine_results(files):
     from collections import defaultdict
     suite_totals = defaultdict(float)
     suite_counts = defaultdict(int)
+    total = 0
 
     for f in files:
         results = parse_file(f)
         for suite, (_, seconds) in results.items():
             suite_totals[suite] += seconds
             suite_counts[suite] += 1
+            total += seconds
 
+    print("Total seconds for all suites: ", total, file=sys.stderr)
     averaged = {}
     for suite in suite_totals:
         avg_seconds = suite_totals[suite] / suite_counts[suite]
@@ -171,10 +180,14 @@ if __name__ == "__main__":
     paired_results = pair_suites(results)
 
     if debug:
-        print(f"{'Suite':<30}\t{'Avg Runtime':<20}\t{'Avg Seconds'}")
-        for suite, (runtime, seconds) in paired_results.items():
-            print(f"{suite:<30}\t{runtime:<20}\t{seconds:.2f}")
-        print("\n")
+        print(f"{'Suite':<30}\t{'Avg Seconds'}")
+        for suite, (seconds,) in results.items():
+            print(f"{suite:<30}\t{seconds:.2f}")
+        print()
+        print(f"{'Suite':<30}\t{'Avg Seconds'}")
+        for suite, (seconds,) in paired_results.items():
+            print(f"{suite:<30}\t{seconds:.2f}")
+        print()
 
     print("Number of original suites:", len(results), file=sys.stderr)
     print("Number of paired suites:", len(paired_results), file=sys.stderr)
@@ -187,7 +200,11 @@ if __name__ == "__main__":
 
     groups = group_suites(paired_results, num_groups=8, fixed_first_group=fixed_first_group)
 
-    # Print detailed group info only in debug mode
+    grand_total = sum(s[1] for group in groups for s in group)
+    print(f"\n=== Total summary time for 8 groups: {format_time(grand_total)}; {grand_total} sec ===")
+    print(f"\n=== Average time for 1 instance: {format_time(grand_total/8)} ===")
+
+    # Print detailed group info
     for i, group in enumerate(groups):
         total_time = sum(s[1] for s in group)  # seconds is now at index 1
         print(f"\nGroup {i+1} - Total time: {total_time:.3f} sec")
