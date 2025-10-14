@@ -112,7 +112,7 @@ void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
                     else
                         sudo git -C sources log --oneline -10
                         sudo git -C sources reset --hard
-                        sudo git -C sources clean -xdf
+                        sudo git -C sources clean -xdf -e . || :
                         sudo git -C sources submodule update --init || :
                     fi
                 else
@@ -120,7 +120,7 @@ void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
                 fi
             else
                 # "git clean" doesn't remove "sources/" because of ".gitignore"
-                sudo git clean -xdf
+                sudo git clean -xdf || :
                 sudo rm -rf sources
             fi
 
@@ -137,7 +137,7 @@ void cleanWorkspace(Integer WORKER_ID) {
     echo "[INFO] Worker ${WORKER_ID}: cleaning up workspace."
     sh """
         # "git clean" doesn't remove "sources/" because of ".gitignore"
-        sudo git clean -xdf
+        sudo git clean -xdf || :
         sudo rm -rf sources
     """
 }
@@ -281,7 +281,7 @@ void checkoutSources() {
         # sudo is needed for better node recovery after compilation failure
         # if building failed on compilation stage directory will have files owned by docker user
         sudo git reset --hard
-        sudo git clean -xdf
+        sudo git clean -xdf || :
         sudo rm -rf sources
         ./local/checkout
     '''
