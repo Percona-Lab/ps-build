@@ -1,0 +1,119 @@
+ubuntu-noble.RelWithDebInfo.WORKER_4.group_replication-big	3 hr 6 min	0		741	+741	222	+222	963	+963
+ubuntu-noble.RelWithDebInfo.WORKER_7.rocksdb	1 hr 15 min	2	+2	89	+89	263	+263	354	+354
+ubuntu-noble.RelWithDebInfo.WORKER_4.group_replication	1 hr 8 min	0		676	+676	287	+287	963	+963
+ubuntu-noble.RelWithDebInfo.WORKER_5.rpl	1 hr 4 min	0		828	-4	893	-23	1721	-27
+ubuntu-noble.RelWithDebInfo.WORKER_1.main	1 hr 2 min	0		344	+344	1113	+1113	1457	+1457
+ubuntu-noble.RelWithDebInfo.WORKER_5.rpl-big	40 min	0		706	+706	25	+25	731	+731
+ubuntu-noble.RelWithDebInfo.WORKER_3.innodb	36 min	0		445	+445	355	+355	800	+800
+ubuntu-noble.RelWithDebInfo.WORKER_3.innodb-big	30 min	0		768	+768	32	+32	800	+800
+ubuntu-noble.RelWithDebInfo.WORKER_4.engines_funcs	30 min	0		4		288		292
+ubuntu-noble.RelWithDebInfo.WORKER_5.rpl_nogtid	28 min	0		252	+252	224	+224	476	+476
+ubuntu-noble.RelWithDebInfo.WORKER_2.main-big	28 min	0		1393	+1393	64	+64	1457	+1457
+ubuntu-noble.RelWithDebInfo.WORKER_7.rocksdb-big	28 min	0		340	+340	14	+14	354	+354
+ubuntu-noble.RelWithDebInfo.WORKER_5.rpl_gtid	22 min	0		311	+18	204	+27	515	+45
+ubuntu-noble.RelWithDebInfo.WORKER_4.component_encryption_udf-big	20 min	0		17	+17	7	+7	24	+24
+ubuntu-noble.RelWithDebInfo.WORKER_7.rocksdb_rpl	15 min	0		89	+89	55	+55	144	+144
+ubuntu-noble.RelWithDebInfo.WORKER_8.x	14 min	0		30	+2	300		330	+2
+ubuntu-noble.RelWithDebInfo.WORKER_6.parts-big	12 min	0		84	+84	12	+12	96	+96
+ubuntu-noble.RelWithDebInfo.WORKER_5.sys_vars	11 min	0		70	-18	745	-11	815	-29
+ubuntu-noble.RelWithDebInfo.WORKER_3.percona_innodb	10 min	0		23	+23	68	+68	91	+91
+ubuntu-noble.RelWithDebInfo.WORKER_5.rpl_nogtid-big	10 min	0		197	+197	15	+15	212	+212
+ubuntu-noble.RelWithDebInfo.WORKER_4.auth_sec-big	9 min 42 sec	0		107	-5	10		117	-5
+ubuntu-noble.RelWithDebInfo.WORKER_6.clone	9 min 28 sec	0		64	+1	24	-2	88	-1
+ubuntu-noble.RelWithDebInfo.WORKER_1.percona	9 min 5 sec	0		33	+33	174	+174	207	+207
+ubuntu-noble.RelWithDebInfo.WORKER_4.auth_sec	7 min 10 sec	0		27	+27	90	+90	117	+117
+ubuntu-noble.RelWithDebInfo.WORKER_5.binlog	5 min 59 sec	0		275	+275	186	+186	461	+461
+ubuntu-noble.RelWithDebInfo.WORKER_8.x-big	5 min 35 sec	0		325	+325	5	+5	330	+330
+ubuntu-noble.RelWithDebInfo.WORKER_8.innodb_fts	5 min 18 sec	0		22		55		77
+ubuntu-noble.RelWithDebInfo.WORKER_4.component_audit_log_filter	5 min 4 sec	0		25	+25	72	+72	97	+97
+ubuntu-noble.RelWithDebInfo.WORKER_6.perfschema	4 min 56 sec	0		147	+147	625	+625	772	+772
+ubuntu-noble.RelWithDebInfo.WORKER_6.parts	4 min 48 sec	0		16		80		96
+ubuntu-noble.RelWithDebInfo.WORKER_1.ci_fs	4 min 32 sec	0		1	-2	37		38	-2
+ubuntu-noble.RelWithDebInfo.WORKER_8.sysschema	4 min 22 sec	0		4	+4	87	+87	91	+91
+ubuntu-noble.RelWithDebInfo.WORKER_8.component_keyring_file	3 min 59 sec	0		44	+44	16	+16	60	+60
+ubuntu-noble.RelWithDebInfo.WORKER_6.innodb_gis-big	3 min 19 sec	0		39	+39	6	+6	45	+45
+ubuntu-noble.RelWithDebInfo.WORKER_4.component_masking_functions	2 min 37 sec	0		4	+4	28	+28	32	+32
+ubuntu-noble.RelWithDebInfo.WORKER_4.engines_iuds	2 min 36 sec	0		0		17		17
+ubuntu-noble.RelWithDebInfo.WORKER_7.rocksdb_stress	2 min 34 sec	0		1		3		4
+ubuntu-noble.RelWithDebInfo.WORKER_1.innodb_undo	2 min 34 sec	0		27	-1	11	-2	38	-3
+ubuntu-noble.RelWithDebInfo.WORKER_7.innodb_zip-big	2 min 11 sec	0		22	+22	7	+7	29	+29
+ubuntu-noble.RelWithDebInfo.WORKER_4.stress	2 min 6 sec	0		0		6	+6	6	+6
+ubuntu-noble.RelWithDebInfo.WORKER_6.funcs_1	1 min 41 sec	0		15	+15	107	+107	122	+122
+ubuntu-noble.RelWithDebInfo.WORKER_1.binlog_nogtid	1 min 38 sec	0		83	+83	70	+70	153	+153
+ubuntu-noble.RelWithDebInfo.WORKER_5.rpl_gtid-big	1 min 37 sec	0		250	+250	5	+5	255	+255
+ubuntu-noble.RelWithDebInfo.WORKER_8.component_keyring_file-big	1 min 26 sec	0		54	+54	6	+6	60	+60
+ubuntu-noble.RelWithDebInfo.WORKER_5.funcs_2	1 min 21 sec	0		0		4	+4	4	+4
+ubuntu-noble.RelWithDebInfo.WORKER_8.binlog_gtid	1 min 20 sec	0		98	+98	66	+66	164	+164
+ubuntu-noble.RelWithDebInfo.WORKER_4.rpl_encryption	1 min 17 sec	0		3	+3	7	+7	10	+10
+ubuntu-noble.RelWithDebInfo.WORKER_7.innodb_zip	1 min 15 sec	0		8	+8	21	+21	29	+29
+ubuntu-noble.RelWithDebInfo.WORKER_1.innodb_undo-big	1 min 14 sec	0		34	-3	4		38	-3
+ubuntu-noble.RelWithDebInfo.WORKER_1.connection_control	1 min 7 sec	0		2	+2	9	+9	11	+11
+ubuntu-noble.RelWithDebInfo.WORKER_3.percona_innodb-big	1 min 4 sec	0		88	+88	3	+3	91	+91
+ubuntu-noble.RelWithDebInfo.WORKER_8.gcol-big	1 min 0 sec	0		35	+35	2	+2	37	+37
+ubuntu-noble.RelWithDebInfo.WORKER_8.test_service_sql_api	59 sec	0		1	+1	26	+26	27	+27
+ubuntu-noble.RelWithDebInfo.WORKER_4.jp	58 sec	0		0		112		112
+ubuntu-noble.RelWithDebInfo.WORKER_1.binlog_nogtid-big	54 sec	0		63	+63	2	+2	65	+65
+ubuntu-noble.RelWithDebInfo.WORKER_6.innodb_gis	52 sec	0		25	+25	20	+20	45	+45
+ubuntu-noble.RelWithDebInfo.WORKER_1.test_services	49 sec	0		2	+2	20	+3	22	+5
+ubuntu-noble.RelWithDebInfo.WORKER_6.clone-big	46 sec	0		85	-2	3	+1	88	-1
+ubuntu-noble.RelWithDebInfo.WORKER_4.component_encryption_udf	46 sec	0		7	+7	17	+17	24	+24
+ubuntu-noble.RelWithDebInfo.WORKER_5.collations	44 sec	0		0		33	+33	33	+33
+ubuntu-noble.RelWithDebInfo.WORKER_1.ps_protocol	41 sec	0		1	+1	15		16	+1
+ubuntu-noble.RelWithDebInfo.WORKER_8.federated	37 sec	0		7	+7	10	+10	17	+17
+ubuntu-noble.RelWithDebInfo.WORKER_8.gcol	35 sec	0		3	+3	34	+34	37	+37
+ubuntu-noble.RelWithDebInfo.WORKER_8.innodb_fts-big	33 sec	0		75		2		77
+ubuntu-noble.RelWithDebInfo.WORKER_5.json	32 sec	0		1		19		20
+ubuntu-noble.RelWithDebInfo.WORKER_6.funcs_1-big	21 sec	0		120	+120	2	+2	122	+122
+ubuntu-noble.RelWithDebInfo.WORKER_8.gis	20 sec	0		2	+2	70	+70	72	+72
+ubuntu-noble.RelWithDebInfo.WORKER_6.query_rewrite_plugins	20 sec	0		2	+1	38	-1	40
+ubuntu-noble.RelWithDebInfo.WORKER_1.service_sys_var_registration	20 sec	0		0		13	+13	13	+13
+ubuntu-noble.RelWithDebInfo.WORKER_7.rocksdb_sys_vars	18 sec	0		0		198	+198	198	+198
+ubuntu-noble.RelWithDebInfo.WORKER_1.interactive_utilities	18 sec	0		0		4	+4	4	+4
+ubuntu-noble.RelWithDebInfo.WORKER_5.opt_trace	14 sec	0		12	+12	19	+19	31	+31
+ubuntu-noble.RelWithDebInfo.WORKER_8.sysschema-big	6.8 sec	0		89	+89	2	+2	91	+91
+ubuntu-noble.RelWithDebInfo.WORKER_8.binlog_gtid-big	6.1 sec	0		84	+84	2	+2	86	+86
+ubuntu-noble.RelWithDebInfo.WORKER_8.secondary_engine	4.1 sec	0		9	+9	13	+13	22	+22
+ubuntu-noble.RelWithDebInfo.WORKER_7.information_schema	3.1 sec	0		2	+2	7	+7	9	+9
+ubuntu-noble.RelWithDebInfo.WORKER_6.perfschema-big	3.1 sec	0		770	+770	2	+2	772	+772
+ubuntu-noble.RelWithDebInfo.WORKER_8.encryption	2.5 sec	0		9	+9	2	+2	11	+11
+ubuntu-noble.RelWithDebInfo.WORKER_1.service_status_var_registration	1.9 sec	0		0		6	+6	6	+6
+ubuntu-noble.RelWithDebInfo.WORKER_4.audit_null	1.9 sec	0		2	+2	16	+16	18	+18
+ubuntu-noble.RelWithDebInfo.WORKER_1.service_udf_registration	0.55 sec	0		1	+1	9	+9	10	+10
+ubuntu-noble.RelWithDebInfo.WORKER_4.procfs	81 ms	0		0		2	+2	2	+2
+ubuntu-noble.RelWithDebInfo.WORKER_4.percona-pam-for-mysql	32 ms	0		0		3	+3	3	+3
+ubuntu-noble.RelWithDebInfo.WORKER_5.sys_vars-big	12 ms	0		813	-29	2		815	-29
+ubuntu-noble.RelWithDebInfo.WORKER_1.UNIT_TESTS	223.29 sec	1	+1	0		2	-1	3
+ubuntu-noble.RelWithDebInfo.WORKER_1.connection_control-big	0 ms	0		10	+10	1	+1	11	+11
+ubuntu-noble.RelWithDebInfo.WORKER_1.interactive_utilities-big	0 ms	0		3	+3	1	+1	4	+4
+ubuntu-noble.RelWithDebInfo.WORKER_1.service_status_var_registration-big	0 ms	0		5	+5	1	+1	6	+6
+ubuntu-noble.RelWithDebInfo.WORKER_1.service_sys_var_registration-big	0 ms	0		12	+12	1	+1	13	+13
+ubuntu-noble.RelWithDebInfo.WORKER_1.service_udf_registration-big	0 ms	0		9	+9	1	+1	10	+10
+ubuntu-noble.RelWithDebInfo.WORKER_1.test_services-big	0 ms	0		21	+5	1		22	+5
+ubuntu-noble.RelWithDebInfo.WORKER_2.component_js_lang	0 ms	0		6	+6	1	+1	7	+7
+ubuntu-noble.RelWithDebInfo.WORKER_2.component_js_lang-big	0 ms	0		6	+6	1	+1	7	+7
+ubuntu-noble.RelWithDebInfo.WORKER_2.percona-big	0 ms	0		206	+206	1	+1	207	+207
+ubuntu-noble.RelWithDebInfo.WORKER_4.audit_null-big	0 ms	0		17	+17	1	+1	18	+18
+ubuntu-noble.RelWithDebInfo.WORKER_4.component_audit_log_filter-big	0 ms	0		88	+88	1	+1	89	+89
+ubuntu-noble.RelWithDebInfo.WORKER_4.component_masking_functions-big	0 ms	0		31	+31	1	+1	32	+32
+ubuntu-noble.RelWithDebInfo.WORKER_4.engines_funcs-big	0 ms	0		291		1		292
+ubuntu-noble.RelWithDebInfo.WORKER_4.engines_iuds-big	0 ms	0		16		1		17
+ubuntu-noble.RelWithDebInfo.WORKER_4.jp-big	0 ms	0		111		1		112
+ubuntu-noble.RelWithDebInfo.WORKER_4.percona-pam-for-mysql-big	0 ms	0		2	+2	1	+1	3	+3
+ubuntu-noble.RelWithDebInfo.WORKER_4.procfs-big	0 ms	0		1	+1	1	+1	2	+2
+ubuntu-noble.RelWithDebInfo.WORKER_4.rpl_encryption-big	0 ms	0		3	+3	1	+1	4	+4
+ubuntu-noble.RelWithDebInfo.WORKER_4.stress-big	0 ms	0		5	+5	1	+1	6	+6
+ubuntu-noble.RelWithDebInfo.WORKER_5.binlog-big	0 ms	0		184	+184	1	+1	185	+185
+ubuntu-noble.RelWithDebInfo.WORKER_5.collations-big	0 ms	0		32	+32	1	+1	33	+33
+ubuntu-noble.RelWithDebInfo.WORKER_5.funcs_2-big	0 ms	0		3	+3	1	+1	4	+4
+ubuntu-noble.RelWithDebInfo.WORKER_5.json-big	0 ms	0		19		1		20
+ubuntu-noble.RelWithDebInfo.WORKER_5.opt_trace-big	0 ms	0		30	+30	1	+1	31	+31
+ubuntu-noble.RelWithDebInfo.WORKER_6.query_rewrite_plugins-big	0 ms	0		39		1		40
+ubuntu-noble.RelWithDebInfo.WORKER_7.information_schema-big	0 ms	0		8	+8	1	+1	9	+9
+ubuntu-noble.RelWithDebInfo.WORKER_7.rocksdb_rpl-big	0 ms	0		53	+53	1	+1	54	+54
+ubuntu-noble.RelWithDebInfo.WORKER_7.rocksdb_stress-big	0 ms	0		3		1		4
+ubuntu-noble.RelWithDebInfo.WORKER_7.rocksdb_sys_vars-big	0 ms	0		197	+197	1	+1	198	+198
+ubuntu-noble.RelWithDebInfo.WORKER_8.encryption-big	0 ms	0		10	+10	1	+1	11	+11
+ubuntu-noble.RelWithDebInfo.WORKER_8.federated-big	0 ms	0		16	+16	1	+1	17	+17
+ubuntu-noble.RelWithDebInfo.WORKER_8.gis-big	0 ms	0		71	+71	1	+1	72	+72
+ubuntu-noble.RelWithDebInfo.WORKER_8.secondary_engine-big	0 ms	0		21	+21	1	+1	22	+22
+ubuntu-noble.RelWithDebInfo.WORKER_8.test_service_sql_api-big	0 ms	0		26	+26	1	+1	27	+27
