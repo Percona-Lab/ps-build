@@ -514,13 +514,10 @@ void triggerAbortedTestWorkersRerun() {
     }
 }
 
-def validatePsBranch() {
-    echo 'Validating PS branch version'
+def getServerVersion() {
+    echo 'Trying to get the server version'
     def serverVersion = sh(
       script: """#!/bin/bash
-        MY_BRANCH_BASE_MAJOR=8
-        MY_BRANCH_BASE_MINOR=0
-
         if [ -f /usr/bin/apt ]; then
             sudo apt-get update
         fi
@@ -537,19 +534,9 @@ def validatePsBranch() {
         fi
 
         RAW_VERSION_LINK=\$(echo \${GIT_REPO%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
-        REPLY=\$(curl -Is \${RAW_VERSION_LINK}/\${BRANCH}/MYSQL_VERSION | head -n 1 | awk '{print \$2}')
-        if [[ \${REPLY} != 200 ]]; then
-            wget \${RAW_VERSION_LINK}/\${BRANCH}/VERSION -O ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-        else
-            wget \${RAW_VERSION_LINK}/\${BRANCH}/MYSQL_VERSION -O ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-        fi
+        wget \${RAW_VERSION_LINK}/\${BRANCH}/MYSQL_VERSION -O ${WORKSPACE}/VERSION-${BUILD_NUMBER}
         source ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-        if [[ \${MYSQL_VERSION_MAJOR} -lt \${MY_BRANCH_BASE_MAJOR} ]] ; then
-            echo "Are you trying to build wrong branch?"
-            echo "You are trying to build \${MYSQL_VERSION_MAJOR}.\${MYSQL_VERSION_MINOR} instead of \${MY_BRANCH_BASE_MAJOR}.\${MY_BRANCH_BASE_MINOR}!"
-            rm -f ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-            exit 1
-        fi
+
         rm -f ${WORKSPACE}/VERSION-${BUILD_NUMBER}
         echo "\${MYSQL_VERSION_MAJOR}.\${MYSQL_VERSION_MINOR}.\${MYSQL_VERSION_PATCH}"
       """,
@@ -669,7 +656,7 @@ pipeline {
                 sh 'echo Prepare: \$(date -u "+%s")'
 
                 script {
-                    SERVER_VERSION = validatePsBranch()
+                    SERVER_VERSION = getServerVersion()
                     echo "Extracted SERVER_VERSION: ${SERVER_VERSION}"
                     setupTestSuitesSplit()
 
