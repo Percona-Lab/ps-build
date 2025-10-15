@@ -345,7 +345,7 @@ fi
 
 #
 # CI FS tests
-if [[ "${CI_FS_MTR}" = 'yes' ]]; then
+if [[ "${CI_FS_MTR}" == 'yes' ]]; then
     echo "Running CI FS tests"
     start=`date +%s`
 
@@ -361,14 +361,14 @@ if [[ "${CI_FS_MTR}" = 'yes' ]]; then
     # Collect all CI_FS tests
     CI_TESTS=$(grep --exclude="*.inc" --exclude="*.log" -rl . -e include/have_case_insensitive_file_system.inc | awk -F '/' '{print $(NF-2)"."$NF}' | sed 's/\.test//g' | sed 's/^\./main/g')
     # Requested in PS-7602
-    if [[ ${CMAKE_BUILD_TYPE} = 'Debug' ]]; then
+    if [[ "${SERVER_VERSION}" != 5.7.* && ${CMAKE_BUILD_TYPE} == Debug ]]; then
         CI_TESTS+=" information_schema.i_s_schema_definition_debug"
     fi
 
     # Filter out disabled tests
     # Skip lines starting with #
     # Grab until whitespace or :
-    DISABLED_TESTS=$(grep -P -o collections/disabled.def -e'^\s*[^#][^:\s]*')
+    DISABLED_TESTS=$(grep -P -o '^\s*[^#][^:\s]*' collections/disabled.def || true)
 
     set +x
     for CURRENT_TEST in $DISABLED_TESTS; do
@@ -404,7 +404,7 @@ fi
 
 #
 # PS PROTOCOL tests
-if [[ "${WITH_PS_PROTOCOL}" = 'yes' ]]; then
+if [[ "${SERVER_VERSION}" != 5.7.* && "${WITH_PS_PROTOCOL}" == 'yes' ]]; then
     echo "Running PS PROTOCOL tests"
     start=`date +%s`
 
@@ -420,7 +420,7 @@ if [[ "${WITH_PS_PROTOCOL}" = 'yes' ]]; then
     # Filter out disabled tests
     # Skip lines starting with #
     # Grab until whitespace or :
-    DISABLED_TESTS=$(grep -P -o collections/disabled.def -e'^\s*[^#][^:\s]*')
+    DISABLED_TESTS=$(grep -P -o '^\s*[^#][^:\s]*' collections/disabled.def || true)
 
     set +x
     for CURRENT_TEST in $DISABLED_TESTS; do

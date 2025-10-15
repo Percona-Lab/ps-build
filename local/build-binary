@@ -88,7 +88,7 @@ wget_loop() {
 }
 
 # Boost is not required for MySQL/PS 8.4.x or 9.y.z
-if [[ "${MYSQL_VERSION}" == 8.0.* ]]; then
+if [[ "${MYSQL_VERSION}" == 8.0.* || "${MYSQL_VERSION}" == 5.7.* ]]; then
     BOOST_VERSION=$(grep 'SET(BOOST_PACKAGE_NAME' ${SOURCEDIR}/cmake/boost.cmake | sed -re 's/.*([0-9]+_[0-9]+_[0-9]+).*/\1/')
     wget_loop "boost_${BOOST_VERSION}.tar.bz2" "https://archives.boost.io/release/${BOOST_VERSION//_/.}/source/boost_${BOOST_VERSION}.tar.bz2"
 fi
@@ -155,7 +155,7 @@ else
     WITH_MECAB="system"
 fi
 
-if [[ "${MYSQL_VERSION}" == 8.0.* ]]; then
+if [[ "${MYSQL_VERSION}" == 8.0.* || "${MYSQL_VERSION}" == 5.7.* ]]; then
     CMAKE_OPTS+=" -DWITH_KEYRING_VAULT=ON -DWITH_KEYRING_VAULT_TEST=ON"
 fi
 
@@ -184,6 +184,10 @@ if [[ ${WITH_JS_LANG} == 'ON' ]]; then
         tar -xzf ${V8_ARCHIVE_NAME}.tar.gz
         rm -rf ${V8_ARCHIVE_NAME}.tar.gz
     popd
+fi
+
+if [[ "${MYSQL_VERSION}" == 5.7.* ]]; then
+    EXTRA_OPTS="-DWITH_TOKUDB=OFF -DWITH_EMBEDDED_SERVER=ON -DWITH_SCALABILITY_METRICS=ON -DENABLE_DOWNLOADS=ON"
 fi
 
 # ------------------------------------------------------------------------------
@@ -224,6 +228,7 @@ pushd ${BUILD_DIR}
         ${TARGET_CFLAGS:+-DCMAKE_C_FLAGS="${TARGET_CFLAGS}" -DCMAKE_CXX_FLAGS="${TARGET_CFLAGS}"} \
         ${ANALYZER_OPTS} \
         ${CMAKE_OPTS} \
+        ${EXTRA_OPTS} \
         ${SOURCEDIR} | tee ${WORKDIR}/cmake.log
     make ${MAKE_OPTS} | tee ${WORKDIR}/make_build.log
     make -j$(nproc) DESTDIR=${INSTALL_DIR} install | tee ${WORKDIR}/make_install.log
