@@ -24,20 +24,15 @@ set -o xtrace
 echo EXECUTE_SUITES_ONE_BY_ONE=$EXECUTE_SUITES_ONE_BY_ONE
 
 function execute() {
-    local suites=$1
-    local parallel=$2
-    local extraOptions=$3
-    local logFileSuffix=$4
-
-    if [[ -z ${suites} ]]; then
-        return
-    fi
-
+    local parallel=$1
+    local extraOptions=$2
+    local logFileSuffix=$3
     local worker="WORKER_${WORKER_NO}${logFileSuffix}"
+
     # ensure that there are not / in worker name (it can come from suites that have / in their names)
     worker=${worker//"/"/"_"}
 
-    echo "Executing suites $suites, logFileSuffix: $logFileSuffix"
+    echo "Executing $extraOptions, logFileSuffix: $logFileSuffix"
 
     df -h
     du /dev/shm
@@ -52,7 +47,6 @@ function execute() {
     MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${parallel} \
         --result-file \
-        --suite=$suites \
         --suite-timeout=9999 \
         --testcase-timeout=${TESTCASE_TIMEOUT} \
         --force ${MYSQLD_ENV} \
@@ -84,15 +78,19 @@ function executeSuites() {
   local extraOptions="$3"
   local extraSuffix=${4:+-"$4"}
 
+  if [[ -z ${suites} ]]; then
+    return
+  fi
+
   if [[ "${EXECUTE_SUITES_ONE_BY_ONE}" != "yes" ]]; then
     # Run all suites together
-    execute "$suites" "$parallel" "$extraOptions" "$extraSuffix"
+    execute "$parallel" "--suite=$suites $extraOptions" "$extraSuffix"
   else
     # Run suites one by one
     IFS=',' read -ra suiteList <<< "$suites"
     for suite in "${suiteList[@]}"; do
       echo "Executing suite: $suite"
-      execute "$suite" "$parallel" "$extraOptions" ".${suite}${extraSuffix}"
+      execute "$parallel" "--suite=$suite $extraOptions" ".${suite}${extraSuffix}"
     done
   fi
 }
