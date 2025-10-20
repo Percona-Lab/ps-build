@@ -130,6 +130,9 @@ cd $WORK_DIR
 whoami
 ls -l
 
+mkdir -p ${WORK_DIR}/walltimes
+grep -E "Logging:|seconds executing testcase" mtr-test_${WORKER_NO}.log >${WORK_DIR}/walltimes/walltime_${WORKER_NO}.txt
+
 if [[ "$ANALYZER_OPTS" == *"-DWITH_VALGRIND=ON"* ]]; then
     mv mtr-test_${WORKER_NO}.log mtr-test_${WORKER_NO}_full.log
     zstd -c mtr-test_${WORKER_NO}_full.log > mtr-test_${WORKER_NO}_full.log.zst

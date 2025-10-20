@@ -31,7 +31,6 @@ final int CACHE_RETENTION_DAYS_NORMAL = 60
 final int CACHE_RETENTION_DAYS_SANITIZER = 120
 
 PIPELINE_TIMEOUT = 24
-AWS_CREDENTIALS_ID = 'c8b933cd-b8ca-41d5-b639-33fe763d3f68'
 MAX_S3_RETRIES = 12
 S3_ROOT_DIR = 's3://ps-build-cache'
 // boolean default is false, 1st item unused.
@@ -145,8 +144,8 @@ void cleanWorkspace(Integer WORKER_ID) {
 void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
         withCredentials([
-            string(credentialsId: 'VAULT_V1_DEV_ROOT_TOKEN', variable: 'VAULT_V1_DEV_ROOT_TOKEN'),
-            string(credentialsId: 'VAULT_V2_DEV_ROOT_TOKEN', variable: 'VAULT_V2_DEV_ROOT_TOKEN')]) {
+            string(credentialsId: VAULT_V1_DEV_ROOT_TOKEN, variable: VAULT_V1_DEV_ROOT_TOKEN),
+            string(credentialsId: VAULT_V2_DEV_ROOT_TOKEN, variable: VAULT_V2_DEV_ROOT_TOKEN)]) {
             sh """#!/bin/bash
                 echo "Starting MTR worker ${WORKER_ID}, SUITES: ${SUITES}, STANDALONE_TESTS: ${STANDALONE_TESTS}, UNIT_TESTS: ${UNIT_TESTS}, CIFS_TESTS: ${CIFS_TESTS}, KV_TESTS: ${KV_TESTS}, PS_PROTOCOL_TESTS: ${PS_PROTOCOL_TESTS}"
 
@@ -227,9 +226,12 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
                 downloadFilesForTests()
                 doTests(WORKER_ID.toString(), SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
             }
-
             echo "[INFO] Worker ${WORKER_ID} finished MTR testing."
-            archiveArtifacts "${WORK_DIR}/*.log*,${WORK_DIR}/results/*.xml,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
+        } catch (err) {
+            echo "[WARNING] Worker ${WORKER_ID} failed with error: ${err}"
+            throw err // rethrow so outer catchError or pipeline failure handling still works
+        } finally {
+            archiveArtifacts "${WORK_DIR}/*.log*,${WORK_DIR}/walltimes/*.txt,${WORK_DIR}/results/*.xml,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
 
             // This is questionable. Do we need result XMLs in S3 cache while Jenkins archives them as well?
             syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
@@ -238,10 +240,7 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
             // cleanup before marking success
             cleanWorkspace(WORKER_ID)
 
-            echo "[INFO] Worker ${WORKER_ID} completed successfully."
-        } catch (err) {
-            echo "[WARNING] Worker ${WORKER_ID} failed with error: ${err}"
-            throw err // rethrow so outer catchError or pipeline failure handling still works
+            echo "[INFO] Worker ${WORKER_ID} completed."
         }
     }
 }
@@ -674,9 +673,21 @@ pipeline {
                     copyArtifactPermission(params.PIPELINE_NAME)
                     echo "PIPELINE_NAME = ${params.PIPELINE_NAME}"
                     echo "NODE_NAME = ${env.NODE_NAME}"
+                    echo "JENKINS_URL = ${env.JENKINS_URL}"
                     echo "JENKINS_SCRIPTS_BRANCH: $JENKINS_SCRIPTS_BRANCH"
                     echo "JENKINS_SCRIPTS_REPO: $JENKINS_SCRIPTS_REPO"
                     echo "Using instances from cloud ${CLOUD} with LABEL ${LABEL} for build and test stages"
+
+                    def jenkinsUrl = env.JENKINS_URL
+                    if (jenkinsUrl.startsWith('https://ps80.cd.percona.com/')) {
+                        AWS_CREDENTIALS_ID = 'c8b933cd-b8ca-41d5-b639-33fe763d3f68' // ps80.cd.percona.com
+                        VAULT_V1_DEV_ROOT_TOKEN = 'VAULT_V1_DEV_ROOT_TOKEN'
+                        VAULT_V2_DEV_ROOT_TOKEN = 'VAULT_V2_DEV_ROOT_TOKEN'
+                    } else {
+                        AWS_CREDENTIALS_ID = '10ee734d-bbd1-4b4b-a611-5a2765ef9d47' // ps57.cd.percona.com
+                        VAULT_V1_DEV_ROOT_TOKEN = 'VAULT_V1_DEV_TOKEN'
+                        VAULT_V2_DEV_ROOT_TOKEN = 'VAULT_V2_DEV_TOKEN'
+                    }
                 }
                 git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
 
