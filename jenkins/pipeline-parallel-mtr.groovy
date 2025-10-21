@@ -392,8 +392,10 @@ void setupTestSuitesSplit() {
                 CUSTOM_SPLIT=1
             fi
             curl ${RAW_VERSION_LINK}/${BRANCH}/mysql-test/mysql-test-run.pl -o ${WORKSPACE}/mysql-test-run.pl
-            grep opt_only_big_test ${WORKSPACE}/mysql-test-run.pl || { echo "ERROR: Parallel MTRs require server that supports --only-big-test"; exit 1; }
+            grep -q opt_only_big_test ${WORKSPACE}/mysql-test-run.pl || { echo "ERROR: Parallel MTRs require server that supports --only-big-test"; exit 1; }
 
+            # import check_suites() from utils.inc.sh; check_suites() may be overwritten in suites-groups.sh
+            source local/utils.inc.sh
             # Check if split contain all suites
             chmod +x ${WORKSPACE}/suites-groups.sh
             set +e

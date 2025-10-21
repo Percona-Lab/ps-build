@@ -183,3 +183,169 @@ function extract_default_suites() {
 
   echo "$all_suites"
 }
+
+
+# usage: get_default_suites_57 <path_to_mysql-test-run.pl>
+function get_default_suites_57() {
+    local input_file="$1"
+    local suites=""
+    local capturing=0
+
+    while read -r line; do
+        # Start capturing after DEFAULT_SUITES assignment
+        if [[ "$line" == *"DEFAULT_SUITES"* && "$capturing" == "0" ]]; then
+            capturing=1
+            # Remove everything before the first = including spaces
+            line="${line#*=}"
+        fi
+
+        if [[ "$capturing" == "1" ]]; then
+            # Remove leading dot if it's used for Perl concatenation
+            line="${line#.}"
+
+            # Remove quotes and spaces only, keep internal dots
+            line=$(echo "$line" | tr -d '" ')
+
+            # Append to suites
+            suites+="$line"
+
+            # Stop capturing when line ends with semicolon
+            if [[ "$line" == *";"* ]]; then
+                capturing=0
+                break
+            fi
+        fi
+    done < "$input_file"
+
+    # Remove trailing semicolon or comma
+    suites="${suites%;}"
+    suites="${suites%,}"
+
+    echo "$suites"
+}
+
+# usage: get_default_suites_80 <path_to_mysql-test-run.pl>
+function get_default_suites_80() {
+  local input_file="$1"
+  local all_suites=""
+  local capturing=0
+
+  while read -r line; do
+    if [[ "${capturing}" == "1" ]]; then
+      if [[ "${line}" == *");"* ]]; then
+        capturing=0
+        break
+      else
+        all_suites+="${line},"
+      fi
+    fi
+
+    if [[ "${line}" == *"DEFAULT_SUITES = qw"* ]]; then
+      capturing=1
+    fi
+  done < "${input_file}"
+
+  # Trim trailing comma if present
+  all_suites="${all_suites%,}"
+
+  echo "${all_suites}"
+}
+
+
+# usage: check_suites <path_to_mysql-test-run.pl> <SERVER_VERSION>
+function check_suites() {
+  local input_file=${1:-./mysql-test-run.pl}
+  local server_version="$2"
+
+  if [[ ! -f ${input_file} ]]
+    then
+    echo "${input_file} file does not exist on your filesystem."
+    return 1
+  fi
+
+  echo "Checking if suites list is consistent with the one specified in mysql-test-run.pl"
+  echo
+
+  local all_suites_1=,${WORKER_1_MTR_SUITES},${WORKER_2_MTR_SUITES},${WORKER_3_MTR_SUITES},${WORKER_4_MTR_SUITES},${WORKER_5_MTR_SUITES},${WORKER_6_MTR_SUITES},${WORKER_7_MTR_SUITES},${WORKER_8_MTR_SUITES},
+  local all_suites_2
+
+  case "$server_version" in
+    5.7.*)
+      all_suites_2=$(get_default_suites_57 "${input_file}")
+      ;;
+    *)
+      all_suites_2=$(get_default_suites_80 "${input_file}")
+      ;;
+  esac
+
+  # add leading and trailing commas for easier parsing
+  all_suites_2=,${all_suites_2},
+
+  echo "Suites for Jenkins: ${all_suites_1}"
+  echo
+  echo "Suites from mysql-test-run.pl: ${all_suites_2}"
+  echo
+
+  local failure=0
+
+  # check if splited suite contains both big/nobig parts
+  for suite in ${all_suites_1//,/ }
+  do
+    if [[ ${suite} == *"|"* ]]; then
+
+        arrSuite=(${suite//|/ })
+        suite=${arrSuite[0]}
+        nobig_found=0
+        for suite_nobig in ${all_suites_1//,/ }
+        do
+          if [[ ${suite_nobig} == "${suite}|nobig" ]]; then
+            nobig_found=1
+          fi
+        done
+
+        big_found=0
+        for suite_big in ${all_suites_1//,/ }
+        do
+          if [[ ${suite_big} == "${suite}|big" ]]; then
+            big_found=1
+          fi
+        done
+
+        if [[ ${nobig_found} == "0" || ${big_found} == "0" ]]; then
+          echo "${suite} big|nobig (${big_found}|${nobig_found} mismatch)"
+          failure=1
+        fi
+    fi
+  done
+  # get rid of bin/nobig before two-way matching
+  all_suites_1=${all_suites_1//"|big"/""}
+  all_suites_1=${all_suites_1//"|nobig"/""}
+
+  # check if the suite from pl scipt is assigned to any worker
+  for suite in ${all_suites_2//,/ }
+  do
+    if [[ ${all_suites_1} != *",${suite},"* ]]; then
+      echo "${suite} specified in mysql-test-run.pl but missing in Jenkins"
+      failure=1
+    fi
+  done
+
+  # check if the suite from pl scipt is assigned to any worker
+  for suite in ${all_suites_1//,/ }
+  do
+    if [[ ${all_suites_2} != *",${suite},"* ]]; then
+      echo "${suite} specified in Jenkins but not present in mysql-test-run.pl"
+      failure=1
+    fi
+  done
+
+  echo "************************"
+  if [[ "${failure}" == "1" ]]; then
+    echo "Inconsitencies detected"
+  else
+    echo "Everything is OK"
+  fi
+  echo "************************"
+
+  return ${failure}
+}
