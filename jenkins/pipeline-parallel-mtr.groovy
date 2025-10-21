@@ -350,7 +350,7 @@ def getServerVersion() {
             fi
 
             GIT_REPO_LINK=${GIT_REPO}
-            if [[ "${GIT_REPO}" =~ post-eol|private ]]; then
+            if [[ "${GIT_REPO}" =~ (post-eol|private|eol-dev) ]]; then
                 GIT_REPO_LINK=$(echo ${GIT_REPO} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
             fi
             RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
@@ -375,7 +375,7 @@ void setupTestSuitesSplit() {
         if [[ "${FULL_MTR}" == "yes" ]]; then
             # Try to get suites split from PS repo. If not present, fallback to hardcoded.
             GIT_REPO_LINK=${GIT_REPO}
-            if [[ "${GIT_REPO}" =~ post-eol|private ]]; then
+            if [[ "${GIT_REPO}" =~ (post-eol|private|eol-dev) ]]; then
                 GIT_REPO_LINK=$(echo ${GIT_REPO} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
             fi
             RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
