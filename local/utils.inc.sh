@@ -251,7 +251,7 @@ function get_default_suites_80() {
   echo "${all_suites}"
 }
 
-
+# checks if there are any incosistencies between suites specified in mysql-test-run.pl and in WORKER_x_MTR_SUITES
 # usage: check_suites <path_to_mysql-test-run.pl> <SERVER_VERSION>
 function check_suites() {
   local input_file=${1:-./mysql-test-run.pl}

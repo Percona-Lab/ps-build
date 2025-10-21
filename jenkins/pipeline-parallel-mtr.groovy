@@ -381,7 +381,7 @@ void setupTestSuitesSplit() {
             RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
 
             REPLY=$(curl -Is ${RAW_VERSION_LINK}/${BRANCH}/mysql-test/suites-groups.sh | head -n 1 | awk '{print $2}')
-            CUSTOM_SPLIT=0
+            IGNORE_INCONSISTENCY=0
             if [[ ${REPLY} != 200 ]]; then
                 # The given branch does not contain customized suites-groups.sh file. Use default configuration.
                 echo "Using pipeline built-in MTR suites split"
@@ -389,7 +389,6 @@ void setupTestSuitesSplit() {
             else
                 echo "Using custom MTR suites split"
                 curl ${RAW_VERSION_LINK}/${BRANCH}/mysql-test/suites-groups.sh -o ${WORKSPACE}/suites-groups.sh
-                CUSTOM_SPLIT=1
             fi
             curl ${RAW_VERSION_LINK}/${BRANCH}/mysql-test/mysql-test-run.pl -o ${WORKSPACE}/mysql-test-run.pl
             grep -q opt_only_big_test ${WORKSPACE}/mysql-test-run.pl || { echo "ERROR: Parallel MTRs require server that supports --only-big-test"; exit 1; }
@@ -401,6 +400,7 @@ void setupTestSuitesSplit() {
             set +e
             echo "Check if suites list is consistent with the one specified in mysql-test-run.pl"
             source ${WORKSPACE}/suites-groups.sh
+            echo "IGNORE_INCONSISTENCY=${IGNORE_INCONSISTENCY}"
             if [[ "${ANALYZER_OPTS}" == *"-DWITH_VALGRIND=ON"* ]]; then
                 set_suites Valgrind ${SERVER_VERSION}
             else
@@ -412,7 +412,7 @@ void setupTestSuitesSplit() {
             set -xe
             echo "CHECK_RESULT: ${CHECK_RESULT}"
             # Fail only if this is built-in split.
-            if [[ ${CUSTOM_SPLIT} -eq 0 ]] && [[ ${CHECK_RESULT} -ne 0 ]]; then
+            if [[ ${IGNORE_INCONSISTENCY} -eq 0 ]] && [[ ${CHECK_RESULT} -ne 0 ]]; then
                 echo "Default MTR split is inconsistent. Exiting."
                 exit 1
             fi

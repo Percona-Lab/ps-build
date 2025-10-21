@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# Some notes about this script:
-# 1. When started as suites-groups.sh check <path to mysql-test-run.pl> it checks if there are any incosistencies
-#    between suites specified in mysql-test-run.pl and in this script
-# 2. Jenkins pipeline checks for inconsistencies (1) and then sources this script to learn about suites split
-# 3. The default split is defined in ./jenkins/suites-groups.sh
-# 4. The default can be overrode by mysql-test/suites-groups.sh if the file is present. This allows one to define custom suites
-#    split on development branch
-# 5. Jenkins pipeline fails if inconsistencies are detected while using the default split (3)
-# 6. Jenkins pipeline continues with warning if inconsistencies are detected while using the custom split (4)
-# 7. Jenkins scripts support following suite formats:
+# Notes about this script:
+# 1. This file defines the function set_suites(), which sets WORKER_x_MTR_SUITES for x=1..8.
+# 2. The function check_suites(), defined in https://github.com/Percona-Lab/ps-build/blob/8.0/local/utils.inc.sh
+#    checks for inconsistencies between the suites specified in mysql-test-run.pl and those defined in this script.
+# 3. The default split is defined in https://github.com/Percona-Lab/ps-build/blob/8.0/jenkins/suites-groups.sh
+# 4. The default split can be overridden by mysql-test/suites-groups.sh, if present,
+#    allowing custom suite splits on development branches.
+# 5. By default, the Jenkins pipeline fails if inconsistencies are detected (IGNORE_INCONSISTENCY=0).
+# 6. If IGNORE_INCONSISTENCY=1 is set, the pipeline continues with a warning instead of failing.
+# 7. Jenkins scripts support the following suite formats:
 #
 #    main       - all tests will be allowed to be executed (big and no-big). Note that the final decision belongs to --big-tests MTR parameter
 #    main|nobig - only no-big tests are allowed
@@ -17,6 +17,9 @@
 #
 #    Such approach makes it possible to split the suite execution among two workers, where one woker executes no-big test
 #    and another executes only bit tests.
+
+# Uncomment to continue testing even if this file is inconsistent with DEFAULT_SUITES from mysql-test-run.pl
+#IGNORE_INCONSISTENCY=1
 
 
 # is_version_equal_or_bigger <v1> <v2>
