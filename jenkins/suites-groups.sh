@@ -117,14 +117,14 @@ function set_suites_ps57() {
   if [[ "$1" == "Valgrind" ]]; then
     # Unit tests, KEYRING_VAULT tests, ps_protocol, ci_fs will be executed by worker 1
     echo "Setting WORKER_x_MTR_SUITES for PS 5.7 with Valgrind"
-    WORKER_1_MTR_SUITES="group_replication|big,binlog|nobig,sysschema|big,engines/funcs|nobig,innodb_zip|big,parts|nobig,auth_sec,funcs_1,gcol,innodb_gis|nobig,query_rewrite_plugins,query_response_time,rocksdb_stress,percona-pam-for-mysql"
+    WORKER_1_MTR_SUITES="group_replication|big,innodb_fts|nobig,innodb|big,engines/funcs|nobig,x,innodb_zip|big,innodb_gis|big,innodb_fts|big,tokudb.rpl,json,innodb_gis|nobig,test_service_sql_api,tokudb.bugs,innodb_undo,data_masking"
     WORKER_2_MTR_SUITES="main|nobig"
     WORKER_3_MTR_SUITES="innodb|nobig"
     WORKER_4_MTR_SUITES="rocksdb|big"
     WORKER_5_MTR_SUITES="rocksdb|nobig"
-    WORKER_6_MTR_SUITES="rpl|nobig,innodb|big,perfschema|nobig,x,engines/funcs|big,perfschema|big,gis,engines/iuds,tokudb.rpl,rocksdb_sys_vars,tokudb.parts,tokudb.bugs,innodb_undo,data_masking"
-    WORKER_7_MTR_SUITES="group_replication|nobig,rpl|big,rpl_encryption|nobig,encryption,innodb_zip|nobig,innodb_gis|big,audit_log,rpl_encryption|big,json,funcs_2,tokudb,opt_trace,connection_control,tokudb.alter_table,tokudb.add_index,tokudb.perfschema"
-    WORKER_8_MTR_SUITES="main|big,innodb_fts|nobig,sys_vars,rocksdb_rpl,parts|big,binlog|big,sysschema|nobig,innodb_fts|big,binlog_encryption,jp,innodb_stress,test_service_sql_api,stress,audit_null,federated"
+    WORKER_6_MTR_SUITES="rpl|nobig,rpl_encryption|nobig,rocksdb_rpl,parts|big,parts|nobig,binlog|big,rpl_encryption|big,binlog_encryption,tokudb,innodb_stress,query_response_time,connection_control,federated,tokudb.perfschema"
+    WORKER_7_MTR_SUITES="main|big,rpl|big,sys_vars,perfschema|big,engines/funcs|big,auth_sec,gis,engines/iuds,gcol,funcs_2,tokudb.parts,opt_trace,audit_null,tokudb.alter_table"
+    WORKER_8_MTR_SUITES="group_replication|nobig,binlog|nobig,sysschema|big,perfschema|nobig,encryption,innodb_zip|nobig,sysschema|nobig,audit_log,funcs_1,jp,rocksdb_sys_vars,query_rewrite_plugins,stress,rocksdb_stress,percona-pam-for-mysql,tokudb.add_index"
   elif [[ "$1" == "RelWithDebInfo" ]]; then
     # Unit tests, KEYRING_VAULT tests, ps_protocol, ci_fs will be executed by worker 1
     echo "Setting WORKER_x_MTR_SUITES for PS 5.7 with BUILD_TYPE=RelWithDebInfo"
