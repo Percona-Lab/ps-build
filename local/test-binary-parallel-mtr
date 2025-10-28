@@ -53,7 +53,7 @@ function execute() {
     MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
         --parallel=${parallel} \
         --result-file \
-        --suite-timeout=9999 \
+        --suite-timeout=${SUITE_TIMEOUT} \
         --testcase-timeout=${TESTCASE_TIMEOUT} \
         --force ${MYSQLD_ENV} \
         --max-test-fail=0 \
@@ -151,6 +151,7 @@ echo "SERVER_VERSION=$SERVER_VERSION"
 echo "MTR_ARGS_KV_SUITE=$MTR_ARGS_KV_SUITE"
 
 TESTCASE_TIMEOUT=30
+SUITE_TIMEOUT=600
 PARALLEL=$(grep -c ^processor /proc/cpuinfo)
 # CentOS 7
 if [[ -f /opt/rh/devtoolset-8/enable ]]; then
@@ -177,7 +178,9 @@ ANALYZER_MTR_ARGS=""
 #
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
   ANALYZER_MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
-  TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 2))
+  # defaults from mtr-test-run.pl; it will by multiplied later ($opt_testcase_timeout*= 10, $opt_suite_timeout*= 6)
+  TESTCASE_TIMEOUT=15
+  SUITE_TIMEOUT=300
   if [[ ${PARALLEL} -gt 1 ]]; then
     PARALLEL=$((PARALLEL/3))
   fi
@@ -212,6 +215,7 @@ fi
 
 if [[ $MTR_ARGS == *"--big-test"* ]] || [[ $MTR_ARGS == *"--only-big-test"* ]]; then
     TESTCASE_TIMEOUT=$((TESTCASE_TIMEOUT * 2))
+    SUITE_TIMEOUT=$((SUITE_TIMEOUT * 2))
 fi
 
 #
@@ -402,7 +406,7 @@ if [[ "${CI_FS_MTR}" == 'yes' ]]; then
         --result-file \
         --force ${MYSQLD_ENV} \
         --max-test-fail=0 \
-        --suite-timeout=9999 \
+        --suite-timeout=${SUITE_TIMEOUT} \
         --parallel=$PARALLEL \
         --testcase-timeout=${TESTCASE_TIMEOUT} \
         ${MTR_ARGS_CI} \
@@ -459,7 +463,7 @@ if [[ "${SERVER_VERSION}" != 5.7.* && "${WITH_PS_PROTOCOL}" == 'yes' ]]; then
         --result-file \
         --force ${MYSQLD_ENV} \
         --max-test-fail=0 \
-        --suite-timeout=9999 \
+        --suite-timeout=${SUITE_TIMEOUT} \
         --parallel=$PARALLEL \
         --ps-protocol \
         --testcase-timeout=${TESTCASE_TIMEOUT} \
