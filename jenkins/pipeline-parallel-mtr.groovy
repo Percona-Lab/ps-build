@@ -223,6 +223,15 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
                 echo "JENKINS_SCRIPTS_BRANCH: ${JENKINS_SCRIPTS_BRANCH}"
                 echo "JENKINS_SCRIPTS_REPO: ${JENKINS_SCRIPTS_REPO}"
                 sh 'which git'
+                sh '''
+                    uname -a
+                    echo "===== nproc=$(nproc --all)"
+                    cat /proc/cpuinfo | grep "model name" | uniq
+                    lscpu || :
+                    free -m; echo
+                    df -Th
+                    ulimit -a
+                '''
             }
 
             git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
