@@ -634,7 +634,7 @@ def notifySlack(status, color, customMessage) {
                 .replace('{userId}', userId)
                 .replace('{email}', email)
                 .replace('{slackUserId}', slackUserId)
-                .replace('{jobName}', "${env.JOB_NAME} #${env.BUILD_NUMBER}")
+                .replace('{jobName}', "<${env.BUILD_URL}|${env.JOB_NAME} #${env.BUILD_NUMBER}>")
 
             slackSend botUser: true,
                 channel: "#${env.SLACK_CHANNEL}",
