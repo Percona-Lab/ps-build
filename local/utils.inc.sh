@@ -148,6 +148,25 @@ function setup_git_repo() {
     popd
 }
 
+# usage: apt_get_retry <list of commands>
+function apt_get_retry() {
+  if [ -f /usr/bin/apt ]; then
+    until sudo DEBIAN_FRONTEND=noninteractive apt-get $@; do
+      echo "apt-get failed, retrying in 1 second..."
+      sleep 1
+    done
+  fi
+}
+
+# usage: yum_retry <list of commands>
+function yum_retry() {
+  if [ -f /usr/bin/yum ]; then
+    until sudo yum $@; do
+        echo "yum failed, retrying in 1 second..."
+        sleep 1
+    done
+  fi
+}
 
 # Parses mysql-test-run.pl file and extracts the contents of the @DEFAULT_SUITES
 # array (defined using 'qw(...)'). The extracted suite names are returned as

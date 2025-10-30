@@ -92,7 +92,7 @@ void downloadFilesForTests() {
 
 void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-        sh """
+        sh """#!/bin/bash
             echo "prepareWorkspace for MTR worker ${WORKER_ID}"
             whoami
             ls -l
@@ -123,10 +123,16 @@ void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
                 sudo rm -rf sources
             fi
 
+            # import apt_get_retry(), yum_retry() from utils.inc.sh
+            source ./local/utils.inc.sh
+
+            # For LABEL host jq is required by keyring_vault; zstd is required for valgrind runs
             if [ -f /usr/bin/yum ]; then
-                sudo yum -y install jq gflags-devel
+                yum_retry makecache
+                yum_retry -y install jq zstd
             else
-                sudo apt-get install -y jq libgflags-dev libjemalloc-dev
+                apt_get_retry update
+                apt_get_retry install -y jq zstd
             fi
         """
     }
@@ -334,15 +340,16 @@ def getServerVersion() {
         sh '''#!/bin/bash
             set -xe
 
-            if [ -f /usr/bin/apt ]; then
-                sudo apt-get update
-            fi
-
             if [[ $USE_PR == "true" ]]; then
+                # For MICRO_LABEL host import apt_get_retry(), yum_retry() from utils.inc.sh
+                source ./local/utils.inc.sh
+
                 if [ -f /usr/bin/yum ]; then
-                    sudo yum -y install jq
+                    yum_retry makecache
+                    yum_retry -y install jq
                 else
-                    sudo apt-get install -y jq
+                    apt_get_retry update
+                    apt_get_retry install -y jq
                 fi
 
                 GIT_REPO=$(curl -s https://api.github.com/repos/percona/percona-server/pulls/$BRANCH | jq -r '.head.repo.html_url')
@@ -394,7 +401,7 @@ void setupTestSuitesSplit() {
             grep -q opt_only_big_test ${WORKSPACE}/mysql-test-run.pl || { echo "ERROR: Parallel MTRs require server that supports --only-big-test"; exit 1; }
 
             # import check_suites() from utils.inc.sh; check_suites() may be overwritten in suites-groups.sh
-            source local/utils.inc.sh
+            source ./local/utils.inc.sh
             # Check if split contain all suites
             chmod +x ${WORKSPACE}/suites-groups.sh
             set +e
