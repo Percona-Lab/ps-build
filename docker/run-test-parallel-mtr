@@ -75,7 +75,7 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
 fi
 
 docker run --rm --shm-size=32G \
-    --tmpfs /dev/shm:rw,exec,size=32G \
+    --tmpfs /dev/shm:rw,exec,size=32G,mode=1777 \
     --security-opt seccomp=unconfined \
     --sysctl net.ipv6.conf.lo.disable_ipv6=0 \
     --mount type=bind,source=${SOURCES_DIR},destination=/tmp/sources \
