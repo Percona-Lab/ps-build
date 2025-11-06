@@ -318,16 +318,19 @@ void checkoutSources() {
 void build(String SCRIPT) {
     timeout(time: 180, unit: 'MINUTES')  {
         withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-            sh """
+            sh """#!/bin/bash
+                set -euo pipefail
                 aws ecr-public get-login-password --region us-east-1 | docker login -u AWS --password-stdin public.ecr.aws/e7j3v3n0
-                sg docker -c "
-                    if [ \$(docker ps -q | wc -l) -ne 0 ]; then
+
+                sg docker -c '
+                    if docker ps -q | grep -q .; then
                         docker ps -q | xargs docker stop --time 1 || :
                     fi
-                    eval USE_CCACHE=${params.USE_CCACHE} CCACHE_MAXSIZE=${env.CCACHE_MAXSIZE} KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
-                " 2>&1 | tee build.log
 
-                echo Archive build log: \$(date -u "+%s")
+                    eval USE_CCACHE=${params.USE_CCACHE} CCACHE_MAXSIZE=${env.CCACHE_MAXSIZE} KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
+                ' 2>&1 | tee build.log
+
+                echo "Archive build log: \$(date -u '+%s')"
                 sed -i -e '
                     s^/tmp/ps/^sources/^;
                     s^/tmp/results/^sources/^;
