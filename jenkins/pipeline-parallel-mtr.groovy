@@ -553,7 +553,7 @@ void triggerAbortedTestWorkersRerun() {
             echo "rerun needed: $rerunNeeded"
             if (rerunNeeded) {
                 echo 'restarting aborted workers'
-                build job: "${params.PIPELINE_NAME}",
+                build job: "${env.PIPELINE_NAME}",
                 wait: false,
                 parameters: [
                     string(name:'BUILD_NUMBER_BINARIES', value: BUILD_NUMBER_BINARIES_FOR_RERUN),
@@ -688,8 +688,8 @@ pipeline {
         stage('Prepare') {
             steps {
                 script {
-                    copyArtifactPermission(params.PIPELINE_NAME)
-                    echo "PIPELINE_NAME = ${params.PIPELINE_NAME}"
+                    copyArtifactPermission(env.PIPELINE_NAME)
+                    echo "PIPELINE_NAME = ${env.PIPELINE_NAME}"
                     echo "NODE_NAME = ${env.NODE_NAME}"
                     echo "JENKINS_URL = ${env.JENKINS_URL}"
                     echo "JENKINS_SCRIPTS_BRANCH: $JENKINS_SCRIPTS_BRANCH"
