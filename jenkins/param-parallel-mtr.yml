@@ -237,9 +237,9 @@
       - project: percona-server-{ps_version}-pipeline-parallel-mtr
         current-parameters: true
         predefined-parameters: |
-          DOCKER_OS=${DOCKER_OS}
-          ARCH=${ARCH}
-          CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+          DOCKER_OS=${{DOCKER_OS}}
+          ARCH=${{ARCH}}
+          CMAKE_BUILD_TYPE=${{CMAKE_BUILD_TYPE}}
           LAUNCHER_USER_ID=$BUILD_USER_ID
         block: true
         block-thresholds:
