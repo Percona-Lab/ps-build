@@ -168,6 +168,20 @@ function yum_retry() {
   fi
 }
 
+# is_version_equal_or_bigger <v1> <v2>
+# returns 0 if v1 >= v2, 1 otherwise
+function is_version_equal_or_bigger() {
+  local v1="$1"
+  local v2="$2"
+  local first=$(printf "%s\n%s\n" "$v2" "$v1" | sort -V | head -n1)   # sort -V sorts versions correctly
+
+  if [[ "$first" == "$v2" ]]; then
+    return 0  # v1 >= v2
+  else
+    return 1  # v1 < v2
+  fi
+}
+
 # Parses mysql-test-run.pl file and extracts the contents of the @DEFAULT_SUITES
 # array (defined using 'qw(...)'). The extracted suite names are returned as
 # a single comma-separated string.
@@ -296,6 +310,10 @@ function check_suites() {
       all_suites_2=$(get_default_suites_80 "${input_file}")
       ;;
   esac
+
+  if is_version_equal_or_bigger "$server_version" "9.5"; then
+    all_suites_2=${all_suites_2},router
+  fi
 
   # add leading and trailing commas for easier parsing
   all_suites_2=,${all_suites_2},
