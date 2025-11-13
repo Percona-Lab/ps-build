@@ -6,7 +6,7 @@
 2. Copy results from "Artifacts" e.g.
 https://ps57.cd.percona.com/job/percona-server-5.7-pipeline-parallel-mtr/7/artifact/work/walltimes/
 
-3. Run ../parse-mtr-results.py *.txt | sort > PS80-RelWithDebInfo.txt
+3. Run ../parse-mtr-results.sh *.txt | sort > PS80-RelWithDebInfo.txt
 
 4. Run this script (e.g. "./gen-suites-groups.py PS80-RelWithDebInfo*") that:
 - Computes average runtime for each suite across all input files.
