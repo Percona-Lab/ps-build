@@ -116,6 +116,7 @@ docker run --rm --shm-size=32G \
     export WITH_ROCKSDB='${WITH_ROCKSDB}'
     export KEEP_BUILD='${KEEP_BUILD}'
     export EXECUTE_SUITES_ONE_BY_ONE='${EXECUTE_SUITES_ONE_BY_ONE}'
+    export USER='mysql'
 
     sudo chown mysql:mysql /tmp/work
     sudo chown -R mysql:mysql /tmp/work/results || :
