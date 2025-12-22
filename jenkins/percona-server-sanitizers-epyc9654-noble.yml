@@ -241,7 +241,7 @@
     ps_version: 8.0
     branch_name: release-8.0.43-34
     sanitizer_opts: '-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON'
-    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --parallel=96
+    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_read_io_threads=4 --parallel=96
     scripts_repo: Percona-Lab/ps-build
     scripts_branch: 8.0
     jobs:
@@ -253,7 +253,7 @@
     ps_version: 8.0
     branch_name: release-8.0.43-34
     sanitizer_opts: '-DWITH_VALGRIND=ON'
-    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --suite-timeout=600000 --retry-failure=0 --parallel=64
+    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --mysqld=--innodb_read_io_threads=4 --parallel=64 --retry-failure=0
     scripts_repo: Percona-Lab/ps-build
     scripts_branch: 8.0
     jobs:
@@ -266,7 +266,7 @@
     ps_version: 8.4
     branch_name: release-8.4.6-6
     sanitizer_opts: '-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON'
-    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --parallel=96
+    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_read_io_threads=4 --parallel=96
     scripts_repo: Percona-Lab/ps-build
     scripts_branch: 8.0
     jobs:
@@ -278,7 +278,7 @@
     ps_version: 8.4
     branch_name: release-8.4.6-6
     sanitizer_opts: '-DWITH_VALGRIND=ON'
-    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --suite-timeout=600000 --retry-failure=0 --parallel=64
+    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --mysqld=--innodb_read_io_threads=4 --parallel=64 --retry-failure=0
     scripts_repo: Percona-Lab/ps-build
     scripts_branch: 8.0
     jobs:
@@ -291,7 +291,7 @@
     ps_version: 9.x
     branch_name: release-9.4.0-1
     sanitizer_opts: '-DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON'
-    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --parallel=96
+    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_read_io_threads=4 --parallel=96
     scripts_repo: Percona-Lab/ps-build
     scripts_branch: 8.0
     jobs:
@@ -303,7 +303,7 @@
     ps_version: 9.x
     branch_name: release-9.4.0-1
     sanitizer_opts: '-DWITH_VALGRIND=ON'
-    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --suite-timeout=600000 --retry-failure=0 --parallel=64
+    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --mysqld=--innodb_read_io_threads=4 --parallel=64 --retry-failure=0
     scripts_repo: Percona-Lab/ps-build
     scripts_branch: 8.0
     jobs:
