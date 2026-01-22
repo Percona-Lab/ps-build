@@ -100,6 +100,16 @@ void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
             sudo git log --oneline -10
             sudo git reset --hard
 
+            wipe_work_dir() {
+                # "git clean" doesn't remove "sources/" because of ".gitignore"
+                sudo git clean -xdf || :
+                sudo rm -rf sources
+
+                # Ensure WORK_DIR is really clean (helps with re-runs / retries).
+                # "git clean" may leave parts of work/extract behind (e.g. "Directory not empty")
+                sudo rm -rf ${WORK_DIR}
+            }
+
             # "sources" + "work/build" required for running unit tests are valid only for "Test 1" (WORKER #1) but not for retry/re-runs
             if [ "$WORKER_ID" = "1" ] && [ "$UNIT_TESTS" != "false" ]; then
                 if [ -d sources ]; then
@@ -107,20 +117,21 @@ void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
                     if ! sudo git -C sources status >/dev/null 2>&1; then
                         echo "Warning: Git repo in ./sources is broken, removing it. It should happen only for re-runs."
                         sudo GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null git -C sources -c safe.directory="$WORKSPACE/sources" log --oneline -10 || :
-                        sudo rm -rf sources
+                        wipe_work_dir
                     else
                         sudo git -C sources log --oneline -10
                         sudo git -C sources reset --hard
                         sudo git -C sources clean -xdf -e . || :
                         sudo git -C sources submodule update --init || :
+                        sudo rm -rf ${WORK_DIR}/extract ${WORK_DIR}/results ${WORK_DIR}/walltimes || :
+                        sudo rm -f  ${WORK_DIR}/binary.tar.gz ${WORK_DIR}/mtr-test_*.log || :
                     fi
                 else
                     echo "Warning: Missing 'sources' for MTR worker ${WORKER_ID}. It should happen only for re-runs."
+                    wipe_work_dir
                 fi
             else
-                # "git clean" doesn't remove "sources/" because of ".gitignore"
-                sudo git clean -xdf || :
-                sudo rm -rf sources
+                wipe_work_dir
             fi
 
             # import apt_get_retry(), yum_retry() from utils.inc.sh
@@ -140,11 +151,14 @@ void prepareWorkspace(Integer WORKER_ID, boolean UNIT_TESTS) {
 
 void cleanWorkspace(Integer WORKER_ID) {
     echo "[INFO] Worker ${WORKER_ID}: cleaning up workspace."
-    sh '''
+    sh """
         # "git clean" doesn't remove "sources/" because of ".gitignore"
         sudo git clean -xdf || :
         sudo rm -rf sources
-    '''
+
+        # Ensure WORK_DIR is really clean (helps with re-runs / retries).
+        sudo rm -rf ${WORK_DIR}
+    """
 }
 
 void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
@@ -287,14 +301,17 @@ void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS =
 void checkoutSources() {
     echo 'Checkout PS sources'
     withCredentials([string(credentialsId: 'JNKPercona', variable: 'JNKPercona_token')]) {
-        sh '''
+        sh """
             # sudo is needed for better node recovery after compilation failure
             # if building failed on compilation stage directory will have files owned by docker user
             sudo git reset --hard
             sudo git clean -xdf || :
             sudo rm -rf sources
+
+            # Ensure WORK_DIR is really clean (helps with re-runs / retries).
+            sudo rm -rf ${WORK_DIR}
             ./local/checkout
-        '''
+        """
     }
 }
 
