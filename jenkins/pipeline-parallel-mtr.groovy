@@ -370,11 +370,18 @@ def getServerVersion() {
                 GIT_REPO_LINK=$(echo ${GIT_REPO} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
             fi
             RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
-            REPLY=$(curl -Is ${RAW_VERSION_LINK}/${BRANCH}/MYSQL_VERSION | head -n 1 | awk '{print $2}')
-            if [[ ${REPLY} != 200 ]]; then
-                curl ${RAW_VERSION_LINK}/${BRANCH}/VERSION -o ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-            else
-                curl ${RAW_VERSION_LINK}/${BRANCH}/MYSQL_VERSION -o ${WORKSPACE}/VERSION-${BUILD_NUMBER}
+
+            for VERSION_FILE in MYSQL_VERSION VERSION; do
+                HTTP_CODE=$(curl ${RAW_VERSION_LINK}/${BRANCH}/${VERSION_FILE} -w "%{http_code}" \
+                    -o ${WORKSPACE}/VERSION-${BUILD_NUMBER}
+                if [ "$HTTP_CODE" = "200" ]; then
+                    break
+                fi
+            done
+
+            if [[ ! -s ${WORKSPACE}/VERSION-${BUILD_NUMBER} ]]; then
+                echo "Failed to download ${VERSION_FILE} or it's empty"
+                exit 1
             fi
          '''
     } // withCredentials
@@ -749,7 +756,7 @@ pipeline {
                         script {
                             // Set ccache size as environment variable
                             env.CCACHE_MAXSIZE = CCACHE_MAXSIZE
-                            
+
                             // Set BUILD_PARAMS_TYPE based on ANALYZER_OPTS
                             if (env.ANALYZER_OPTS) {
                                 if (env.ANALYZER_OPTS.contains('ASAN')) {
