@@ -13,7 +13,20 @@ if [ ! -d "${ROOT_DIR}" ]; then
     if [[ "${GIT_REPO}" =~ (post-eol|private|eol-dev) ]]; then
         GIT_REPO=$(echo ${GIT_REPO} | sed -e "s|github|${JNKPercona_token}@github|")
     fi
-    git clone "${GIT_REPO:-https://github.com/percona/percona-server}" "${ROOT_DIR}"
+
+    CLONE_RETRIES=3
+    for i in $(seq 1 ${CLONE_RETRIES}); do
+        if git clone "${GIT_REPO:-https://github.com/percona/percona-server}" "${ROOT_DIR}"; then
+            break
+        fi
+        echo "git clone failed (attempt ${i}/${CLONE_RETRIES}), cleaning up and retrying in 15s..."
+        rm -rf "${ROOT_DIR}"
+        if [ "${i}" -eq "${CLONE_RETRIES}" ]; then
+            echo "git clone failed after ${CLONE_RETRIES} attempts"
+            exit 1
+        fi
+        sleep 15
+    done
 fi
 
 pushd $ROOT_DIR
