@@ -244,10 +244,6 @@ if [[ $MTR_ARGS == *"--unit-tests-report"* ]]; then
 fi
 MTR_ARGS=${MTR_ARGS//"--unit-tests-report"/""}
 
-rm -fr ${EXTRACT_DIR}
-mkdir -p ${EXTRACT_DIR}/sql ${EXTRACT_DIR}/mysql-test
-cd ${EXTRACT_DIR}/mysql-test
-
 #
 # >>>> execute all unit tests at the beginning with main.1st only using an original build (not files for ".tar.gz" archive)
 if [[ $UNIT_TESTS == "1" ]]; then
@@ -290,7 +286,6 @@ if [[ $UNIT_TESTS == "1" ]]; then
         --force \
         --max-test-fail=0 \
         ${JUNIT_UNIT_TESTS_ARGS} || true
-    popd
 
     ln -s ${BUILD_DIR}/mysql-test/var $PWD/var_${suiteNoSlash}
     which rsync
@@ -298,6 +293,7 @@ if [[ $UNIT_TESTS == "1" ]]; then
 
     killall -9 mysqld || true
     rm -rf $PWD/var_${suiteNoSlash}
+    popd
 
     df -h
     du -sh /dev/shm
@@ -317,7 +313,10 @@ fi
 
 echo "*******************************************************"
 echo "Decompress \".tar.gz\" archive and use it for MTR tests"
+rm -rf ${EXTRACT_DIR}
+mkdir -p ${EXTRACT_DIR}
 tar -C ${EXTRACT_DIR} --strip-components=1 -zxpf $(ls ${WORKDIR}/*.tar.gz | head -1)
+cd ${EXTRACT_DIR}/mysql-test
 
 
 if [[ "${ANALYZER_OPTS}" == *WITH_ASAN=ON* ]]; then
@@ -613,7 +612,6 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     echo KH,SUITE_TOTAL,KEYRING_VAULT_tests,time,$runtime
 fi
 
-cd ${WORKDIR}
 rm -fr ${EXTRACT_DIR}/mysql-test/var
 if [[ "${KEEP_BUILD}" != "yes" ]]; then
     rm -rf ${EXTRACT_DIR}
