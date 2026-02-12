@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -o errexit
+set -o pipefail
 set -o xtrace
 
 # Test Percona Server build using Docker image from "public.ecr.aws/e7j3v3n0/ps-build"
@@ -73,6 +74,14 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
 
     VAULT_DOCKER_FLAG="--network bridge-vault"
 fi
+
+# Verify bind mount source paths exist before docker run
+for bind_dir in "${SOURCES_DIR}" "${SCRIPTS_DIR}" "${WORK_DIR}"; do
+    if [[ ! -d "${bind_dir}" ]]; then
+        echo "ERROR: bind mount source path does not exist: ${bind_dir}"
+        exit 1
+    fi
+done
 
 docker run --rm --shm-size=32G \
     --tmpfs /dev/shm:rw,exec,size=32G,mode=1777 \
