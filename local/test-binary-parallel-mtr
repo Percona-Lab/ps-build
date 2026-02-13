@@ -23,6 +23,19 @@ set -o xtrace
 # Execution mode. If suites should be executed one by one, or all together
 echo EXECUTE_SUITES_ONE_BY_ONE=$EXECUTE_SUITES_ONE_BY_ONE
 
+function print_diagnostics() {
+    local label="${1:-}"
+    echo "=== Diagnostics${label:+: $label} ==="
+    df -Th
+    echo "------------------------------------------------"
+    du -sh /dev/shm
+    echo "------------------------------------------------"
+    free -m
+    echo "------------------------------------------------"
+    cat /proc/meminfo
+    echo "------------------------------------------------"
+}
+
 function execute() {
     local parallel=$1
     local extraOptions=$2
@@ -34,11 +47,7 @@ function execute() {
 
     echo "Executing $extraOptions, logFileSuffix: $logFileSuffix"
 
-    df -h
-    du /dev/shm
-    mount
-    ls -la /dev/shm
-    cat /proc/meminfo
+    print_diagnostics "before MTR run ${worker}"
 
     start=`date +%s`
 
@@ -69,7 +78,7 @@ function execute() {
 
     rm -rf $PWD/var_${worker}
 
-    df -h
+    df -Th
     du -sh /dev/shm
 
     end=`date +%s`
@@ -135,11 +144,18 @@ mkdir -p ${RESULTS_DIR}
 
 echo "*******************************************************"
 echo "Starting tests on worker ${WORKER_NO}"
+# --- static diagnostics (don't change during the run) ---
 whoami
-grep -c ^processor /proc/cpuinfo
-free
+uname -a
+nproc
+lscpu || :
+cat /sys/fs/cgroup/memory.max 2>/dev/null || cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null || echo "cgroup memory limit: unknown"
 prlimit
 ulimit -a
+mount
+sudo dmesg -T 2>/dev/null | tail -20 || sudo dmesg 2>/dev/null | tail -20 || echo "dmesg not available"
+# --- dynamic diagnostics (snapshot at startup) ---
+print_diagnostics "startup"
 echo "*******************************************************"
 
 if [[ "${SERVER_VERSION}" == 8.0.* ]]; then
@@ -229,8 +245,8 @@ if [[ $MTR_ARGS == *"--only-big-test"* ]]; then
     ONLY_BIG_TEST=1
     BIG_TEST=1
 fi
-MTR_ARGS=${MTR_ARGS//"--big-test"/""}
 MTR_ARGS=${MTR_ARGS//"--only-big-test"/""}
+MTR_ARGS=${MTR_ARGS//"--big-test"/""}
 
 #
 # unit tests
@@ -252,11 +268,7 @@ if [[ $UNIT_TESTS == "1" ]]; then
     suiteNoSlash="UNIT_TESTS"
     echo "Executing unit tests with $tests"
 
-    df -h
-    du /dev/shm
-    mount
-    ls -la /dev/shm
-    cat /proc/meminfo
+    print_diagnostics "before unit tests"
     start=`date +%s`
 
     if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
@@ -295,7 +307,7 @@ if [[ $UNIT_TESTS == "1" ]]; then
     rm -rf $PWD/var_${suiteNoSlash}
     popd
 
-    df -h
+    df -Th
     du -sh /dev/shm
 
     end=`date +%s`
@@ -308,14 +320,25 @@ if [[ "${KEEP_BUILD}" != "yes" ]]; then
     echo "*******************************************************"
     echo "Remove the original build"
     ls -l ${BUILD_DIR} || :
+    du -sh ${BUILD_DIR} 2>/dev/null || echo "Build dir does not exist"
     sudo rm -rf ${BUILD_DIR}
+    echo "After build removal:"
+    free -m
+    df -Th
 fi
 
 echo "*******************************************************"
 echo "Decompress \".tar.gz\" archive and use it for MTR tests"
+free -m
+df -Th
+ls -lh ${WORKDIR}/*.tar.gz
 rm -rf ${EXTRACT_DIR}
 mkdir -p ${EXTRACT_DIR}
 tar -C ${EXTRACT_DIR} --strip-components=1 -zxpf $(ls ${WORKDIR}/*.tar.gz | head -1)
+echo "Extraction complete"
+free -m
+df -Th
+du -sh ${EXTRACT_DIR}
 cd ${EXTRACT_DIR}/mysql-test
 
 

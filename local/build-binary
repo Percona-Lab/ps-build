@@ -1,8 +1,7 @@
 #!/bin/bash
 
-set -o errexit
+set -eo pipefail
 set -o xtrace
-
 
 # ------------------------------------------------------------------------------
 # Declare all input variables

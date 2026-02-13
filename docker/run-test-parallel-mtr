@@ -1,7 +1,6 @@
 #!/bin/bash
 
-set -o errexit
-set -o pipefail
+set -eo pipefail
 set -o xtrace
 
 # Test Percona Server build using Docker image from "public.ecr.aws/e7j3v3n0/ps-build"
