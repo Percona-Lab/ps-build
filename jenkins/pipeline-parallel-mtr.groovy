@@ -342,30 +342,13 @@ void build(String SCRIPT) {
     }  // timeout
 }
 
-def getServerVersionFromFile(String filePath) {
-    // Call Bash to source the file and echo the version
-    def serverVersion = sh(
-        script: """#!/bin/bash
-            if [ ! -f "${filePath}" ]; then
-                echo "${filePath} not found!" >&2
-                exit 1
-            fi
-
-            source "${filePath}"
-            rm -f "${filePath}"
-
-            echo "\${MYSQL_VERSION_MAJOR}.\${MYSQL_VERSION_MINOR}.\${MYSQL_VERSION_PATCH}\${MYSQL_VERSION_EXTRA}"
-        """,
-        returnStdout: true
-    ).trim()
-
-    return serverVersion
-}
-
 def getServerVersion() {
     echo 'Trying to get the server version'
 
+    def versionFile = "${WORKSPACE}/VERSION-${BUILD_NUMBER}"
+
     withCredentials([string(credentialsId: 'JNKPercona', variable: 'JNKPercona_token')]) {
+    withEnv(["VERSION_FILE=${versionFile}"]) {
         sh '''#!/bin/bash
             set -xe
 
@@ -390,16 +373,32 @@ def getServerVersion() {
                 GIT_REPO_LINK=$(echo ${GIT_REPO} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
             fi
             RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
-            REPLY=$(curl -Is ${RAW_VERSION_LINK}/${BRANCH}/MYSQL_VERSION | head -n 1 | awk '{print $2}')
-            if [[ ${REPLY} != 200 ]]; then
-                curl ${RAW_VERSION_LINK}/${BRANCH}/VERSION -o ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-            else
-                curl ${RAW_VERSION_LINK}/${BRANCH}/MYSQL_VERSION -o ${WORKSPACE}/VERSION-${BUILD_NUMBER}
-            fi
-         '''
-    } // withCredentials
 
-    return getServerVersionFromFile("${WORKSPACE}/VERSION-${BUILD_NUMBER}")
+            for FNAME in MYSQL_VERSION VERSION; do
+                if curl -fsSL -o ${VERSION_FILE} ${RAW_VERSION_LINK}/${BRANCH}/${FNAME} && [[ -s ${VERSION_FILE} ]]; then
+                    echo "Downloaded ${FNAME}"
+                    break
+                fi
+                echo "Skipping ${FNAME}"
+                rm -f ${VERSION_FILE}
+            done
+         '''
+    }} // withEnv, withCredentials
+
+    if (!fileExists(versionFile) || readFile(versionFile).trim().isEmpty()) {
+        error("Neither MYSQL_VERSION nor VERSION could be downloaded")
+    }
+
+    def serverVersion = sh(
+        script: """#!/bin/bash
+            source "${versionFile}"
+            rm -f "${versionFile}"
+            echo "\${MYSQL_VERSION_MAJOR}.\${MYSQL_VERSION_MINOR}.\${MYSQL_VERSION_PATCH}\${MYSQL_VERSION_EXTRA}"
+        """,
+        returnStdout: true
+    ).trim()
+
+    return serverVersion
 }
 
 void setupTestSuitesSplit() {
@@ -741,13 +740,23 @@ pipeline {
                 sh 'echo Prepare: \$(date -u "+%s")'
 
                 script {
-                    SERVER_VERSION = getServerVersion()
-                    echo "Extracted SERVER_VERSION: ${SERVER_VERSION}"
-                    setupTestSuitesSplit()
+                    try {
+                        SERVER_VERSION = getServerVersion()
+                        echo "Extracted SERVER_VERSION: ${SERVER_VERSION}"
+                    } catch (Exception e) {
+                        error("Failed to extract server version: ${e.message}")
+                    }
+                }
+                script {
+                    try {
+                        setupTestSuitesSplit()
 
-                    env.BUILD_TAG_BINARIES = "jenkins-${env.JOB_NAME}-${env.BUILD_NUMBER_BINARIES}"
-                    BUILD_NUMBER_BINARIES_FOR_RERUN = env.BUILD_NUMBER_BINARIES
-                    sh 'printenv'
+                        env.BUILD_TAG_BINARIES = "jenkins-${env.JOB_NAME}-${env.BUILD_NUMBER_BINARIES}"
+                        BUILD_NUMBER_BINARIES_FOR_RERUN = env.BUILD_NUMBER_BINARIES
+                        sh 'printenv'
+                    } catch (Exception e) {
+                        error("Failed to setup test suites split: ${e.message}")
+                    }
                 }
             }
         }
@@ -764,7 +773,13 @@ pipeline {
                         }
                         git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
 
-                        checkoutSources()
+                        script {
+                            try {
+                                checkoutSources()
+                            } catch (Exception e) {
+                                error("Failed to checkout sources: ${e.message}")
+                            }
+                        }
 
                         script {
                             // Set ccache size as environment variable
@@ -827,7 +842,13 @@ pipeline {
                             workspace: env.WORKSPACE
                         ])
 
-                        build('./docker/run-build')
+                        script {
+                            try {
+                                build('./docker/run-build')
+                            } catch (Exception e) {
+                                error("Build failed, stopping pipeline and parallel workers.")
+                            }
+                        }
 
                         // Upload ccache using shared library
                         script {
@@ -865,8 +886,7 @@ pipeline {
                                 sh "echo 'binary    - https://s3.us-east-2.amazonaws.com/ps-build-cache/${BUILD_TAG}/binary.tar.gz' >> public_url"
                                 archive_public_url = true
                             } else {
-                                echo 'Cannot find compiled archive log'
-                                currentBuild.result = 'FAILURE'
+                                error('Cannot find compiled archive')
                             }
                             if (LOG_FILE_NAME != '') {
                                 uploadFileToS3("$LOG_FILE_NAME", "$BUILD_TAG", 'build.log.gz')
