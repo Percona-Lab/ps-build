@@ -55,6 +55,11 @@ if [ -f /usr/bin/yum ]; then
         echo "waiting"
         sleep 1
       done
+  elif [[ ${RHVER} -eq 10 ]]; then
+      until yum -y install oracle-epel-release-el10; do
+        echo "waiting"
+        sleep 1
+      done
   else
       until yum -y install epel-release; do
         echo "waiting"
@@ -98,6 +103,17 @@ if [ -f /usr/bin/yum ]; then
       PKGLIST+=" libedit-devel"
   fi
 
+  if [[ ${RHVER} -eq 10 ]]; then
+      PKGLIST+=" dnf-utils"
+      until yum -y install ${PKGLIST} ; do
+        echo "waiting"
+        sleep 1
+      done
+
+      dnf config-manager --enable ol10_codeready_builder
+      PKGLIST+=" libedit-devel"
+  fi
+
   if [[ ${RHVER} -lt 8 ]] && [[ "$(rpm --eval %{_arch})" == "x86_64" ]] && [[ "x${DIST}" != "x.amzn2" ]]; then
     until yum -y install centos-release-scl; do
       echo "waiting"
@@ -122,14 +138,20 @@ if [ -f /usr/bin/yum ]; then
     perl-Time-HiRes openldap-devel perl-Env perl-Data-Dumper libicu-devel perl-Sys-MemInfo \
     cpio perl-JSON perl-Digest perl-Digest-MD5 perl-XML-Parser perl-Expect perl-LWP-Protocol-https \
     numactl-devel git which make rpm-build ccache sudo libasan lz4-devel \
-    libzstd-devel tzdata zstd mysql-devel perl-DBI perl-DBD-mysql jq perl-XML-Simple libcurl-devel perl-Test-Simple \
+    libzstd-devel tzdata zstd perl-DBI perl-DBD-mysql jq perl-XML-Simple libcurl-devel perl-Test-Simple \
     cyrus-sasl-devel cyrus-sasl-scram krb5-devel libudev-devel python3-pip python3-devel libevent-devel \
     "
   if [[ "x${DIST}" != "x.amzn2" ]]; then
       PKGLIST+=" openssl-devel openssl "
   fi
 
-    if [[ ${RHVER} -eq 9 ]]; then
+  if [[ ${RHVER} -eq 10 ]]; then
+      PKGLIST+=" mariadb-connector-c-devel"
+  else
+      PKGLIST+=" mysql-devel"
+  fi
+
+    if [[ ${RHVER} -eq 9 ]] || [[ ${RHVER} -eq 10 ]]; then
         PKGLIST+=" gflags-devel util-linux libtirpc-devel rpcgen"
     fi
 
@@ -147,6 +169,13 @@ if [ -f /usr/bin/yum ]; then
         PKGLIST_DEVTOOLSET14+=" gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ gcc-toolset-14-binutils"
         PKGLIST_DEVTOOLSET14+=" gcc-toolset-14-annobin-annocheck gcc-toolset-14-annobin-plugin-gcc"
         PKGLIST_DEVTOOLSET14+=" gcc-toolset-14-libatomic-devel"
+    fi
+
+    if [[ ${RHVER} -eq 10 ]]; then
+        # OL10 only has gcc-toolset-15
+        PKGLIST_DEVTOOLSET15+=" gcc-toolset-15-gcc gcc-toolset-15-gcc-c++ gcc-toolset-15-binutils"
+        PKGLIST_DEVTOOLSET15+=" gcc-toolset-15-gcc-plugin-annobin"
+        PKGLIST_DEVTOOLSET15+=" gcc-toolset-15-libatomic-devel"
     fi
 
     if [[ ${RHVER} -eq 8 ]] || [[ ${RHVER} -eq 9 ]]; then
@@ -235,9 +264,14 @@ if [ -f /usr/bin/yum ]; then
             echo "waiting"
             sleep 1
         done
+    elif [[ ${RHVER} -eq 10 ]]; then
+        until yum -y install ${PKGLIST_DEVTOOLSET15}; do
+            echo "waiting"
+            sleep 1
+        done
     fi
 
-    if [[ ${RHVER} -eq 8 ]] || [[ ${RHVER} -eq 9 ]]; then
+    if [[ ${RHVER} -eq 8 ]] || [[ ${RHVER} -eq 9 ]] || [[ ${RHVER} -eq 10 ]]; then
         ln -fs /usr/bin/python3 /usr/bin/python
     fi
 
@@ -282,17 +316,23 @@ if [ -f /usr/bin/apt-get ]; then
         libmecab-dev libncurses5-dev libreadline-dev libpam-dev zlib1g-dev libcurl4-openssl-dev \
         libnuma-dev libjemalloc-dev libc6-dbg valgrind libjson-perl libexpect-perl libevent-dev pkg-config \
         libmecab2 mecab mecab-ipadic git autoconf libsasl2-dev libsasl2-modules devscripts \
-        debconf debhelper fakeroot po-debconf psmisc ccache libtool sudo liblz4-dev liblz4-tool libedit-dev libssl-dev \
+        debconf debhelper fakeroot po-debconf psmisc ccache libtool sudo liblz4-dev libedit-dev libssl-dev \
         tzdata golang libunwind-dev zstd python3-mysqldb libdbi-perl libdbd-mysql-perl \
         cpio jq openssl libxml-simple-perl libxml-parser-perl \
         libsasl2-dev libsasl2-modules-gssapi-mit libkrb5-dev libudev-dev libzstd-dev libsys-meminfo-perl \
         libatomic1 \
     "
 
-    if [[ ${DIST} == "bookworm" ]] || [[ ${DIST} == "noble" ]]; then
+    if [[ ${DIST} == "bookworm" ]] || [[ ${DIST} == "noble" ]] || [[ ${DIST} == "trixie" ]]; then
         PKGLIST+=" gsasl-common"
     else
         PKGLIST+=" libgsasl7"
+    fi
+
+    if [[ ${DIST} == "trixie" ]]; then
+        PKGLIST+=" lz4"
+    else
+        PKGLIST+=" liblz4-tool"
     fi
 
     # PS 8.2 requires gcc-10 on focal
@@ -300,11 +340,11 @@ if [ -f /usr/bin/apt-get ]; then
         PKGLIST+=" gcc-10 g++-10"
     fi
 
-    if [[ ${DIST} == 'jammy' ]] || [[ ${DIST} == 'bullseye' ]] || [[ ${DIST} == 'bookworm' ]] || [[ ${DIST} == "noble" ]]; then
+    if [[ ${DIST} == 'jammy' ]] || [[ ${DIST} == 'bullseye' ]] || [[ ${DIST} == 'bookworm' ]] || [[ ${DIST} == "noble" ]] || [[ ${DIST} == "trixie" ]]; then
         PKGLIST+=" libgflags-dev util-linux"
     fi
 
-    if [[ ${DIST} == "noble" ]]; then
+    if [[ ${DIST} == "noble" ]] || [[ ${DIST} == "trixie" ]]; then
         PKGLIST+=" libtirpc-dev"
     fi
 
