@@ -283,7 +283,11 @@ if [ -f /usr/bin/yum ]; then
     if [[ ${RHVER} -eq 7 ]] && [[ "x${DIST}" != "x.amzn2" ]]; then
         source /opt/rh/devtoolset-7/enable
     fi
-    pip3 install mysqlclient
+    if [[ ${RHVER} -ge 10 ]]; then
+        pip3 install --break-system-packages mysqlclient
+    else
+        pip3 install mysqlclient
+    fi
 
 #   this is workaround for https://bugs.mysql.com/bug.php?id=95222 as soon as the issue is fixed we need to remove it 
     if [ -f '/anaconda-post.log' ]; then
