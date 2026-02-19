@@ -38,7 +38,7 @@ if [ -f /usr/bin/yum ]; then
   DIST="$(rpm --eval %dist)"
   rpm --eval %_arch > /etc/yum/vars/basearch
 
-  if [ "x${RHVER}" = "x8" -o "x${RHVER}" = "x7" ]; then
+  if [ "x${RHVER}" = "x7" ]; then
       switch_to_vault_repo
   fi
 
@@ -57,6 +57,11 @@ if [ -f /usr/bin/yum ]; then
       done
   elif [[ ${RHVER} -eq 10 ]]; then
       until yum -y install oracle-epel-release-el10; do
+        echo "waiting"
+        sleep 1
+      done
+  elif [[ ${RHVER} -eq 8 ]]; then
+      until yum -y install oracle-epel-release-el8; do
         echo "waiting"
         sleep 1
       done
@@ -88,7 +93,7 @@ if [ -f /usr/bin/yum ]; then
         sleep 1
       done
 
-      dnf config-manager --set-enabled powertools
+      dnf config-manager --enable ol8_codeready_builder
       PKGLIST+=" libedit-devel"
   fi
 
@@ -164,8 +169,8 @@ if [ -f /usr/bin/yum ]; then
         PKGLIST+=" redhat-lsb-core"
     fi
 
-    if [[ ${RHVER} -eq 9 ]]; then
-        # Next packages are required by 9.4.0
+    if [[ ${RHVER} -eq 8 ]] || [[ ${RHVER} -eq 9 ]]; then
+        # Next packages are required by 9.4.0 / 9.6.0
         PKGLIST_DEVTOOLSET14+=" gcc-toolset-14-gcc gcc-toolset-14-gcc-c++ gcc-toolset-14-binutils"
         PKGLIST_DEVTOOLSET14+=" gcc-toolset-14-annobin-annocheck gcc-toolset-14-annobin-plugin-gcc"
         PKGLIST_DEVTOOLSET14+=" gcc-toolset-14-libatomic-devel"
@@ -252,13 +257,10 @@ if [ -f /usr/bin/yum ]; then
         done
         switch_to_vault_repo
     elif [[ ${RHVER} -eq 8 ]]; then
-        yum -y install centos-release-stream
-        switch_to_vault_repo
-        until yum -y install ${PKGLIST_DEVTOOLSET10} ${PKGLIST_DEVTOOLSET11} ${PKGLIST_DEVTOOLSET12} ${PKGLIST_DEVTOOLSET13}; do
+        until yum -y install ${PKGLIST_DEVTOOLSET10} ${PKGLIST_DEVTOOLSET11} ${PKGLIST_DEVTOOLSET12} ${PKGLIST_DEVTOOLSET13} ${PKGLIST_DEVTOOLSET14}; do
             echo "waiting"
             sleep 1
         done
-        yum -y remove centos-release-stream
     elif [[ ${RHVER} -eq 9 ]]; then
         until yum -y install ${PKGLIST_DEVTOOLSET12} ${PKGLIST_DEVTOOLSET13} ${PKGLIST_DEVTOOLSET14}; do
             echo "waiting"

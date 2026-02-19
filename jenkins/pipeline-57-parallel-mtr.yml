@@ -218,7 +218,7 @@
     docker_os_list:
       - ubuntu:noble
       - centos:7
-      - centos:8
+      - oraclelinux:8
       - oraclelinux:9
       - ubuntu:bionic
       - ubuntu:focal

@@ -172,7 +172,7 @@ fi
 # ------------------------------------------------------------------------------
 if [[ ${WITH_JS_LANG} == 'ON' ]]; then
     V8_VERSION=$(grep 'SET(EXPECTED_V8_VERSION' ${SOURCEDIR}/cmake/v8.cmake | sed -re 's/.*"([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
-    if [[ "${DOCKER_OS}" == "centos-8" ]] || [[ "${DOCKER_OS}" == "debian-bullseye" ]] || [[ "${DOCKER_OS}" == "ubuntu-focal" ]]; then
+    if [[ "${DOCKER_OS}" == "oraclelinux-8" ]] || [[ "${DOCKER_OS}" == "debian-bullseye" ]] || [[ "${DOCKER_OS}" == "ubuntu-focal" ]]; then
       # Platforms with older glibc need V8 built against older glibc as well.
       V8_ARCHIVE_NAME=v8_${V8_VERSION}-glibc2.31
     else

@@ -37,7 +37,7 @@ pipeline {
         stage('Build') {
             steps {
                 parallel(
-                    "centos:8":        { build('centos:8') },
+                    "oraclelinux:8":   { build('oraclelinux:8') },
                     "oraclelinux:9":   { build('oraclelinux:9') },
                     "oraclelinux:10":  { build('oraclelinux:10') },
                     "ubuntu:focal":    { build('ubuntu:focal') },

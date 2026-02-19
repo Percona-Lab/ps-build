@@ -274,7 +274,7 @@
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: 8.0
     docker_os_list:
-      - centos:8
+      - oraclelinux:8
       - oraclelinux:9
       - oraclelinux:10
       - ubuntu:focal
@@ -294,7 +294,7 @@
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: 8.0
     docker_os_list:
-      - centos:8
+      - oraclelinux:8
       - oraclelinux:9
       - oraclelinux:10
       - ubuntu:focal
@@ -314,7 +314,7 @@
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: 8.0
     docker_os_list:
-      - centos:8
+      - oraclelinux:8
       - oraclelinux:9
       - oraclelinux:10
       - ubuntu:jammy
