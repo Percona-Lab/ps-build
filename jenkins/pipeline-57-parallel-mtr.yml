@@ -221,7 +221,6 @@
       - centos:8
       - oraclelinux:9
       - ubuntu:bionic
-      - ubuntu:focal
       - ubuntu:jammy
       - debian:buster
       - debian:bullseye

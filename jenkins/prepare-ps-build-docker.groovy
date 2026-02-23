@@ -40,7 +40,6 @@ pipeline {
                     "centos:8":        { build('centos:8') },
                     "oraclelinux:9":   { build('oraclelinux:9') },
                     "oraclelinux:10":  { build('oraclelinux:10') },
-                    "ubuntu:focal":    { build('ubuntu:focal') },
                     "ubuntu:jammy":    { build('ubuntu:jammy') },
                     "ubuntu:noble":    { build('ubuntu:noble') },
                     "debian:bullseye": { build('debian:bullseye') },
