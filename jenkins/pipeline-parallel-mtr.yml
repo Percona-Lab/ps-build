@@ -100,6 +100,13 @@
         default:
         description: make options, like VERBOSE=1
     - choice:
+        name: USE_CCACHE
+        choices:
+        - "yes"
+        - "no"
+        default: "yes"
+        description: Use ccache to speed up compilation (80-90% faster rebuilds)
+    - choice:
         name: CI_FS_MTR
         choices:
         - "yes"

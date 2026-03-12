@@ -327,7 +327,7 @@ void build(String SCRIPT) {
                         docker ps -q | xargs docker stop --time 1 || :
                     fi
 
-                    eval USE_CCACHE=${params.USE_CCACHE} CCACHE_MAXSIZE=${env.CCACHE_MAXSIZE} KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
+                    eval USE_CCACHE=${env.USE_CCACHE} CCACHE_MAXSIZE=${env.CCACHE_MAXSIZE} KEEP_BUILD=yes ${SCRIPT} ${DOCKER_OS} ${WORKSPACE}/${WORK_DIR}
                 ' 2>&1 | tee build.log
 
                 echo "Archive build log: \$(date -u '+%s')"
@@ -599,6 +599,7 @@ void triggerAbortedTestWorkersRerun() {
                             string(name:'KEYRING_VAULT_V1_VERSION', value: env.KEYRING_VAULT_V1_VERSION),
                             string(name:'KEYRING_VAULT_V2_VERSION', value: env.KEYRING_VAULT_V2_VERSION),
                             string(name:'CLOUD', value: env.CLOUD),
+                            string(name:'USE_CCACHE', value: env.USE_CCACHE ?: 'yes'),
                     string(name:'FULL_MTR', value:'no'),
                     string(name:'WORKER_1_MTR_SUITES', value: WORKER_1_RERUN_SUITES),
                     string(name:'WORKER_2_MTR_SUITES', value: WORKER_2_RERUN_SUITES),
@@ -784,6 +785,9 @@ pipeline {
                         script {
                             // Set ccache size as environment variable
                             env.CCACHE_MAXSIZE = CCACHE_MAXSIZE
+
+                            // Normalize USE_CCACHE: default to 'yes' if param is missing (PKG-1279)
+                            env.USE_CCACHE = params.USE_CCACHE ?: 'yes'
                             
                             // Set BUILD_PARAMS_TYPE based on ANALYZER_OPTS
                             if (env.ANALYZER_OPTS) {
@@ -830,14 +834,14 @@ pipeline {
 
                         // Download ccache using shared library
                         ccacheDownload([
-                            awsCredentialsId: AWS_CREDENTIALS_ID,
+                            awsCredentialsId: params.CLOUD == 'Hetzner' ? 'HTZ_STASH' : AWS_CREDENTIALS_ID,
                             buildParamsType: env.BUILD_PARAMS_TYPE,
                             cloud: params.CLOUD,
                             cmakeBuildType: env.CMAKE_BUILD_TYPE,
                             dockerOs: (env.ARCH == 'aarch64') ? env.DOCKER_OS + '-aarch64' : env.DOCKER_OS,
                             forceCacheMiss: env.FORCE_CACHE_MISS == 'true',
                             serverVersion: SERVER_VERSION,
-                            s3Bucket: S3_ROOT_DIR + '/',
+                            s3Bucket: params.CLOUD == 'Hetzner' ? 's3://percona-jenkins-artifactory/' : S3_ROOT_DIR + '/',
                             toolset: env.TOOLSET,
                             workspace: env.WORKSPACE
                         ])
@@ -857,14 +861,14 @@ pipeline {
                                 CACHE_RETENTION_DAYS_SANITIZER : CACHE_RETENTION_DAYS_NORMAL
 
                             ccacheUpload([
-                                awsCredentialsId: AWS_CREDENTIALS_ID,
+                                awsCredentialsId: params.CLOUD == 'Hetzner' ? 'HTZ_STASH' : AWS_CREDENTIALS_ID,
                                 buildParamsType: env.BUILD_PARAMS_TYPE,
                                 cacheRetentionDays: retentionDays,
                                 cloud: params.CLOUD,
                                 cmakeBuildType: env.CMAKE_BUILD_TYPE,
                                 dockerOs: (env.ARCH == 'aarch64') ? env.DOCKER_OS + '-aarch64' : env.DOCKER_OS,
                                 serverVersion: SERVER_VERSION,
-                                s3Bucket: S3_ROOT_DIR + '/',
+                                s3Bucket: params.CLOUD == 'Hetzner' ? 's3://percona-jenkins-artifactory/' : S3_ROOT_DIR + '/',
                                 toolset: env.TOOLSET,
                                 workspace: env.WORKSPACE
                             ])
