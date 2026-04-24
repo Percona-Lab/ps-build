@@ -260,6 +260,8 @@
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: '8.0'
     docker_os_list:
+      - amazonlinux:2
+      - ubuntu:focal
       - ubuntu:noble
       - debian:bookworm
     sanitizer_opts_list:

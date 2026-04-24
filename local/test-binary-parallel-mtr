@@ -210,6 +210,7 @@ fi
 
 if [[ "${ANALYZER_OPTS}" == *WITH_*SAN*=ON* ]]; then
     ANALYZER_MTR_ARGS+=" --sanitize"
+    ANALYZER_MTR_ARGS+=" --mysqld=--thread_stack=2M"
 fi
 
 MTR_ARGS+=${ANALYZER_MTR_ARGS}
