@@ -42,6 +42,7 @@ pipeline {
                     "oraclelinux:10":  { build('oraclelinux:10') },
                     "ubuntu:jammy":    { build('ubuntu:jammy') },
                     "ubuntu:noble":    { build('ubuntu:noble') },
+                    "ubuntu:resolute": { build('ubuntu:resolute') },
                     "debian:bullseye": { build('debian:bullseye') },
                     "debian:bookworm": { build('debian:bookworm') },
                     "debian:trixie":   { build('debian:trixie') },

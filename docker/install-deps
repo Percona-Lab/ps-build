@@ -329,13 +329,13 @@ if [ -f /usr/bin/apt-get ]; then
         libatomic1 \
     "
 
-    if [[ ${DIST} == "bookworm" ]] || [[ ${DIST} == "noble" ]] || [[ ${DIST} == "trixie" ]]; then
+    if [[ ${DIST} == "bookworm" ]] || [[ ${DIST} == "noble" ]] || [[ ${DIST} == "trixie" ]] || [[ ${DIST} == "resolute" ]]; then
         PKGLIST+=" gsasl-common"
     else
         PKGLIST+=" libgsasl7"
     fi
 
-    if [[ ${DIST} == "trixie" ]]; then
+    if [[ ${DIST} == "trixie" ]] || [[ ${DIST} == "resolute" ]]; then
         PKGLIST+=" lz4"
     else
         PKGLIST+=" liblz4-tool"
@@ -346,11 +346,11 @@ if [ -f /usr/bin/apt-get ]; then
         PKGLIST+=" gcc-10 g++-10"
     fi
 
-    if [[ ${DIST} == 'jammy' ]] || [[ ${DIST} == 'bullseye' ]] || [[ ${DIST} == 'bookworm' ]] || [[ ${DIST} == "noble" ]] || [[ ${DIST} == "trixie" ]]; then
+    if [[ ${DIST} == 'jammy' ]] || [[ ${DIST} == 'bullseye' ]] || [[ ${DIST} == 'bookworm' ]] || [[ ${DIST} == "noble" ]] || [[ ${DIST} == "trixie" ]] || [[ ${DIST} == "resolute" ]]; then
         PKGLIST+=" libgflags-dev util-linux"
     fi
 
-    if [[ ${DIST} == "noble" ]] || [[ ${DIST} == "trixie" ]]; then
+    if [[ ${DIST} == "noble" ]] || [[ ${DIST} == "trixie" ]] || [[ ${DIST} == "resolute" ]]; then
         PKGLIST+=" libtirpc-dev"
     fi
 

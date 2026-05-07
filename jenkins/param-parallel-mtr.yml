@@ -25,7 +25,7 @@
     - matrix-combinations:
         name: COMBINATIONS
         description: "Select matrix combinations"
-        filter: CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="ubuntu:noble" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="ubuntu:noble" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="debian:bookworm" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="debian:bookworm" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="debian:trixie" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="debian:trixie" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="oraclelinux:9" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="oraclelinux:9" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="oraclelinux:10" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="oraclelinux:10" && ARCH=="x86_64"
+        filter: CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="ubuntu:noble" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="ubuntu:noble" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="ubuntu:resolute" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="ubuntu:resolute" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="debian:bookworm" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="debian:bookworm" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="debian:trixie" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="debian:trixie" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="oraclelinux:9" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="oraclelinux:9" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="oraclelinux:10" && ARCH=="x86_64" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="oraclelinux:10" && ARCH=="x86_64"
     - string:
         name: GIT_REPO
         default: "https://github.com/percona/percona-server"
@@ -279,6 +279,7 @@
       - oraclelinux:10
       - ubuntu:jammy
       - ubuntu:noble
+      - ubuntu:resolute
       - debian:bullseye
       - debian:bookworm
       - debian:trixie
@@ -298,6 +299,7 @@
       - oraclelinux:10
       - ubuntu:jammy
       - ubuntu:noble
+      - ubuntu:resolute
       - debian:bullseye
       - debian:bookworm
       - debian:trixie
@@ -317,6 +319,7 @@
       - oraclelinux:10
       - ubuntu:jammy
       - ubuntu:noble
+      - ubuntu:resolute
       - debian:bookworm
       - debian:trixie
     jobs:
