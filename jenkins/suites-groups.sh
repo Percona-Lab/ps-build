@@ -281,7 +281,7 @@ function set_suites() {
   local server_version="$2"
 
   case "$server_version" in
-    5.7.44-post-eol-*)
+    5.7.44-eol-*|5.7.44-post-eol-*)
       set_suites_mysql57 "$build_type"
       ;;
     5.7.*-*)
