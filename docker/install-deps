@@ -152,6 +152,9 @@ if [ -f /usr/bin/yum ]; then
 
   if [[ ${RHVER} -eq 10 ]]; then
       PKGLIST+=" mariadb-connector-c-devel"
+      if [[ "$(rpm --eval %{_arch})" == "x86_64" ]]; then
+          PKGLIST+=" libquadmath-devel"
+      fi
   else
       PKGLIST+=" mysql-devel"
   fi
