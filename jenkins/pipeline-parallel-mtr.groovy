@@ -692,12 +692,12 @@ def notifySlack(status, color, customMessage) {
 // than the old silent-AWS fallback; choice-param validation enforces the
 // list at every form/REST entry point so this is reachable only via auto.
 def resolved = resolveArmWorker(cloud: params.CLOUD, arch: params.ARCH)
-LABEL        = resolved.label
-MICRO_LABEL  = resolved.microLabel
-CLOUD_CHOSEN = resolved.cloudChosen
+LABEL        = resolved?.label
+MICRO_LABEL  = resolved?.microLabel
+CLOUD_CHOSEN = resolved?.cloudChosen
 resolved     = null  // drop map reference for CPS friendliness
 if (!LABEL || !MICRO_LABEL || !CLOUD_CHOSEN) {
-    error("resolveArmWorker returned invalid result: " +
+    error("resolveArmWorker returned invalid result (or null): " +
           "LABEL=${LABEL} MICRO_LABEL=${MICRO_LABEL} CLOUD_CHOSEN=${CLOUD_CHOSEN}")
 }
 
