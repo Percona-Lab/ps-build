@@ -159,15 +159,6 @@ if [[ "${MYSQL_VERSION}" == 8.0.* || "${MYSQL_VERSION}" == 5.7.* ]]; then
 fi
 
 # ------------------------------------------------------------------------------
-# Set WITH_SSL
-# ------------------------------------------------------------------------------
-if [[ "${DOCKER_OS}" = "centos-7" ]]; then
-  WITH_SSL="openssl11"
-else
-  WITH_SSL="system"
-fi
-
-# ------------------------------------------------------------------------------
 # Get prebuilt V8 if we are building with JS Stored Programs support
 # ------------------------------------------------------------------------------
 if [[ ${WITH_JS_LANG} == 'ON' ]]; then
@@ -195,7 +186,7 @@ fi
 pushd ${BUILD_DIR}
     ${JOB_CMAKE} \
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-        -DWITH_SSL=${WITH_SSL} \
+        -DWITH_SSL=system \
         -DWITH_ROCKSDB=${WITH_ROCKSDB} \
         -DWITH_ROUTER=${WITH_ROUTER} \
         -DWITH_MYSQLX=${WITH_MYSQLX} \

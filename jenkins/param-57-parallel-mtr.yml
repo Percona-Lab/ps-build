@@ -1,36 +1,39 @@
 - job-template:
-    name: percona-server-{ps_version}-pipeline-parallel-mtr
-    project-type: pipeline
+    name: percona-server-{ps_version}-param-parallel-mtr
+    project-type: matrix
+    defaults: global
     description: |
+        <h3 style="color:Red;"><b>Are you sure you need to run this job?</b></h3><br>
+        It will create multiple pipelines which create multiple workers.<br>
+        Maybe just a single pipeline run is enough?<br>
         <b>Do not make changes to the pipeline definition via the web interface!<br>
         (Do not use 'Configure' option on the left for changing the pipeline definition)<br>
-        Change <a href="{scripts_repo}/tree/{scripts_branch}/jenkins/pipeline-57-parallel-mtr.yml">pipeline-57-parallel-mtr.yml</a>
-           and <a href="{scripts_repo}/tree/{scripts_branch}/jenkins/pipeline-parallel-mtr.groovy">pipeline-parallel-mtr.groovy</a>
+        Change <a href="{scripts_repo}/tree/{scripts_branch}/jenkins/param-57-parallel-mtr.yml">param-57-parallel-mtr.yml</a>
         in the <a href="{scripts_repo}/tree/{scripts_branch}/jenkins">git repo</a> instead.</b><br>
-        Then update pipeline with "jenkins-jobs --server ps57.cd update jenkins/pipeline-57-parallel-mtr.yml".
+        Then update pipeline with "jenkins-jobs --server ps57.cd update jenkins/param-57-parallel-mtr.yml".
+    disabled: false
     concurrent: true
-    pipeline-scm:
-      scm:
-        - git:
-            url: "{scripts_repo}"
-            branches:
-            - "{scripts_branch}"
-            wipe-workspace: false
-      lightweight-checkout: true
-      script-path: jenkins/pipeline-parallel-mtr.groovy
+    auth-token: psparam80
+    node: micro-amazon
+    properties:
+    - build-discarder:
+        days-to-keep: -1
+        num-to-keep: 50
+        artifact-days-to-keep: -1
+        artifact-num-to-keep: 50
     parameters:
-    - string:
-        name: BUILD_NUMBER_BINARIES
-        default: ""
-        description: Reuse binaries built in the specified build. Useful for quick MTR test rerun without rebuild.
+    - matrix-combinations:
+        name: COMBINATIONS
+        description: "Select matrix combinations"
+        filter: CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="debian:buster" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="debian:buster" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="oraclelinux:9" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="oraclelinux:9" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="centos:7" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="centos:7" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="centos:8" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="centos:8" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="ubuntu:focal" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="ubuntu:focal" || CMAKE_BUILD_TYPE=="Debug" && DOCKER_OS=="ubuntu:jammy" || CMAKE_BUILD_TYPE=="RelWithDebInfo" && DOCKER_OS=="ubuntu:jammy"
     - string:
         name: GIT_REPO
         default: "https://github.com/percona/mysql-5.7-post-eol"
-        description: https://github.com/percona/percona-server-private<BR>https://github.com/percona/mysql-5.7-post-eol
+        description: URL to the 5.7 repository
     - string:
         name: BRANCH
         default: "{branch_name}"
-        description: Tag/Branch/Commit for percona-server repository
+        description: Tag/Branch for the 5.7 repository
     - string:
         name: CUSTOM_BUILD_NAME
         default: ""
@@ -39,21 +42,6 @@
         name: USE_PR
         default: false
         description: "Check only if you pass PR number to BRANCH field"
-    - choice:
-        name: DOCKER_OS
-        choices: '{docker_os_list}'
-        description: OS version for compilation
-    - choice:
-        name: ARCH
-        choices:
-        - "x86_64"
-        description: CPU architecture for compilation
-    - choice:
-        name: CMAKE_BUILD_TYPE
-        choices:
-        - Debug
-        - RelWithDebInfo
-        description: Type of build to produce
     - choice:
         name: JOB_CMAKE
         choices:
@@ -64,7 +52,15 @@
         description: compiler version e.g. gcc-15 or clang-20 or use default system compiler if empty
     - choice:
         name: ANALYZER_OPTS
-        choices: '{sanitizer_opts_list}'
+        choices:
+        -
+        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
+        - -DWITH_ASAN=ON
+        - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
+        - -DWITH_ASAN=ON -DWITH_UBSAN=ON
+        - -DWITH_UBSAN=ON
+        - -DWITH_MSAN=ON
+        - -DWITH_VALGRIND=ON
         description: Enable code checking
     - choice:
         name: WITH_ROCKSDB
@@ -91,7 +87,7 @@
     - string:
         name: MAKE_OPTS
         default:
-        description: make options, like VERBOSE=1
+        description: make options
     - choice:
         name: USE_CCACHE
         choices:
@@ -107,7 +103,7 @@
         description: Run case-insensetive MTR tests
     - string:
         name: MTR_ARGS
-        default: '{mtr_opts}'
+        default: --unit-tests-report --mem --big-test
         description: "mysql-test-run.pl options, for options like: --big-test --only-big-test --nounit-tests --unit-tests-report"
     - string:
         name: MTR_REPEAT
@@ -133,8 +129,7 @@
         - "Hetzner"
         - "AWS"
         - "epyc9654"
-        - "auto"
-        description: "Host provider for Jenkins workers. `auto` routes arm64 builds to AWS Graviton when Hetzner ARM (CAX) capacity is unavailable; x86 always stays on Hetzner."
+        description: "Host provider for Jenkins workers"
     - choice:
         name: FULL_MTR
         choices:
@@ -198,7 +193,7 @@
     - string:
         name: SLACK_CHANNEL
         default: '#ps-upstream-merges'
-        description: Slack channel
+        description: Slack channel for messages when a job was finished
     - string:
         name: JENKINS_SCRIPTS_REPO
         default: '{scripts_repo}'
@@ -206,24 +201,61 @@
     - string:
         name: JENKINS_SCRIPTS_BRANCH
         default: '{scripts_branch}'
-    - hidden:
-        name: LAUNCHER_USER_ID
-        default: ''
-        description: Internal parameter, do not modify
-    - hidden:
-        name: PIPELINE_NAME
-        default: 'percona-server-{ps_version}-pipeline-parallel-mtr'
-        description: 'Internal pipeline name (hidden)'
+    axes:
+      - axis:
+         type: user-defined
+         name: CMAKE_BUILD_TYPE
+         values:
+          - RelWithDebInfo
+          - Debug
+      - axis:
+         type: user-defined
+         name: DOCKER_OS
+         values: '{docker_os_list}'
+    wrappers:
+      - build-user-vars  # Ensures BUILD_USER_ID is available
+    builders:
+    - trigger-builds:
+      - project: percona-server-{ps_version}-pipeline-parallel-mtr
+        current-parameters: true
+        predefined-parameters: |
+          DOCKER_OS=${{DOCKER_OS}}
+          ARCH=x86_64
+          CMAKE_BUILD_TYPE=${{CMAKE_BUILD_TYPE}}
+          LAUNCHER_USER_ID=$BUILD_USER_ID
+        block: true
+        block-thresholds:
+          build-step-failure-threshold: FAILURE
+          unstable-threshold: never
+          failure-threshold: FAILURE
+    - shell: |
+        whoami
+        ls -l
+        sudo find . \( -name "*.xml" -o -name "*.log" \) -delete || echo "sudo cleanup skipped"
+        find . \( -name "*.xml" -o -name "*.log" \) -delete || echo "cleanup skipped"
+    - copyartifact:
+        project: percona-server-{ps_version}-pipeline-parallel-mtr
+        which-build: specific-build
+        build-number: "${{TRIGGERED_BUILD_NUMBERS_percona_server_{ps_version_no_dot}_pipeline_parallel_mtr}}"
+        do-not-fingerprint: true
+    - shell: |
+        echo "${{TRIGGERED_BUILD_NUMBERS_percona_server_{ps_version_no_dot}_pipeline_parallel_mtr}}" > PIPELINE_BUILD_NUMBER
+        gunzip build.log.gz
+    publishers:
+    - junit:
+        results: "**/*.xml"
+        keep-long-stdio: true
+    - archive:
+        artifacts: 'PIPELINE_BUILD_NUMBER'
 
 - project:
-    name: pipeline-parallel-mtr-5.7
+    name: param-parallel-mtr-5.7
     ps_version: 5.7
-    branch_name: '5.7'
-    mtr_opts: --unit-tests-report --mem --big-test
+    ps_version_no_dot: '5_7'
+    branch_name: 5.7
     scripts_repo: https://github.com/Percona-Lab/ps-build
-    scripts_branch: '8.0'
+    scripts_branch: 8.0
     docker_os_list:
-      - amazonlinux:2
       - centos:7
       - centos:8
       - oraclelinux:8
@@ -231,52 +263,8 @@
       - ubuntu:bionic
       - ubuntu:focal
       - ubuntu:jammy
-      - ubuntu:noble
       - debian:buster
       - debian:bullseye
       - debian:bookworm
-    sanitizer_opts_list:
-      -
     jobs:
-      - percona-server-{ps_version}-pipeline-parallel-mtr
-
-- project:
-    name: pipeline-parallel-mtr-VALGRIND
-    ps_version: 5.7-VALGRIND
-    branch_name: '5.7'
-    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --retry-failure=0
-    scripts_repo: https://github.com/Percona-Lab/ps-build
-    scripts_branch: '8.0'
-    docker_os_list:
-      - ubuntu:focal
-      - ubuntu:jammy
-      - ubuntu:noble
-      - debian:buster
-      - debian:bullseye
-      - debian:bookworm
-    sanitizer_opts_list:
-      - -DWITH_VALGRIND=ON
-    jobs:
-      - percona-server-{ps_version}-pipeline-parallel-mtr
-
-- project:
-    name: pipeline-parallel-mtr-ASAN
-    ps_version: 5.7-ASAN
-    branch_name: '5.7'
-    mtr_opts: --unit-tests-report --big-test --retry-failure=0
-    scripts_repo: https://github.com/Percona-Lab/ps-build
-    scripts_branch: '8.0'
-    docker_os_list:
-      - amazonlinux:2
-      - ubuntu:focal
-      - ubuntu:noble
-      - debian:bookworm
-    sanitizer_opts_list:
-      - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
-      - -DWITH_ASAN=ON
-      - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
-      - -DWITH_ASAN=ON -DWITH_UBSAN=ON
-      - -DWITH_UBSAN=ON
-      - -DWITH_MSAN=ON
-    jobs:
-      - percona-server-{ps_version}-pipeline-parallel-mtr
+      - percona-server-{ps_version}-param-parallel-mtr
