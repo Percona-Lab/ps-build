@@ -134,7 +134,8 @@
         - "Hetzner"
         - "AWS"
         - "epyc9654"
-        description: "Host provider for Jenkins workers"
+        - "auto"
+        description: "Host provider for Jenkins workers. `auto` routes arm64 builds to AWS Graviton when Hetzner ARM (CAX) capacity is unavailable; x86 always stays on Hetzner."
     - choice:
         name: FULL_MTR
         choices:

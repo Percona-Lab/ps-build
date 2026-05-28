@@ -42,6 +42,7 @@ SERVER_VERSION = '1.0.0'
 
 LABEL = ''
 MICRO_LABEL = ''
+CLOUD_CHOSEN = ''
 
 // functions start here
 void syncDirToS3(String SRC_DIRECTORY, String DST_DIRECTORY, String EXCLUDE_PATTERN) {
@@ -682,16 +683,22 @@ def notifySlack(status, color, customMessage) {
     }
 }
 
-if (params.CLOUD == 'Hetzner') {
-    LABEL = (params.ARCH == 'aarch64') ? 'docker-aarch64' : 'docker-x64'
-    MICRO_LABEL = 'launcher-x64'
-} else if (params.CLOUD == 'epyc9654') {
-    LABEL = 'as-1015cs-tnr'
-    MICRO_LABEL = 'launcher-x64'
-} else {
-    // by default fallback to AWS
-    LABEL = (params.ARCH == 'aarch64') ? 'docker-32gb-aarch64' : 'docker-32gb'
-    MICRO_LABEL = 'micro-amazon'
+// PS-11179: route via resolveArmWorker for automatic Hetzner -> AWS Graviton
+// fallback when CLOUD=auto and Hetzner ARM (CAX) capacity is unhealthy. The
+// resolver's hetznerLabel/awsLabel defaults match the MTR sizing one-to-one
+// (docker-aarch64/docker-x64 on Hetzner, docker-32gb-aarch64/docker-32gb on
+// AWS), so explicit {Hetzner, AWS, epyc9654} callers see no behaviour change.
+// Unknown CLOUD values now flow through the resolver's auto-routing rather
+// than the old silent-AWS fallback; choice-param validation enforces the
+// list at every form/REST entry point so this is reachable only via auto.
+def resolved = resolveArmWorker(cloud: params.CLOUD, arch: params.ARCH)
+LABEL        = resolved.label
+MICRO_LABEL  = resolved.microLabel
+CLOUD_CHOSEN = resolved.cloudChosen
+resolved     = null  // drop map reference for CPS friendliness
+if (!LABEL || !MICRO_LABEL || !CLOUD_CHOSEN) {
+    error("resolveArmWorker returned invalid result: " +
+          "LABEL=${LABEL} MICRO_LABEL=${MICRO_LABEL} CLOUD_CHOSEN=${CLOUD_CHOSEN}")
 }
 
 pipeline {
@@ -714,7 +721,7 @@ pipeline {
                     echo "JENKINS_URL = ${env.JENKINS_URL}"
                     echo "JENKINS_SCRIPTS_BRANCH: $JENKINS_SCRIPTS_BRANCH"
                     echo "JENKINS_SCRIPTS_REPO: $JENKINS_SCRIPTS_REPO"
-                    echo "Using instances from cloud ${CLOUD} with LABEL ${LABEL} for build and test stages"
+                    echo "Using instances from cloud ${CLOUD_CHOSEN} (requested CLOUD=${params.CLOUD}) with LABEL ${LABEL} for build and test stages"
 
                     def jenkinsUrl = env.JENKINS_URL
                     if (jenkinsUrl.startsWith('https://ps80.cd.percona.com/')) {
@@ -834,14 +841,14 @@ pipeline {
 
                         // Download ccache using shared library
                         ccacheDownload([
-                            awsCredentialsId: params.CLOUD == 'Hetzner' ? 'HTZ_STASH' : AWS_CREDENTIALS_ID,
+                            awsCredentialsId: CLOUD_CHOSEN == 'Hetzner' ? 'HTZ_STASH' : AWS_CREDENTIALS_ID,
                             buildParamsType: env.BUILD_PARAMS_TYPE,
-                            cloud: params.CLOUD,
+                            cloud: CLOUD_CHOSEN,
                             cmakeBuildType: env.CMAKE_BUILD_TYPE,
                             dockerOs: (env.ARCH == 'aarch64') ? env.DOCKER_OS + '-aarch64' : env.DOCKER_OS,
                             forceCacheMiss: env.FORCE_CACHE_MISS == 'true',
                             serverVersion: SERVER_VERSION,
-                            s3Bucket: params.CLOUD == 'Hetzner' ? 's3://percona-jenkins-artifactory/' : S3_ROOT_DIR + '/',
+                            s3Bucket: CLOUD_CHOSEN == 'Hetzner' ? 's3://percona-jenkins-artifactory/' : S3_ROOT_DIR + '/',
                             toolset: env.TOOLSET,
                             workspace: env.WORKSPACE
                         ])
@@ -861,14 +868,14 @@ pipeline {
                                 CACHE_RETENTION_DAYS_SANITIZER : CACHE_RETENTION_DAYS_NORMAL
 
                             ccacheUpload([
-                                awsCredentialsId: params.CLOUD == 'Hetzner' ? 'HTZ_STASH' : AWS_CREDENTIALS_ID,
+                                awsCredentialsId: CLOUD_CHOSEN == 'Hetzner' ? 'HTZ_STASH' : AWS_CREDENTIALS_ID,
                                 buildParamsType: env.BUILD_PARAMS_TYPE,
                                 cacheRetentionDays: retentionDays,
-                                cloud: params.CLOUD,
+                                cloud: CLOUD_CHOSEN,
                                 cmakeBuildType: env.CMAKE_BUILD_TYPE,
                                 dockerOs: (env.ARCH == 'aarch64') ? env.DOCKER_OS + '-aarch64' : env.DOCKER_OS,
                                 serverVersion: SERVER_VERSION,
-                                s3Bucket: params.CLOUD == 'Hetzner' ? 's3://percona-jenkins-artifactory/' : S3_ROOT_DIR + '/',
+                                s3Bucket: CLOUD_CHOSEN == 'Hetzner' ? 's3://percona-jenkins-artifactory/' : S3_ROOT_DIR + '/',
                                 toolset: env.TOOLSET,
                                 workspace: env.WORKSPACE
                             ])
