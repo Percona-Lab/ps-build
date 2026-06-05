@@ -251,8 +251,8 @@
       - percona-server-{ps_version}-pipeline-parallel-mtr
 
 - project:
-    name: pipeline-parallel-mtr-8.x
-    ps_version: 8.x
+    name: pipeline-parallel-mtr-8.4
+    ps_version: 8.4
     branch_name: '8.4'
     mtr_opts: --unit-tests-report --mem --big-test
     scripts_repo: https://github.com/Percona-Lab/ps-build
@@ -273,8 +273,8 @@
       - percona-server-{ps_version}-pipeline-parallel-mtr
 
 - project:
-    name: pipeline-parallel-mtr-9.x
-    ps_version: 9.x
+    name: pipeline-parallel-mtr-9.7
+    ps_version: 9.7
     branch_name: 'trunk'
     mtr_opts: --unit-tests-report --mem --big-test
     scripts_repo: https://github.com/Percona-Lab/ps-build
@@ -300,11 +300,12 @@
 - project:
     name: pipeline-parallel-mtr-8.0-VALGRIND
     ps_version: 8.0-VALGRIND
-    branch_name: 'release-8.0.45-36'
-    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --retry-failure=0
+    branch_name: 'release-8.0.46-37'
+    mtr_opts: --unit-tests-report --big-test --retry-failure=0
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: '8.0'
     docker_os_list:
+      - ubuntu:resolute
       - ubuntu:noble
       - debian:bookworm
     sanitizer_opts_list:
@@ -315,11 +316,12 @@
 - project:
     name: pipeline-parallel-mtr-8.4-VALGRIND
     ps_version: 8.4-VALGRIND
-    branch_name: 'release-8.4.8-8'
-    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --retry-failure=0
+    branch_name: 'release-8.4.9-9'
+    mtr_opts: --unit-tests-report --big-test --retry-failure=0
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: '8.0'
     docker_os_list:
+      - ubuntu:resolute
       - ubuntu:noble
       - debian:bookworm
     sanitizer_opts_list:
@@ -330,11 +332,12 @@
 - project:
     name: pipeline-parallel-mtr-9.7-VALGRIND
     ps_version: 9.7-VALGRIND
-    branch_name: 'release-9.6.0-1'
-    mtr_opts: --unit-tests-report --big-test --mysqld=--innodb_use_native_aio=0 --retry-failure=0
+    branch_name: 'release-9.7.0-1'
+    mtr_opts: --unit-tests-report --big-test --retry-failure=0
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: '8.0'
     docker_os_list:
+      - ubuntu:resolute
       - ubuntu:noble
       - debian:bookworm
     sanitizer_opts_list:
@@ -349,11 +352,12 @@
 - project:
     name: pipeline-parallel-mtr-8.0-ASAN
     ps_version: 8.0-ASAN
-    branch_name: 'release-8.0.45-36'
+    branch_name: 'release-8.0.46-37'
     mtr_opts: --unit-tests-report --big-test --retry-failure=0
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: '8.0'
     docker_os_list:
+      - ubuntu:resolute
       - ubuntu:noble
       - debian:bookworm
     sanitizer_opts_list:
@@ -369,11 +373,12 @@
 - project:
     name: pipeline-parallel-mtr-8.4-ASAN
     ps_version: 8.4-ASAN
-    branch_name: 'release-8.4.8-8'
+    branch_name: 'release-8.4.9-9'
     mtr_opts: --unit-tests-report --big-test --retry-failure=0
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: '8.0'
     docker_os_list:
+      - ubuntu:resolute
       - ubuntu:noble
       - debian:bookworm
     sanitizer_opts_list:
@@ -389,11 +394,12 @@
 - project:
     name: pipeline-parallel-mtr-9.7-ASAN
     ps_version: 9.7-ASAN
-    branch_name: 'release-9.6.0-1'
+    branch_name: 'release-9.7.0-1'
     mtr_opts: --unit-tests-report --big-test --retry-failure=0
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: '8.0'
     docker_os_list:
+      - ubuntu:resolute
       - ubuntu:noble
       - debian:bookworm
     sanitizer_opts_list:
