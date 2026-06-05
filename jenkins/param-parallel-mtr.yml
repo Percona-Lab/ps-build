@@ -141,6 +141,7 @@
         - "Hetzner"
         - "AWS"
         - "epyc9654"
+        - "auto"
         description: "Host provider for Jenkins workers"
     - choice:
         name: FULL_MTR
