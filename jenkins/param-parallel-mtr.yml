@@ -138,11 +138,11 @@
     - choice:
         name: CLOUD
         choices:
+        - "auto"
         - "Hetzner"
         - "AWS"
         - "epyc9654"
-        - "auto"
-        description: "Host provider for Jenkins workers"
+        description: "Host provider for Jenkins workers.<BR><B>auto</B> - uses Hetzner for x86_64 and aarch64, with AWS fallback for aarch64 when Hetzner ARM capacity is unavailable."
     - choice:
         name: FULL_MTR
         choices:
