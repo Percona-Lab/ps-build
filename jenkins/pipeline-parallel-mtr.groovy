@@ -737,10 +737,10 @@ pipeline {
                 git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
 
                 script {
-                    BUILD_TRIGGER_BY = " (${currentBuild.getBuildCauses()[0].userId})"
-                    if (BUILD_TRIGGER_BY == ' (null)') {
-                        BUILD_TRIGGER_BY = ' '
-                    }
+                    // A build can have no cause at all (Replay, or the EC2 Fleet
+                    // plugin's task resubmit); indexing [0] then throws an NPE.
+                    def userCause = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')
+                    BUILD_TRIGGER_BY = userCause ? " (${userCause[0].userId})" : ' '
 
                     currentBuild.displayName = "${BUILD_NUMBER} ${CMAKE_BUILD_TYPE}/${DOCKER_OS}/${ARCH}${BUILD_TRIGGER_BY} ${CUSTOM_BUILD_NAME}"
                 }
@@ -941,6 +941,7 @@ pipeline {
                                 beforeAgent true
                                 expression { (env.WORKER_2_MTR_SUITES?.trim()) }
                             }
+                            options { retry(count: 2, conditions: [agent()]) }
                             agent { label LABEL }
                             steps {
                                 doTestWorkerJob(2, "${WORKER_2_MTR_SUITES}")
@@ -951,6 +952,7 @@ pipeline {
                                 beforeAgent true
                                 expression { (env.WORKER_3_MTR_SUITES?.trim()) }
                             }
+                            options { retry(count: 2, conditions: [agent()]) }
                             agent { label LABEL }
                             steps {
                                 doTestWorkerJob(3, "${WORKER_3_MTR_SUITES}")
@@ -961,6 +963,7 @@ pipeline {
                                 beforeAgent true
                                 expression { (env.WORKER_4_MTR_SUITES?.trim()) }
                             }
+                            options { retry(count: 2, conditions: [agent()]) }
                             agent { label LABEL }
                             steps {
                                 doTestWorkerJob(4, "${WORKER_4_MTR_SUITES}")
@@ -971,6 +974,7 @@ pipeline {
                                 beforeAgent true
                                 expression { (env.WORKER_5_MTR_SUITES?.trim()) }
                             }
+                            options { retry(count: 2, conditions: [agent()]) }
                             agent { label LABEL }
                             steps {
                                 doTestWorkerJob(5, "${WORKER_5_MTR_SUITES}")
@@ -981,6 +985,7 @@ pipeline {
                                 beforeAgent true
                                 expression { (env.WORKER_6_MTR_SUITES?.trim()) }
                             }
+                            options { retry(count: 2, conditions: [agent()]) }
                             agent { label LABEL }
                             steps {
                                 doTestWorkerJob(6, "${WORKER_6_MTR_SUITES}")
@@ -991,6 +996,7 @@ pipeline {
                                 beforeAgent true
                                 expression { (env.WORKER_7_MTR_SUITES?.trim()) }
                             }
+                            options { retry(count: 2, conditions: [agent()]) }
                             agent { label LABEL }
                             steps {
                                 doTestWorkerJob(7, "${WORKER_7_MTR_SUITES}")
@@ -1001,6 +1007,7 @@ pipeline {
                                 beforeAgent true
                                 expression { (env.WORKER_8_MTR_SUITES?.trim()) }
                             }
+                            options { retry(count: 2, conditions: [agent()]) }
                             agent { label LABEL }
                             steps {
                                 doTestWorkerJob(8, "${WORKER_8_MTR_SUITES}")
