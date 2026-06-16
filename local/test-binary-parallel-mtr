@@ -194,6 +194,11 @@ ANALYZER_MTR_ARGS=""
 #
 if [[ "${ANALYZER_OPTS}" == *WITH_VALGRIND=ON* ]]; then
   ANALYZER_MTR_ARGS+=" --valgrind --valgrind-clients --valgrind-option=--leak-check=full --valgrind-option=--show-leak-kinds=all"
+  # Skip tests known to time out / be too slow under valgrind, if the list is present.
+  # (mysql-test-run.pl errors out if --skip-test-list points to a missing file.)
+  if [[ -f "${BUILD_DIR}/mysql-test/collections/valgrind-skip.list" ]]; then
+    ANALYZER_MTR_ARGS+=" --skip-test-list=${BUILD_DIR}/mysql-test/collections/valgrind-skip.list"
+  fi
   # defaults from mtr-test-run.pl; it will by multiplied later ($opt_testcase_timeout*= 10, $opt_suite_timeout*= 6)
   TESTCASE_TIMEOUT=15
   SUITE_TIMEOUT=300
