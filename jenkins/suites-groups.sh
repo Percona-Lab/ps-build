@@ -287,6 +287,12 @@ function set_suites() {
     5.7.*-*)
       set_suites_ps57 "$build_type"
       ;;
+    5.7.*)
+      set_suites_mysql57 "$build_type"
+      ;;
+    8.0.46-eol-*)
+      set_suites_mysql80 "$build_type"
+      ;;
     8.0.*-*)
       set_suites_ps80 "$build_type"
       ;;
