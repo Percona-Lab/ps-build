@@ -455,18 +455,34 @@ void recordSpecialFailures(boolean ciFs, boolean kv, boolean psProto, boolean st
 }
 
 // Archive everything this worker produced. Per-suite runs set SKIP_RESULTS_TARBALL=yes, so
-// the accumulated mtr_var is tarred once here.
+// the accumulated mtr_var is tarred once here. Artifacts are staged into clean top-level
+// directories so the Jenkins artifact tree is mtr_var/ + mtr_logs/ rather than nested under
+// work/. File names already embed the worker/tag, so paths stay unique across workers when
+// Jenkins merges every branch's artifacts into one build. Walltimes are NOT archived (they
+// are only parsed for the end-of-run summary from work/walltimes on the node).
 void archiveWorkerArtifacts(Integer WORKER_ID) {
-    sh """
-        cd ${WORKSPACE}/${WORK_DIR}/results 2>/dev/null || exit 0
-        if [ -d mtr_var ]; then
-            tar --owner=0 --group=0 -czf ps80-test-mtr_logs-${WORKER_ID}.tar.gz mtr_var || :
+    sh """#!/bin/bash
+        set +e
+        cd ${WORKSPACE}
+        # Build the per-worker mtr_var tarball (accumulated across this worker's suites).
+        if [ -d ${WORK_DIR}/results/mtr_var ]; then
+            tar --owner=0 --group=0 -czf ${WORK_DIR}/results/ps80-test-mtr_logs-${WORKER_ID}.tar.gz -C ${WORK_DIR}/results mtr_var || :
         fi
+        # Reorganize artifacts into clean top-level directories (copy, so the S3 sync below
+        # still sees the originals under work/results).
+        mkdir -p mtr_var mtr_logs
+        cp -f ${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz mtr_var/  2>/dev/null
+        cp -f ${WORK_DIR}/mtr-test_*.log*                     mtr_logs/ 2>/dev/null
+        exit 0
     """
     // Note: results/*.xml is intentionally NOT archived as artifacts. JUnitResultArchiver
     // below ingests them into Jenkins' test results (the useful form), and they are still
     // synced to S3; keeping the raw XMLs as build artifacts would just be redundant.
-    archiveArtifacts artifacts: "${WORK_DIR}/*.log*,${WORK_DIR}/walltimes/*.txt,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz", allowEmptyArchive: true
+    archiveArtifacts artifacts: "mtr_var/*.tar.gz,mtr_logs/*", allowEmptyArchive: true
+    // Drop the staging copies as soon as they are uploaded. cleanWorkspace would also remove
+    // them via "git clean -xdf", but it is best-effort and the primary's prepareWorkspace
+    // reuse-path doesn't git-clean, so a stale copy could otherwise be re-archived next build.
+    sh "cd ${WORKSPACE} && rm -rf mtr_var mtr_logs || :"
     syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
     step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0, keepLongStdio: false])
 }
@@ -841,6 +857,8 @@ pipeline {
         stage('Prepare') {
             steps {
                 script {
+                    echo "GIT_REPO = ${env.GIT_REPO}"
+
                     copyArtifactPermission(env.PIPELINE_NAME)
                     echo "PIPELINE_NAME = ${env.PIPELINE_NAME}"
                     echo "NODE_NAME = ${env.NODE_NAME}"
@@ -1046,6 +1064,19 @@ pipeline {
                             if (archive_public_url) {
                                 archiveArtifacts 'public_url'
                             }
+
+                            // Archive the cmake / make / make install logs (written to work/ by
+                            // local/build-binary) under build_logs/. Staged then removed, like the
+                            // test artifacts; best-effort so a binary-reuse build (no compile) is fine.
+                            sh """#!/bin/bash
+                                set +e
+                                cd ${WORKSPACE}
+                                mkdir -p build_logs
+                                cp -f ${WORK_DIR}/cmake.log ${WORK_DIR}/make_build.log ${WORK_DIR}/make_install.log build_logs/ 2>/dev/null
+                                exit 0
+                            """
+                            archiveArtifacts artifacts: 'build_logs/*', allowEmptyArchive: true
+                            sh "cd ${WORKSPACE} && rm -rf build_logs || :"
 
                             env.BUILD_TAG_BINARIES = env.BUILD_TAG
                             BUILD_NUMBER_BINARIES_FOR_RERUN = env.BUILD_NUMBER
