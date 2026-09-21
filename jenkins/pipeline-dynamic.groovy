@@ -190,6 +190,12 @@ List expandAndOrder(List items, boolean bigTest = true, boolean onlyBig = false)
     return bigItems + nobigItems + light
 }
 
+// Remove already-completed items (from a resumed build's checkpoint), preserving order.
+@NonCPS
+List subtractCompleted(List items, List done) {
+    return items.findAll { !done.contains(it) }
+}
+
 // functions start here
 void syncDirToS3(String SRC_DIRECTORY, String DST_DIRECTORY, String EXCLUDE_PATTERN) {
     echo "Sync ${SRC_DIRECTORY} directory to S3 ${S3_ROOT_DIR}/${DST_DIRECTORY}. Exclude: ${EXCLUDE_PATTERN}. Max retries: ${MAX_S3_RETRIES}"
@@ -466,6 +472,41 @@ void archiveWorkerArtifacts(Integer WORKER_ID) {
     step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0, keepLongStdio: false])
 }
 
+// Crash resilience: record each completed suite to S3 right after it finishes, so a build
+// that dies mid-run (e.g. controller restart that can't auto-resume) can be relaunched with
+// RESUME=true + BUILD_NUMBER_BINARIES=<that build> and skip the suites already done.
+// Files are keyed by BUILD_NUMBER and worker id so attempts never overwrite each other and
+// loadCheckpoint() can union all attempts. Best-effort: never fails the build.
+void recordCheckpoint(Integer WORKER_ID, String suite) {
+    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+        sh """#!/bin/bash
+            set +e
+            mkdir -p ${WORK_DIR}/checkpoint
+            echo '${suite}' >> ${WORK_DIR}/checkpoint/done_${env.BUILD_NUMBER}_${WORKER_ID}.txt
+            aws s3 cp --no-progress --acl public-read \
+                ${WORK_DIR}/checkpoint/done_${env.BUILD_NUMBER}_${WORKER_ID}.txt \
+                ${S3_ROOT_DIR}/${BUILD_TAG_BINARIES}/checkpoint/done_${env.BUILD_NUMBER}_${WORKER_ID}.txt || true
+            exit 0
+        """
+    }
+}
+
+// Return the set of suites completed by any previous attempt under BUILD_TAG_BINARIES.
+List loadCheckpoint() {
+    def dir = "${WORKSPACE}/resume_checkpoint"
+    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+        sh """#!/bin/bash
+            set +e
+            rm -rf ${dir}; mkdir -p ${dir}
+            aws s3 sync --no-progress ${S3_ROOT_DIR}/${BUILD_TAG_BINARIES}/checkpoint/ ${dir}/ || true
+            cat ${dir}/done_*.txt 2>/dev/null | sort -u > ${dir}/all_done.txt
+            touch ${dir}/all_done.txt
+            exit 0
+        """
+    }
+    return readFile("${dir}/all_done.txt").split('\n').collect { it.trim() }.findAll { it }
+}
+
 void checkoutSources() {
     echo 'Checkout PS sources'
     withCredentials([string(credentialsId: 'JNKPercona', variable: 'JNKPercona_token')]) {
@@ -624,6 +665,20 @@ void setupSuiteQueue() {
         boolean onlyBig = mtrArgs.contains('--only-big-test')
         boolean bigTest = mtrArgs.contains('--big-test')
         items = expandAndOrder(items, bigTest, onlyBig)
+
+        // Crash resilience: on a RESUME run, drop suites a previous attempt already finished.
+        if (env.RESUME == 'true' && items) {
+            def done = loadCheckpoint()
+            if (done) {
+                int before = items.size()
+                items = subtractCompleted(items, done)
+                echo "Resume: ${done.size()} suites completed by a previous attempt; " +
+                     "skipping ${before - items.size()}, ${items.size()} remain"
+            } else {
+                echo "Resume requested but no checkpoint found under ${env.BUILD_TAG_BINARIES}; running full queue"
+            }
+        }
+
         loadQueue(items)
         echo "Queued ${items.size()} suite items: ${items}"
     }
@@ -829,10 +884,13 @@ pipeline {
                 }
                 script {
                     try {
-                        setupSuiteQueue()
-
+                        // Set BUILD_TAG_BINARIES before setupSuiteQueue so a RESUME run can read
+                        // the previous attempt's checkpoint from S3 under this tag.
                         env.BUILD_TAG_BINARIES = "jenkins-${env.JOB_NAME}-${env.BUILD_NUMBER_BINARIES}"
                         BUILD_NUMBER_BINARIES_FOR_RERUN = env.BUILD_NUMBER_BINARIES
+
+                        setupSuiteQueue()
+
                         sh 'printenv'
                     } catch (Exception e) {
                         error("Failed to setup suite queue: ${e.message}")
@@ -1064,6 +1122,10 @@ pipeline {
                                                     catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                                         try {
                                                             runOneSuite(workerId, seq, suite)
+                                                            // Checkpoint only on success: a RESUME run then re-runs
+                                                            // both failed and never-started suites, so failures get
+                                                            // another chance even if the crash skipped the rerun trigger.
+                                                            recordCheckpoint(workerId, suite)
                                                         } catch (err) {
                                                             status = 'fail'
                                                             recordFailedSuite(suite)
