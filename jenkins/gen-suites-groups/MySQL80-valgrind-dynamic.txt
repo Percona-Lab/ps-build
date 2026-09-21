@@ -1,0 +1,121 @@
+# https://ps80.cd.percona.com/job/percona-server-8.0-VALGRIND-pipeline-dynamic/4/
+==== MTR dynamic run summary (longest first) ====
+SUITE                                 WORKER  SEQ   WALL    PAR    STATUS   NOTE
+rpl|big                               w4      1     52697   1.7x   fail     FAIL x16: rpl.rpl_killed_ddl
+main|nobig                            w12     1     52484   2.7x   timeout  TIMEOUT x2: main.locking_service
+rpl|nobig                             w13     1     50701   2.7x   fail     FAIL x67: rpl.rpl_encryption_master_key_generation_recovery
+main|big                              w2      1     50237   4.6x   fail     FAIL x10: main.mysql_client_test
+innodb|nobig                          w11     1     38331   3.6x   fail     FAIL x19: innodb.innodb_open_file_hang
+innodb_undo|big                       w9      1     28722   -      fail     FAIL x3: innodb_undo.purge_on_replica
+binlog                                w7      4     22969   1.1x   timeout  TIMEOUT x2: shutdown_report
+rpl_nogtid|big                        w5      1     21712   3.7x   fail     FAIL x12: rpl_nogtid.rpl_change_master
+rpl_nogtid|nobig                      w1      1     21179   3.3x   fail     FAIL x16: rpl_nogtid.rpl_semi_sync_after_sync
+innodb_fts                            w8      6     20119   1.8x   fail     FAIL x5: innodb_fts.optimize_big
+innodb|big                            w3      1     19814   3.6x   fail     FAIL x9: innodb.tablespace_encrypt_1
+(special: cifs)                       w92     0     18792   -      pass     
+perfschema                            w15     4     18553   2.7x   fail     FAIL x7: perfschema.table_component_lifecycle
+rpl_gtid|nobig                        w14     1     17428   2.6x   fail     FAIL x32: rpl_gtid.rpl_gtid_while_super_read_only
+clone|nobig                           w15     1     13454   3.9x   fail     FAIL x13: clone.local_basic
+component_keyring_file|big            w10     1     11115   0.7x   fail     FAIL x15: component_keyring_file.log_encrypt_2
+binlog_nogtid                         w16     2     10023   1.7x   fail     FAIL x5: shutdown_report
+sys_vars                              w16     4     9592    1.8x   fail     FAIL x10: sys_vars.mysql_native_password_proxy_users_cmdl
+x|nobig                               w16     1     9510    3.2x   fail     FAIL x10: x.mysqlxtest_mode_ssl
+innodb_zip                            w10     5     8870    1.5x   fail     FAIL x6: shutdown_report
+parts                                 w14     2     8212    3.0x   timeout  TIMEOUT x1: shutdown_report
+rpl_gtid|big                          w8      1     7683    2.7x   fail     FAIL x16: rpl_gtid.rpl_gtid_purged_maintained
+clone|big                             w6      1     6468    3.4x   fail     FAIL x4: clone.local_stage
+auth_sec                              w6      2     6216    2.6x   fail     FAIL x13: auth_sec.keyring_file_data_qa
+sysschema                             w6      10    3471    1.0x   fail     FAIL x4: shutdown_report
+innodb_gis                            w15     3     3444    2.0x   fail     FAIL x4: shutdown_report
+funcs_2                               w6      3     3254    1.0x   fail     FAIL x2: shutdown_report
+component_keyring_file|nobig          w7      3     2824    2.2x   fail     FAIL x11: component_keyring_file.sensitive_variables
+innodb_undo|nobig                     w7      2     2560    2.5x   fail     FAIL x2: shutdown_report
+collations                            w8      3     2393    4.0x   fail     FAIL x2: shutdown_report
+gcol                                  w10     4     2228    2.3x   fail     FAIL x4: shutdown_report
+binlog_gtid                           w8      2     2221    2.0x   fail     FAIL x4: shutdown_report
+encryption                            w10     3     2065    2.1x   fail     FAIL x4: shutdown_report
+(special: unit/standalone)            w1      0     1761    -      pass     
+federated                             w8      4     1485    0.6x   fail     FAIL x4: shutdown_report
+x|big                                 w7      1     1265    0.5x   fail     FAIL x6: x.notices_gr_single_primary
+json                                  w6      5     1179    2.7x   fail     FAIL x2: shutdown_report
+gis                                   w15     2     1033    2.4x   fail     FAIL x4: shutdown_report
+query_rewrite_plugins                 w6      7     1025    1.1x   fail     FAIL x2: shutdown_report
+opt_trace                             w6      6     818     1.2x   fail     FAIL x4: shutdown_report
+test_service_sql_api                  w3      3     752     0.6x   fail     FAIL x3: test_service_sql_api.test_sql_shutdown
+test_services                         w3      4     736     2.2x   fail     FAIL x3: test_services.test_host_application_signal_component
+(special: ps)                         w93     0     702     -      pass     
+secondary_engine                      w6      8     595     1.6x   fail     FAIL x2: shutdown_report
+service_sys_var_registration          w3      2     535     1.7x   fail     FAIL x2: shutdown_report
+connection_control                    w10     2     430     0.6x   fail     FAIL x6: connection_control.performance_schema
+service_udf_registration              w6      9     336     0.3x   fail     FAIL x2: shutdown_report
+information_schema                    w8      5     303     1.3x   fail     FAIL x2: shutdown_report
+service_status_var_registration       w16     3     260     0.4x   fail     FAIL x2: shutdown_report
+interactive_utilities                 w6      4     237     0.4x   fail     FAIL x2: shutdown_report
+---- per-worker busy time (seconds) ----
+worker 4                              52697
+worker 12                             52484
+worker 13                             50701
+worker 2                              50237
+worker 11                             38331
+worker 9                              28722
+worker 7                              29618
+worker 5                              21712
+worker 1                              22940
+worker 8                              34204
+worker 3                              21837
+worker 92                             18792
+worker 15                             36484
+worker 14                             25640
+worker 10                             24708
+worker 16                             29385
+worker 6                              23599
+worker 93                             702
+total suite-seconds: 562793  (items: 50)
+---- anomalies (timeouts / failures) ----
+rpl|big (w4): FAIL x16: rpl.rpl_killed_ddl
+main|nobig (w12): TIMEOUT x2: main.locking_service
+rpl|nobig (w13): FAIL x67: rpl.rpl_encryption_master_key_generation_recovery
+main|big (w2): FAIL x10: main.mysql_client_test
+innodb|nobig (w11): FAIL x19: innodb.innodb_open_file_hang
+innodb_undo|big (w9): FAIL x3: innodb_undo.purge_on_replica
+binlog (w7): TIMEOUT x2: shutdown_report
+rpl_nogtid|big (w5): FAIL x12: rpl_nogtid.rpl_change_master
+rpl_nogtid|nobig (w1): FAIL x16: rpl_nogtid.rpl_semi_sync_after_sync
+innodb_fts (w8): FAIL x5: innodb_fts.optimize_big
+innodb|big (w3): FAIL x9: innodb.tablespace_encrypt_1
+perfschema (w15): FAIL x7: perfschema.table_component_lifecycle
+rpl_gtid|nobig (w14): FAIL x32: rpl_gtid.rpl_gtid_while_super_read_only
+clone|nobig (w15): FAIL x13: clone.local_basic
+component_keyring_file|big (w10): FAIL x15: component_keyring_file.log_encrypt_2
+binlog_nogtid (w16): FAIL x5: shutdown_report
+sys_vars (w16): FAIL x10: sys_vars.mysql_native_password_proxy_users_cmdl
+x|nobig (w16): FAIL x10: x.mysqlxtest_mode_ssl
+innodb_zip (w10): FAIL x6: shutdown_report
+parts (w14): TIMEOUT x1: shutdown_report
+rpl_gtid|big (w8): FAIL x16: rpl_gtid.rpl_gtid_purged_maintained
+clone|big (w6): FAIL x4: clone.local_stage
+auth_sec (w6): FAIL x13: auth_sec.keyring_file_data_qa
+sysschema (w6): FAIL x4: shutdown_report
+innodb_gis (w15): FAIL x4: shutdown_report
+funcs_2 (w6): FAIL x2: shutdown_report
+component_keyring_file|nobig (w7): FAIL x11: component_keyring_file.sensitive_variables
+innodb_undo|nobig (w7): FAIL x2: shutdown_report
+collations (w8): FAIL x2: shutdown_report
+gcol (w10): FAIL x4: shutdown_report
+binlog_gtid (w8): FAIL x4: shutdown_report
+encryption (w10): FAIL x4: shutdown_report
+federated (w8): FAIL x4: shutdown_report
+x|big (w7): FAIL x6: x.notices_gr_single_primary
+json (w6): FAIL x2: shutdown_report
+gis (w15): FAIL x4: shutdown_report
+query_rewrite_plugins (w6): FAIL x2: shutdown_report
+opt_trace (w6): FAIL x4: shutdown_report
+test_service_sql_api (w3): FAIL x3: test_service_sql_api.test_sql_shutdown
+test_services (w3): FAIL x3: test_services.test_host_application_signal_component
+secondary_engine (w6): FAIL x2: shutdown_report
+service_sys_var_registration (w3): FAIL x2: shutdown_report
+connection_control (w10): FAIL x6: connection_control.performance_schema
+service_udf_registration (w6): FAIL x2: shutdown_report
+information_schema (w8): FAIL x2: shutdown_report
+service_status_var_registration (w16): FAIL x2: shutdown_report
+interactive_utilities (w6): FAIL x2: shutdown_report
