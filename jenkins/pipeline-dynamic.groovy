@@ -339,7 +339,7 @@ void dockerEcrLogin() {
 // token pulled from the queue; for the primary worker's special pass it is empty and only
 // the unit/CIFS/keyring-vault/ps-protocol bits run. MTR_RUN_TAG makes per-suite output file
 // names unique so many suites on one node don't overwrite each other.
-void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false, String MTR_RUN_TAG = '') {
+void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false, String MTR_RUN_TAG = '', String KV_VARIANT = 'all') {
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
         withCredentials([
             string(credentialsId: VAULT_V1_DEV_ROOT_TOKEN, variable: VAULT_V1_DEV_ROOT_TOKEN),
@@ -406,6 +406,7 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
                 export MTR_RUN_TAG="${MTR_RUN_TAG}"
                 export REUSE_EXTRACT=yes
                 export SKIP_RESULTS_TARBALL=yes
+                export KV_VARIANT="${KV_VARIANT}"
 
                 # NOTE: no "docker login" here. dockerEcrLogin() already logged in and pulled
                 # the image once for this worker, so each per-suite "docker run" reuses the
@@ -428,16 +429,14 @@ void runOneSuite(Integer WORKER_ID, Integer SEQ, String SUITE) {
     doTests(WORKER_ID.toString(), SUITE, '', false, false, false, false, tag)
 }
 
-// Primary-worker-only: unit tests + CIFS + keyring-vault + ps-protocol + standalone tests.
-// Runs once (with an empty suite list) before the primary joins the queue. Reuses the build
-// node so the original "sources/" + "work/build" needed by unit tests are present.
-void runSpecialWork(Integer WORKER_ID) {
+// Primary-worker-only: unit tests + standalone tests. These need the original build tree
+// ("sources/" + "work/build"), which only exists on the reused build node, so they must run
+// on the primary. They are cheap relative to the queue, so they run once before the primary
+// joins the drain. The heavier, build-tree-independent specials (keyring-vault, CIFS,
+// ps-protocol) are decoupled onto their own concurrent branches (see makeSpecialWorker).
+void runUnitWork(Integer WORKER_ID) {
     doTests(WORKER_ID.toString(), '', env.MTR_STANDALONE_TESTS ?: '',
-            true,
-            env.CI_FS_MTR?.trim() == 'yes',
-            env.KEYRING_VAULT_MTR?.trim() == 'yes',
-            env.WITH_PS_PROTOCOL?.trim() == 'yes',
-            "${WORKER_ID}_special")
+            true, false, false, false, "${WORKER_ID}_unit")
 }
 
 // On special-work failure, queue the enabled specials for rerun as pseudo-tokens.
@@ -1059,12 +1058,27 @@ pipeline {
                             int requestedWorkers = (env.MTR_NUM_WORKERS ?: '8') as int
                             int queued = queueSize()
 
-                            // Whether the primary worker should run the unit/CIFS/KV/ps-protocol/standalone pass.
-                            boolean runSpecial = (env.FULL_MTR == 'yes') ||
-                                                 env.CI_FS_MTR?.trim() == 'yes' ||
-                                                 env.KEYRING_VAULT_MTR?.trim() == 'yes' ||
-                                                 env.WITH_PS_PROTOCOL?.trim() == 'yes' ||
-                                                 (env.MTR_STANDALONE_TESTS?.trim() as boolean)
+                            // Special work, split by where it must run:
+                            //  - unit tests + standalone need the build tree -> stay on the primary worker
+                            //  - keyring-vault / CIFS / ps-protocol are build-tree-independent -> decoupled
+                            //    onto their own concurrent branches so they don't sit on worker 1's
+                            //    critical path (keyring-vault in particular is a long serial pole).
+                            // Unit tests run from the ORIGINAL build tree (sources/ + work/build), which
+                            // only exists when this build compiled. With binaries reused the primary lands
+                            // on a fresh node, the runner prints "Skipping unit tests", MTR_SUITES is empty,
+                            // nothing runs - and the wrapper's walltime grep then fails the step under
+                            // "set -eo pipefail", marking the build UNSTABLE before a single suite runs.
+                            boolean builtHere = !(env.BUILD_NUMBER_BINARIES?.trim())
+                            boolean wantUnit = (env.FULL_MTR == 'yes') ||
+                                               (env.MTR_STANDALONE_TESTS?.trim() as boolean)
+                            boolean runUnit  = builtHere && wantUnit
+                            if (wantUnit && !builtHere) {
+                                echo 'Unit/standalone pass skipped: binaries were reused, so this node has no build tree.'
+                            }
+                            boolean runKv    = env.KEYRING_VAULT_MTR?.trim() == 'yes'
+                            boolean runCifs  = env.CI_FS_MTR?.trim() == 'yes'
+                            boolean runPs    = env.WITH_PS_PROTOCOL?.trim() == 'yes'
+                            boolean runSpecial = runUnit || runKv || runCifs || runPs
 
                             // Nothing to do at all (e.g. FULL_MTR=skip_mtr with empty queue).
                             if (queued == 0 && !runSpecial) {
@@ -1072,12 +1086,13 @@ pipeline {
                                 return
                             }
 
-                            // Right-size workers: never spin up more agents than there is work.
-                            // Cap at the queue size, but keep at least 1 (the primary still has to
-                            // run special work even when the queue is empty). This avoids allocating
-                            // idle nodes for a small rerun.
-                            int numWorkers = Math.min(requestedWorkers, Math.max(queued, 1))
-                            echo "Dynamic MTR: ${queued} suites queued, using ${numWorkers} worker(s) (requested ${requestedWorkers})"
+                            // Right-size workers: never spin up more suite-draining agents than there
+                            // are suites. Keep a primary (worker 1) whenever there is unit/standalone
+                            // work, since that must run on the build node even with an empty queue.
+                            int suiteWorkers = Math.min(requestedWorkers, queued)
+                            int numWorkers   = Math.max(suiteWorkers, runUnit ? 1 : 0)
+                            echo "Dynamic MTR: ${queued} suites queued, using ${numWorkers} suite worker(s) " +
+                                 "(requested ${requestedWorkers}); decoupled special: kv=${runKv} cifs=${runCifs} ps=${runPs}"
 
                             // Factory so each closure captures its worker id by value (avoids the
                             // classic mutable-loop-variable capture bug in dynamic parallel).
@@ -1091,22 +1106,19 @@ pipeline {
                                             downloadFilesForTests()
                                             dockerEcrLogin()   // log in + cache image once; per-suite runs skip it
                                             try {
-                                                if (primary && runSpecial) {
+                                                if (primary && runUnit) {
                                                     long st0 = System.currentTimeMillis()
                                                     String sst = 'pass'
                                                     catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                                         try {
-                                                            runSpecialWork(workerId)
+                                                            runUnitWork(workerId)
                                                         } catch (err) {
                                                             sst = 'fail'
-                                                            recordSpecialFailures(
-                                                                env.CI_FS_MTR?.trim() == 'yes',
-                                                                env.KEYRING_VAULT_MTR?.trim() == 'yes',
-                                                                env.WITH_PS_PROTOCOL?.trim() == 'yes',
-                                                                env.MTR_STANDALONE_TESTS?.trim() as boolean)
+                                                            recordSpecialFailures(false, false, false,
+                                                                env.MTR_STANDALONE_TESTS?.trim() as boolean, true)
                                                             throw err
                                                         } finally {
-                                                            recordSuiteResult('(special: unit/KV/CIFS/ps)', workerId, 0,
+                                                            recordSuiteResult('(special: unit/standalone)', workerId, 0,
                                                                 (long)((System.currentTimeMillis() - st0) / 1000), sst)
                                                         }
                                                     }
@@ -1155,10 +1167,57 @@ pipeline {
                                 }
                             }
 
+                            // Decoupled special work: each runs once on its own node, concurrently
+                            // with the suite drain, so it never sits on worker 1's critical path.
+                            // workerId/tag are distinct (90s) so artifacts don't collide with the
+                            // suite workers (1..N).
+                            def makeSpecialWorker = { int workerId, String tag, boolean cifs, boolean kv, boolean ps, String kvVariant = 'all' ->
+                                return {
+                                    node(LABEL) {
+                                        timeout(time: PIPELINE_TIMEOUT, unit: 'HOURS') {
+                                            git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
+                                            prepareWorkspace(workerId, false)
+                                            downloadFilesForTests()
+                                            dockerEcrLogin()
+                                            long t0 = System.currentTimeMillis()
+                                            String status = 'pass'
+                                            try {
+                                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                                    try {
+                                                        doTests(workerId.toString(), '', '', false, cifs, kv, ps, tag, kvVariant)
+                                                    } catch (err) {
+                                                        status = 'fail'
+                                                        recordSpecialFailures(cifs, kv, ps, false)
+                                                        throw err
+                                                    }
+                                                }
+                                            } finally {
+                                                recordSuiteResult("(special: ${tag})", workerId, 0,
+                                                    (long)((System.currentTimeMillis() - t0) / 1000), status)
+                                                archiveWorkerArtifacts(workerId)
+                                                cleanWorkspace(workerId)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             def branches = [:]
                             for (int i = 1; i <= numWorkers; i++) {
                                 branches["Test ${i}"] = makeWorker(i, i == 1)
                             }
+                            // keyring-vault is decoupled further: its 4 variants (dev/prod x v1/v2)
+                            // run on separate concurrent branches instead of serially, so the KV
+                            // critical path drops from their sum (~83 min) toward the slowest single
+                            // variant (~26 min). KV_VARIANT tells the runner which one to bootstrap+run.
+                            if (runKv) {
+                                branches['KV dev_v1']  = makeSpecialWorker(91, 'kv_dev_v1',  false, true, false, 'dev_v1')
+                                branches['KV dev_v2']  = makeSpecialWorker(94, 'kv_dev_v2',  false, true, false, 'dev_v2')
+                                branches['KV prod_v1'] = makeSpecialWorker(95, 'kv_prod_v1', false, true, false, 'prod_v1')
+                                branches['KV prod_v2'] = makeSpecialWorker(96, 'kv_prod_v2', false, true, false, 'prod_v2')
+                            }
+                            if (runCifs) { branches['CI FS']       = makeSpecialWorker(92, 'cifs', true,  false, false) }
+                            if (runPs)   { branches['PS Protocol'] = makeSpecialWorker(93, 'ps',   false, false, true)  }
                             branches.failFast = false
                             parallel branches
                         }
