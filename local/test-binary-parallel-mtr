@@ -40,7 +40,9 @@ function execute() {
     local parallel=$1
     local extraOptions=$2
     local logFileSuffix=$3
-    local worker="WORKER_${WORKER_NO}${logFileSuffix}"
+    # MTR_RUN_TAG (default WORKER_NO) makes JUnit/result file names unique when a
+    # single worker runs many suites as separate invocations (dynamic pipeline).
+    local worker="WORKER_${MTR_RUN_TAG:-$WORKER_NO}${logFileSuffix}"
 
     # ensure that there are not / in worker name (it can come from suites that have / in their names)
     worker=${worker//"/"/"_"}
@@ -333,9 +335,13 @@ echo "Decompress \".tar.gz\" archive and use it for MTR tests"
 free -m
 df -Th
 ls -lh ${WORKDIR}/*.tar.gz
-rm -rf ${EXTRACT_DIR}
-mkdir -p ${EXTRACT_DIR}
-tar -C ${EXTRACT_DIR} --strip-components=1 -zxpf $(ls ${WORKDIR}/*.tar.gz | head -1)
+if [[ "${REUSE_EXTRACT:-no}" == "yes" && -f ${EXTRACT_DIR}/mysql-test/mysql-test-run.pl ]]; then
+    echo "REUSE_EXTRACT=yes and extracted tree present, skipping re-extraction"
+else
+    rm -rf ${EXTRACT_DIR}
+    mkdir -p ${EXTRACT_DIR}
+    tar -C ${EXTRACT_DIR} --strip-components=1 -zxpf $(ls ${WORKDIR}/*.tar.gz | head -1)
+fi
 echo "Extraction complete"
 free -m
 df -Th
@@ -515,8 +521,13 @@ fi
 
 
 if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
-    echo "Running KEYRING_VAULT tests"
+    echo "Running KEYRING_VAULT tests (KV_VARIANT=${KV_VARIANT:-all})"
     start=`date +%s`
+
+    # KV_VARIANT lets the dynamic pipeline run one vault variant per worker (concurrently)
+    # instead of all four serially. Default "all" preserves the legacy single-invocation run.
+    KV_VARIANT=${KV_VARIANT:-all}
+    kv_want() { [[ "${KV_VARIANT}" == "all" || "${KV_VARIANT}" == "$1" ]]; }
 
     MTR_ARGS_KV=${MTR_ARGS}
 
@@ -530,7 +541,8 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         fi
     fi
 
-    echo "Running tests with Hashicorp Vault in Dev mode"
+    if kv_want dev_v1; then
+    echo "Running tests with Hashicorp Vault in Dev mode (v1)"
     if [[ "${HAVE_JUNIT}" == "1" ]]; then
         JUNIT_VAULT_V1_DEV_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v1.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_dev_v1"
     else
@@ -556,7 +568,10 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
 
     killall -9 mysqld || true
     rm -rf $PWD/var_kv1_dev
+    fi
 
+    if kv_want dev_v2; then
+    echo "Running tests with Hashicorp Vault in Dev mode (v2)"
     if [[ "${HAVE_JUNIT}" == "1" ]]; then
         JUNIT_VAULT_V2_DEV_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v2.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_dev_v2"
     else
@@ -582,8 +597,10 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
 
     killall -9 mysqld || true
     rm -rf $PWD/var_kv2_dev
+    fi
 
-    echo "Running tests with Hashicorp Vault in Production mode"
+    if kv_want prod_v1; then
+    echo "Running tests with Hashicorp Vault in Production mode (v1)"
     if [[ "${HAVE_JUNIT}" == "1" ]]; then
         JUNIT_VAULT_V1_PROD_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v1.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_prod_v1"
     else
@@ -610,7 +627,10 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
 
     killall -9 mysqld || true
     rm -rf $PWD/var_kv1_prod
+    fi
 
+    if kv_want prod_v2; then
+    echo "Running tests with Hashicorp Vault in Production mode (v2)"
     if [[ "${HAVE_JUNIT}" == "1" ]]; then
         JUNIT_VAULT_V2_PROD_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v2.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_prod_v2"
     else
@@ -637,6 +657,7 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
 
     killall -9 mysqld || true
     rm -rf $PWD/var_kv2_prod
+    fi
 
     end=`date +%s`
     runtime=$((end-start))
@@ -644,12 +665,18 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
 fi
 
 rm -fr ${EXTRACT_DIR}/mysql-test/var
-if [[ "${KEEP_BUILD}" != "yes" ]]; then
+# Keep the extracted tree when REUSE_EXTRACT=yes so the next suite on this worker
+# (dynamic pipeline) doesn't have to re-extract binary.tar.gz.
+if [[ "${KEEP_BUILD}" != "yes" && "${REUSE_EXTRACT:-no}" != "yes" ]]; then
     rm -rf ${EXTRACT_DIR}
 fi
 
 cd ${WORKDIR}
-tar -C ${RESULTS_DIR} --owner=0 --group=0 -czf "${RESULTS_DIR}/ps80-test-mtr_logs-${WORKER_NO}.tar.gz" mtr_var
+# The dynamic pipeline accumulates mtr_var across many per-suite invocations and
+# tars it once at worker end, so it sets SKIP_RESULTS_TARBALL=yes here.
+if [[ "${SKIP_RESULTS_TARBALL:-no}" != "yes" ]]; then
+    tar -C ${RESULTS_DIR} --owner=0 --group=0 -czf "${RESULTS_DIR}/ps80-test-mtr_logs-${MTR_RUN_TAG:-$WORKER_NO}.tar.gz" mtr_var
+fi
 
 ls -l ${WORKDIR}
 ls -l ${RESULTS_DIR}
