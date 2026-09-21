@@ -20,8 +20,25 @@ for logfile in "$@"; do
     current_suite=""
 
     while IFS= read -r line; do
-        # Extract suite from --junit-package
-        if [[ "$line" =~ --junit-package=.*\.WORKER_[0-9]+\.(.*) ]]; then
+        # Extract suite from --junit-package.
+        # New dynamic-pipeline tag: ...WORKER_<worker>_<seq>_<suite>[-big|-nobig]
+        # Old static format:        ...WORKER_<N>.<suite>
+        # Match the new format first, fall back to the old one. [^[:space:]]+ stops at the
+        # next MTR argument instead of swallowing the rest of the line.
+        if [[ "$line" =~ --junit-package=[^[:space:]]*\.WORKER_[0-9]+_[0-9]+_([^[:space:]]+) ]]; then
+            current_suite="${BASH_REMATCH[1]}"
+            # The dynamic tag sanitizes the queue item ("innodb|big" -> "innodb_big") and MTR's
+            # own "-big" suffix is appended after it, so the big half arrives as "innodb_big-big"
+            # and the nobig half as "innodb_nobig". Map both back to the "<suite>" / "<suite>-big"
+            # convention gen-suites-groups.py pairs on; a light (unsplit) suite has neither
+            # marker and is already in that form.
+            if [[ "$current_suite" == *-big ]]; then
+                current_suite="${current_suite%-big}"
+                current_suite="${current_suite%_big}-big"
+            else
+                current_suite="${current_suite%_nobig}"
+            fi
+        elif [[ "$line" =~ --junit-package=[^[:space:]]*\.WORKER_[0-9]+\.([^[:space:]]+) ]]; then
             current_suite="${BASH_REMATCH[1]}"
         fi
 
