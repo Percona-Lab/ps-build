@@ -58,6 +58,22 @@ FAILED_SUITES  = []   // suites/specials to rerun
 RUNNING_SUITES = [:]  // suite -> "worker-N"
 SUITE_RESULTS  = []   // per-suite timing for the end-of-run summary: [suite,worker,seq,secs,status]
 
+// Spot-kill hardening: a suite that fails (e.g. its worker's spot instance was reclaimed) is
+// pushed back here and handed out again — before the main queue — so a healthy worker reruns
+// it instead of it being lost. REQUEUE_COUNT caps re-queues per suite so a deterministically
+// broken suite can't bounce forever; past the cap it is recorded as failed (-> rerun/RESUME).
+//
+// Entries are [suite: name, owner: "worker-N"] so nextSuite() can avoid handing a suite
+// straight back to the worker that just failed it: in build 7 a worker whose agent went
+// offline re-picked its own re-queued suite twice within a second, spending both of the
+// suite's attempts on a dead node while ten items and seven healthy workers were waiting,
+// and innodb|nobig (the largest item) never ran at all.
+REQUEUE        = []
+REQUEUE_INDEX  = 0
+REQUEUE_COUNT  = [:]
+MAX_REQUEUE    = 2    // max times one suite may be pushed back before it is given up on
+MAX_CONSEC_FAIL = 3   // consecutive failures after which a worker assumes its node is unhealthy and leaves
+
 // Heavy suites are split into separate "|nobig" and "|big" queue items so the two halves
 // can run on different workers (a bare suite would run both back-to-back on one worker).
 // Ranked heaviest-first from the PS80 Valgrind walltimes
@@ -71,7 +87,18 @@ HEAVY_SUITES = ['innodb', 'main', 'group_replication', 'rpl', 'clone', 'rpl_gtid
 // @NonCPS helpers: pure data manipulation, NO pipeline steps (echo/sh/env/node) inside,
 // and NO Collection mutator calls (see note above).
 @NonCPS
-String nextSuite() {
+String nextSuite(String owner = '') {
+    // Re-queued suites (from a failed/killed worker) take priority over the main queue - but
+    // never hand one back to the worker that just failed it while anything else is available,
+    // or a sick node keeps reclaiming its own suite and burning its attempts. Taking it back
+    // as a last resort (main queue drained) is still better than leaving it unrun.
+    if (REQUEUE_INDEX < REQUEUE.size()) {
+        def head = REQUEUE[REQUEUE_INDEX]
+        if (!owner || head.owner != owner || NEXT_INDEX >= ALL_SUITES.size()) {
+            REQUEUE_INDEX = REQUEUE_INDEX + 1
+            return head.suite
+        }
+    }
     if (NEXT_INDEX >= ALL_SUITES.size()) {
         return null   // null == queue drained
     }
@@ -82,7 +109,7 @@ String nextSuite() {
 
 @NonCPS
 int queueSize() {
-    int remaining = ALL_SUITES.size() - NEXT_INDEX
+    int remaining = (ALL_SUITES.size() - NEXT_INDEX) + (REQUEUE.size() - REQUEUE_INDEX)
     return remaining < 0 ? 0 : remaining
 }
 
@@ -95,6 +122,50 @@ void loadQueue(List items) {
 @NonCPS
 void recordFailedSuite(String suite) {
     FAILED_SUITES = FAILED_SUITES + [suite]
+}
+
+// Push a failed suite back onto the queue for another worker, up to MAX_REQUEUE times.
+// Returns true if re-queued, false if the cap is hit (then it is recorded as failed instead).
+//
+// charge=false re-queues without spending one of the suite's attempts: use it when the
+// failure says nothing about the suite (the agent went offline), since a dead node would
+// otherwise exhaust MAX_REQUEUE in seconds. This cannot loop, because a worker that issues
+// an uncharged re-queue leaves the drain immediately, so each one costs one dead node.
+@NonCPS
+boolean requeueOrFail(String suite, String owner = '', boolean charge = true) {
+    int n = (REQUEUE_COUNT[suite] ?: 0)
+    if (charge && n >= MAX_REQUEUE) {
+        FAILED_SUITES = FAILED_SUITES + [suite]
+        return false
+    }
+    if (charge) {
+        REQUEUE_COUNT = REQUEUE_COUNT + [(suite): (n + 1)]
+    }
+    REQUEUE = REQUEUE + [[suite: suite, owner: owner]]
+    return true
+}
+
+// Safety net run after all workers finish: anything still re-queued-but-unserved, or still
+// marked running (a worker died before its own sweep), is recorded as failed so the rerun /
+// RESUME path can pick it up. Nothing gets silently dropped.
+@NonCPS
+void finalizeOrphans() {
+    def leftover = []
+    for (int i = REQUEUE_INDEX; i < REQUEUE.size(); i++) {
+        leftover = leftover + [REQUEUE[i].suite]
+    }
+    // ... and the tail of the main queue that nobody ever claimed. If every worker left the
+    // drain (node loss, circuit breaker) or the build was aborted, the cursor stops short of
+    // the end and those suites were never even picked up, let alone run.
+    for (int i = NEXT_INDEX; i < ALL_SUITES.size(); i++) {
+        leftover = leftover + [ALL_SUITES[i]]
+    }
+    // Consume both cursors so the queue reads as drained (queueSize()/progressLine()) and a
+    // second call can't record the same items twice.
+    NEXT_INDEX    = ALL_SUITES.size()
+    REQUEUE_INDEX = REQUEUE.size()
+    RUNNING_SUITES.each { k, v -> leftover = leftover + [k] }
+    FAILED_SUITES = FAILED_SUITES + leftover
 }
 
 @NonCPS
@@ -454,6 +525,28 @@ void recordSpecialFailures(boolean ciFs, boolean kv, boolean psProto, boolean st
     FAILED_SUITES = FAILED_SUITES + tokens
 }
 
+// Archive just the finished suite's own logs, immediately. archiveWorkerArtifacts() runs once
+// at the end of the drain, so a node that dies mid-run takes every log the worker produced with
+// it ("archive skipped (node may be down)") - in build 7 that lost component_keyring_file|big
+// and the unit-test run even though both had completed. Only the small per-suite files go out
+// here (console log + valgrind extracts + compressed full log); the mtr_var tarball and the
+// JUnit XMLs still wait for the end, where re-doing them per suite would be wasteful.
+void archiveSuiteLogs(Integer WORKER_ID, String TAG) {
+    sh """#!/bin/bash
+        set +e
+        cd ${WORKSPACE}
+        mkdir -p mtr_logs
+        cp -f ${WORK_DIR}/mtr-test_${TAG}*.log* mtr_logs/ 2>/dev/null
+        # The JUnit XML goes out with it: the per-worker upload + JUnitResultArchiver only run
+        # at the end of the drain, so a node that dies later takes the XML of every suite it
+        # already finished - including ones RESUME will now skip because they are checkpointed.
+        cp -f ${WORK_DIR}/results/junit_*${TAG}*.xml mtr_logs/ 2>/dev/null
+        exit 0
+    """
+    archiveArtifacts artifacts: 'mtr_logs/*', allowEmptyArchive: true
+    sh "cd ${WORKSPACE} && rm -rf mtr_logs || :"
+}
+
 // Archive everything this worker produced. Per-suite runs set SKIP_RESULTS_TARBALL=yes, so
 // the accumulated mtr_var is tarred once here. Artifacts are staged into clean top-level
 // directories so the Jenkins artifact tree is mtr_var/ + mtr_logs/ rather than nested under
@@ -485,6 +578,44 @@ void archiveWorkerArtifacts(Integer WORKER_ID) {
     sh "cd ${WORKSPACE} && rm -rf mtr_var mtr_logs || :"
     syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
     step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0, keepLongStdio: false])
+}
+
+// Run a best-effort step: swallow an ordinary failure (a dead node must not fail the branch
+// or mask the run) but NEVER an abort/timeout. A bare "catch (e)" around a pipeline step eats
+// the FlowInterruptedException, after which the worker calmly pulls the next suite - exactly
+// what used to make these builds unabortable, just moved into the cleanup paths.
+void bestEffort(String what, Closure body) {
+    try {
+        body()
+    } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException ie) {
+        // An abort must get through; a dying agent must not. A reclaimed spot instance whose
+        // node object the cloud plugin deletes mid-cleanup also arrives as an interruption,
+        // and letting that abort the build is exactly what this wrapper exists to prevent.
+        if (!isAgentLoss(ie.toString())) {
+            throw ie
+        }
+        echo "${what} skipped (agent gone): ${ie}"
+    } catch (e) {
+        echo "${what} skipped: ${e}"
+    }
+}
+
+// Does this exception say the AGENT went away, rather than the build being aborted? Matched on
+// the rendered exception (which carries the class name and the cause) so no plugin class has to
+// be referenced from the pipeline script. Node loss arrives in two shapes: as an exception when
+// a step starts on an already-offline agent, and as an interruption ("Timeout waiting for agent
+// to come back") when the channel dies while a step is running.
+@NonCPS
+boolean isAgentLoss(String ex) {
+    return ex.contains('AgentOfflineException') ||
+           ex.contains('ChannelClosedException') ||
+           ex.contains('RequestAbortedException') ||
+           ex.contains('was marked offline') ||
+           ex.contains('Connection was broken') ||
+           ex.contains('Cannot contact') ||
+           ex.contains('Timeout waiting for agent') ||
+           ex.contains('agent to come back') ||
+           ex.contains('Agent was removed')
 }
 
 // Crash resilience: record each completed suite to S3 right after it finishes, so a build
@@ -1140,7 +1271,7 @@ pipeline {
                                                 if (primary && runUnit) {
                                                     long st0 = System.currentTimeMillis()
                                                     String sst = 'pass'
-                                                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE', catchInterruptions: false) {
                                                         try {
                                                             runUnitWork(workerId)
                                                         } catch (err) {
@@ -1155,28 +1286,85 @@ pipeline {
                                                     }
                                                 }
                                                 int seq = 0
+                                                int consecFail = 0
                                                 String suite
-                                                while ((suite = nextSuite()) != null) {
+                                                while ((suite = nextSuite("worker-${workerId}")) != null) {
                                                     seq++
                                                     echo "[worker ${workerId}] picked '${suite}' (seq ${seq}); ~${queueSize()} left"
                                                     markRunning(suite, "worker-${workerId}")
                                                     long t0 = System.currentTimeMillis()
-                                                    String status = 'pass'
-                                                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                                                        try {
-                                                            runOneSuite(workerId, seq, suite)
-                                                            // Checkpoint only on success: a RESUME run then re-runs
-                                                            // both failed and never-started suites, so failures get
-                                                            // another chance even if the crash skipped the rerun trigger.
-                                                            recordCheckpoint(workerId, suite)
-                                                        } catch (err) {
-                                                            status = 'fail'
+                                                    boolean ok = false
+                                                    boolean nodeGone = false
+                                                    try {
+                                                        runOneSuite(workerId, seq, suite)
+                                                        ok = true
+                                                    } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException ie) {
+                                                        // Not every interruption is an abort. When an agent's channel
+                                                        // dies mid-sh, Jenkins ends the step ~5 min later with
+                                                        // "Timeout waiting for agent to come back" - a
+                                                        // FlowInterruptedException, not the AgentOfflineException that
+                                                        // only covers a step STARTING on an already-offline agent. Taking
+                                                        // the abort path there kills the build and strands the suite, so
+                                                        // classify it and let the node-loss path below re-queue it.
+                                                        String why = ie.toString()
+                                                        if (isAgentLoss(why)) {
+                                                            nodeGone = true
+                                                            echo "[worker ${workerId}] agent lost during '${suite}': ${why}"
+                                                        } else {
+                                                            // A real abort/timeout must NOT be swallowed, or the worker
+                                                            // would just pull the next suite and the build couldn't be
+                                                            // stopped. Record the in-flight suite for the rerun HERE: the
+                                                            // rethrow skips the re-queue logic below, and the finally
+                                                            // calls markDone(), so the outer sweepRunningToFailed() no
+                                                            // longer sees it and it would vanish from FAILED_SUITES.
                                                             recordFailedSuite(suite)
-                                                            throw err
-                                                        } finally {
-                                                            recordSuiteResult(suite, workerId, seq,
-                                                                (long)((System.currentTimeMillis() - t0) / 1000), status)
-                                                            markDone(suite)
+                                                            throw ie
+                                                        }
+                                                    } catch (err) {
+                                                        echo "[worker ${workerId}] suite '${suite}' errored: ${err}"
+                                                        // Did the agent go away, rather than the suite failing? Matched on
+                                                        // the rendered exception (which carries the class name and the
+                                                        // cause) so no plugin class has to be referenced from the script.
+                                                        nodeGone = isAgentLoss(err.toString())
+                                                    } finally {
+                                                        recordSuiteResult(suite, workerId, seq,
+                                                            (long)((System.currentTimeMillis() - t0) / 1000), ok ? 'pass' : 'fail')
+                                                        // Get this suite's logs off the node now, while it is still
+                                                        // reachable, instead of waiting for the end-of-drain archive.
+                                                        if (ok) {
+                                                            bestEffort("[worker ${workerId}] per-suite archive") {
+                                                                archiveSuiteLogs(workerId, suiteTag(workerId, seq, suite))
+                                                            }
+                                                        }
+                                                        markDone(suite)
+                                                    }
+                                                    if (ok) {
+                                                        consecFail = 0
+                                                    } else {
+                                                        unstable("worker ${workerId}: suite '${suite}' failed")
+                                                        // A lost agent says nothing about the suite. Push it back without
+                                                        // charging an attempt and leave the drain at once: retrying here
+                                                        // only spends the suite's remaining attempts on a dead node, which
+                                                        // is how build 7 lost innodb|nobig entirely.
+                                                        if (nodeGone) {
+                                                            requeueOrFail(suite, "worker-${workerId}", false)
+                                                            echo "[worker ${workerId}] node offline - re-queued '${suite}' with no attempt charged, leaving drain"
+                                                            break
+                                                        }
+                                                        // Spot-kill hardening: push the suite back for a healthy worker
+                                                        // rather than losing it; if it repeatedly fails, give up on it.
+                                                        if (requeueOrFail(suite, "worker-${workerId}")) {
+                                                            echo "[worker ${workerId}] re-queued '${suite}' for another worker"
+                                                        } else {
+                                                            echo "[worker ${workerId}] '${suite}' exceeded re-queue cap; recorded as failed"
+                                                        }
+                                                        // Circuit breaker: a worker whose spot instance was reclaimed
+                                                        // would otherwise spin, failing every suite it pulls (a "vacuum").
+                                                        // After a few consecutive failures, assume the node is unhealthy
+                                                        // and leave the drain so healthy workers take over.
+                                                        if (++consecFail >= MAX_CONSEC_FAIL) {
+                                                            echo "[worker ${workerId}] ${consecFail} consecutive failures - node likely unhealthy, leaving drain"
+                                                            break
                                                         }
                                                     }
                                                 }
@@ -1184,8 +1372,10 @@ pipeline {
                                             } finally {
                                                 // rescue any in-flight suite interrupted by an abort
                                                 sweepRunningToFailed("worker-${workerId}")
-                                                archiveWorkerArtifacts(workerId)
-                                                cleanWorkspace(workerId)
+                                                // Best-effort: if the node is gone these will throw; don't let that
+                                                // mask the run or fail the branch (but an abort still gets through).
+                                                bestEffort("[worker ${workerId}] archive (node may be down)") { archiveWorkerArtifacts(workerId) }
+                                                bestEffort("[worker ${workerId}] cleanup")                    { cleanWorkspace(workerId) }
                                             }
                                         }
                                     }
@@ -1204,31 +1394,50 @@ pipeline {
                             // suite workers (1..N).
                             def makeSpecialWorker = { int workerId, String tag, boolean cifs, boolean kv, boolean ps, String kvVariant = 'all' ->
                                 return {
-                                    node(LABEL) {
-                                        timeout(time: PIPELINE_TIMEOUT, unit: 'HOURS') {
-                                            git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
-                                            prepareWorkspace(workerId, false)
-                                            downloadFilesForTests()
-                                            dockerEcrLogin()
-                                            long t0 = System.currentTimeMillis()
-                                            String status = 'pass'
-                                            try {
-                                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                                                    try {
-                                                        doTests(workerId.toString(), '', '', false, cifs, kv, ps, tag, kvVariant)
-                                                    } catch (err) {
-                                                        status = 'fail'
-                                                        recordSpecialFailures(cifs, kv, ps, false)
-                                                        throw err
+                                    // The recorder inside the node() body can only run once the body
+                                    // starts. node() itself can fail or be interrupted while the branch
+                                    // is still queued for an executor (agent allocation cancelled, build
+                                    // aborted, the pipeline-level timeout firing - the inner timeout is
+                                    // inside node() and doesn't cover the wait), and then the special
+                                    // would be missing from the rerun: finalizeOrphans() only knows the
+                                    // suite queue, which a special never enters. Recording twice is
+                                    // harmless, triggerFailedSuitesRerun() dedups.
+                                    try {
+                                        node(LABEL) {
+                                            timeout(time: PIPELINE_TIMEOUT, unit: 'HOURS') {
+                                                long t0 = System.currentTimeMillis()
+                                                String status = 'pass'
+                                                try {
+                                                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE', catchInterruptions: false) {
+                                                        try {
+                                                            // Node setup belongs INSIDE the recording try: a checkout,
+                                                            // binary download or ECR login that fails would otherwise
+                                                            // escape before recordSpecialFailures() and this work would
+                                                            // be missing from the rerun entirely. Unlike a queued suite,
+                                                            // nothing else tracks it - finalizeOrphans() only knows the
+                                                            // suite queue, and a special never enters it.
+                                                            git branch: JENKINS_SCRIPTS_BRANCH, url: JENKINS_SCRIPTS_REPO
+                                                            prepareWorkspace(workerId, false)
+                                                            downloadFilesForTests()
+                                                            dockerEcrLogin()
+                                                            doTests(workerId.toString(), '', '', false, cifs, kv, ps, tag, kvVariant)
+                                                        } catch (err) {
+                                                            status = 'fail'
+                                                            recordSpecialFailures(cifs, kv, ps, false)
+                                                            throw err
+                                                        }
                                                     }
+                                                } finally {
+                                                    recordSuiteResult("(special: ${tag})", workerId, 0,
+                                                        (long)((System.currentTimeMillis() - t0) / 1000), status)
+                                                    bestEffort("[${tag}] archive (node may be down)") { archiveWorkerArtifacts(workerId) }
+                                                    bestEffort("[${tag}] cleanup")                    { cleanWorkspace(workerId) }
                                                 }
-                                            } finally {
-                                                recordSuiteResult("(special: ${tag})", workerId, 0,
-                                                    (long)((System.currentTimeMillis() - t0) / 1000), status)
-                                                archiveWorkerArtifacts(workerId)
-                                                cleanWorkspace(workerId)
                                             }
                                         }
+                                    } catch (err) {
+                                        recordSpecialFailures(cifs, kv, ps, false)
+                                        throw err
                                     }
                                 }
                             }
@@ -1250,7 +1459,16 @@ pipeline {
                             if (runCifs) { branches['CI FS']       = makeSpecialWorker(92, 'cifs', true,  false, false) }
                             if (runPs)   { branches['PS Protocol'] = makeSpecialWorker(93, 'ps',   false, false, true)  }
                             branches.failFast = false
-                            parallel branches
+                            try {
+                                parallel branches
+                            } finally {
+                                // Safety net: record anything re-queued-but-unserved, never claimed,
+                                // or still marked running (a worker died before its own sweep) so the
+                                // rerun / RESUME path picks it up. In the finally because an aborted
+                                // branch rethrows its interruption, which would otherwise carry the
+                                // build straight past this and silently drop the whole rest of the queue.
+                                finalizeOrphans()
+                            }
                         }
                     }
                 }
