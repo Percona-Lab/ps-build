@@ -29,8 +29,13 @@
         description: Reuse binaries built in the specified build. Useful for quick MTR test rerun without rebuild.
     - string:
         name: GIT_REPO
-        default: "https://github.com/percona/percona-server"
-        description: URL to percona-server repository
+        default: "https://github.com/percona/mysql-eol-dev"
+        description: |
+            Repository to build/test. Other repositories (copy into the field as needed):<br>
+            https://github.com/percona/percona-server<br>
+            https://github.com/percona/percona-server-private<br>
+            https://github.com/percona/mysql-eol-dev<br>
+            https://github.com/percona/mysql-5.7-post-eol
     - string:
         name: BRANCH
         default: "{branch_name}"
@@ -170,6 +175,14 @@
         name: RERUN_MTR_SUITES
         default: ""
         description: "Comma-separated suites to load into the queue when FULL_MTR=no (manual run or aborted-suite rerun)."
+    - bool:
+        name: RESUME
+        default: false
+        description: |
+            Resume an interrupted run (e.g. after a controller restart that could not auto-resume).<br>
+            Set together with BUILD_NUMBER_BINARIES=&lt;the interrupted build&gt;: suites that already
+            passed in that build (recorded to S3 as checkpoints) are skipped, and only the
+            remaining + previously-failed suites are run.
     - string:
         name: MTR_STANDALONE_TESTS
         default:
@@ -219,3 +232,17 @@
     jobs:
       - percona-server-{ps_version}-pipeline-dynamic
 
+- project:
+    name: pipeline-dynamic-8.0-VALGRIND
+    ps_version: 8.0-VALGRIND
+    branch_name: 'release-8.0-post-EOL-1'
+    mtr_opts: --unit-tests-report --big-test --retry-failure=0
+    scripts_repo: https://github.com/Percona-Lab/ps-build
+    scripts_branch: '8.0'
+    docker_os_list:
+      - ubuntu:resolute
+    sanitizer_opts_list:
+      - -DWITH_VALGRIND=ON
+      -
+    jobs:
+      - percona-server-{ps_version}-pipeline-dynamic
