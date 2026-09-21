@@ -76,13 +76,32 @@ MAX_CONSEC_FAIL = 3   // consecutive failures after which a worker assumes its n
 
 // Heavy suites are split into separate "|nobig" and "|big" queue items so the two halves
 // can run on different workers (a bare suite would run both back-to-back on one worker).
-// Ranked heaviest-first from the PS80 Valgrind walltimes
-// (jenkins/gen-suites-groups/PS80-valgrind*.txt). Note the real MTR suite name for the
-// engines funcs suite is "engines/funcs" (slash), which is what get_default_suites_80
-// returns. Light suites not listed here stay whole (one queue item, both halves together).
-HEAVY_SUITES = ['innodb', 'main', 'group_replication', 'rpl', 'clone', 'rpl_gtid',
-                'engines/funcs', 'rocksdb', 'x', 'rpl_nogtid', 'innodb_undo',
-                'component_keyring_file']
+// expandAndOrder() emits all the "|big" halves first (in this order), then the "|nobig"
+// halves, so the list must be ranked heaviest-first for good makespan.
+//
+// Ranked from combined (nobig+big) suite walltime, averaged as a share of total across all
+// nine *-valgrind*.txt data sets in jenkins/gen-suites-groups (Valgrind is the balancing-
+// critical, ~14h profile): MySQL 5.7/8.0 and PS 5.7/8.0/8.4/9.x (one is a dynamic-run summary
+// rather than the raw "<suite> <secs>" form). Averaging over only the sets where a suite is
+// present is intentional: rocksdb/percona_innodb don't exist on upstream MySQL, so their rank
+// reflects how heavy they are in the builds that DO run them (and they are ignored elsewhere).
+//
+// Suites that out-rank the tail but are deliberately excluded:
+//   - ci_fs              : the CIFS *special*, run by a dedicated worker, never queued.
+//   - router/stress/     : single-sided (≈no -big half, or a trivial one), so a big/nobig
+//     audit_log_filter     split frees almost nothing — only finer intra-suite sharding would
+//                          distribute them.
+// innodb_fts/perfschema/binlog earn their place: each showed up as a long *single* item in a
+// recent dynamic run because it had not been split (binlog even timed out). A name not present
+// in a run's suite list is simply ignored by expandAndOrder (line below), which is what makes
+// this list a safe superset across MySQL/Percona and across WITH_ROCKSDB/WITH_ROUTER on/off.
+//
+// Note the real MTR suite name for the engines funcs suite is "engines/funcs" (slash), which
+// is what get_default_suites_80 returns. Light suites not listed here stay whole (one queue
+// item, both halves together).
+HEAVY_SUITES = ['innodb', 'main', 'rpl', 'rocksdb', 'group_replication', 'clone',
+                'rpl_gtid', 'rpl_nogtid', 'percona_innodb', 'binlog', 'engines/funcs',
+                'component_keyring_file', 'innodb_undo', 'perfschema', 'x', 'innodb_fts']
 
 // @NonCPS helpers: pure data manipulation, NO pipeline steps (echo/sh/env/node) inside,
 // and NO Collection mutator calls (see note above).
