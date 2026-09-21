@@ -187,10 +187,17 @@ void sweepRunningToFailed(String owner) {
     RUNNING_SUITES = RUNNING_SUITES.findAll { k, v -> v != owner }
 }
 
-// Record one suite's wall-clock result for the end-of-run summary (reassignment, no mutators).
+// Record one suite's result for the end-of-run summary (reassignment, no mutators).
+// The diagnostic fields (spent/timeouts/fails/badTests/flaky/flakyTests) default to 0/'' for
+// callers that don't parse them (the special/unit branches); suite workers fill them from the
+// MTR log.
 @NonCPS
-void recordSuiteResult(String suite, int worker, int seq, long secs, String status) {
-    SUITE_RESULTS = SUITE_RESULTS + [[suite: suite, worker: worker, seq: seq, secs: secs, status: status]]
+void recordSuiteResult(String suite, int worker, int seq, long secs, String status,
+                       int spent = 0, int timeouts = 0, int fails = 0, String badTests = '',
+                       int flaky = 0, String flakyTests = '') {
+    SUITE_RESULTS = SUITE_RESULTS + [[suite: suite, worker: worker, seq: seq, secs: secs, status: status,
+                                      spent: spent, timeouts: timeouts, fails: fails, badTests: badTests,
+                                      flaky: flaky, flakyTests: flakyTests]]
 }
 
 // Right-pad a string to width n using only whitelisted String ops (no String.format).
@@ -211,11 +218,18 @@ String progressLine() {
     int running = RUNNING_SUITES.size()
     int queued  = (ALL_SUITES.size() - NEXT_INDEX) + (REQUEUE.size() - REQUEUE_INDEX)
     if (queued < 0) { queued = 0 }
+    // SUITE_RESULTS holds one row per ATTEMPT, so a re-queued suite appears more than once:
+    // counting rows gave "101/100 suites done" and kept an infra failure that a later attempt
+    // recovered in the fail count. Collapse to one entry per suite, keeping its latest verdict.
     // Count real suites only; the unit/CIFS/ps/KV special runs are tagged "(special: ...)".
-    def suites = SUITE_RESULTS.findAll { !it.suite.startsWith('(special') }
-    int fail = suites.findAll { it.status != 'pass' }.size()
+    def last = [:]
+    SUITE_RESULTS.each { r ->
+        if (!r.suite.startsWith('(special')) { last = last + [(r.suite): r.status] }
+    }
+    // 'flaky' means MTR retried and passed: not a failure, so it doesn't inflate the count.
+    int fail = last.findAll { k, v -> v != 'pass' && v != 'flaky' }.size()
     def now  = RUNNING_SUITES.collect { k, v -> k }.join(', ')
-    return "MTR: ${suites.size()}/${total} suites done (${fail} fail) - " +
+    return "MTR: ${last.size()}/${total} suites done (${fail} fail) - " +
            "${running} running - ${queued} queued" + (now ? " - now: ${now}" : '')
 }
 
@@ -229,17 +243,50 @@ String renderRunSummary() {
     def rows = ([] + SUITE_RESULTS).sort { a, b -> b.secs <=> a.secs }   // copy, then longest-first
     def lines = []
     lines += ['==== MTR dynamic run summary (longest first) ====']
-    lines += [pad('SUITE', 38) + pad('WORKER', 8) + pad('SEQ', 6) + pad('SECONDS', 10) + 'STATUS']
+    // PAR = effective parallelism (cumulative test-seconds / wall): a low value means the
+    // suite ran mostly serial (e.g. one hung test holding a thread). NOTE flags timeouts/fails.
+    lines += [pad('SUITE', 38) + pad('WORKER', 8) + pad('SEQ', 6) + pad('WALL', 8) + pad('PAR', 7) + pad('STATUS', 9) + 'NOTE']
+    def anomalies = []
     long total = 0
     def byWorker = [:]
     rows.each { r ->
         total += r.secs
         byWorker = byWorker + [(r.worker): ((byWorker[r.worker] ?: 0) + r.secs)]
-        lines += [pad(r.suite, 38) + pad('w' + r.worker, 8) + pad('' + r.seq, 6) + pad('' + r.secs, 10) + r.status]
+        int spent = (r.spent ?: 0)
+        int r10 = (r.secs > 0 && spent > 0) ? (int)(spent * 10L / r.secs) : 0
+        // Groovy "/" yields BigDecimal (75/10 -> 7.5), so use an int-truncating divide for
+        // the whole part; r10 % 10 is the tenths. e.g. r10=75 -> "7.5x", r10=8 -> "0.8x".
+        String par = spent > 0 ? (((int)(r10 / 10)) + '.' + (r10 % 10) + 'x') : '-'
+        // NOTE lists every failing test, not just the first, so a row is actionable without
+        // opening the log, and the labels are additive: a timed-out suite keeps its FAIL count
+        // too (the timeout label used to replace it, which hid e.g. 143 failures behind
+        // "TIMEOUT x4"). FLAKY is MTR's "unstable" verdict - failed, then passed on a retry -
+        // and is reported without failing the row, which is what MTR itself does.
+        def parts = []
+        if ((r.timeouts ?: 0) > 0) { parts += ["TIMEOUT x${r.timeouts}"] }
+        if ((r.fails ?: 0) > 0)    { parts += ["FAIL x${r.fails}: ${r.badTests}"] }
+        if ((r.flaky ?: 0) > 0)    { parts += ["FLAKY x${r.flaky}: ${r.flakyTests}"] }
+        String note = parts.join('  ')
+        if (note) { anomalies += ["${r.suite} (w${r.worker}): ${note}"] }
+        lines += [pad(r.suite, 38) + pad('w' + r.worker, 8) + pad('' + r.seq, 6) +
+                  pad('' + r.secs, 8) + pad(par, 7) + pad(r.status, 9) + note]
     }
     lines += ['---- per-worker busy time (seconds) ----']
     byWorker.each { w, secs -> lines += [pad('worker ' + w, 38) + secs] }
     lines += ["total suite-seconds: ${total}  (items: ${rows.size()})"]
+    if (anomalies) {
+        lines += ['---- anomalies (timeouts / failures / flaky) ----']
+        anomalies.each { lines += [it] }
+    }
+    // Suites that produced no row at all: never claimed (every worker left), or claimed and
+    // lost with its worker. They are in FAILED_SUITES, but the table alone made them look
+    // like they had simply not been part of the run.
+    def ran    = SUITE_RESULTS.collect { it.suite }
+    def notRun = ALL_SUITES.findAll { !ran.contains(it) }
+    if (notRun) {
+        lines += ["---- never run (${notRun.size()} of ${ALL_SUITES.size()}) ----"]
+        lines += [notRun.join(', ')]
+    }
     return lines.join('\n')
 }
 
@@ -517,10 +564,34 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
     }  // withCredentials
 }
 
+// Unique per-run tag for a suite (drives the output file names). Shared by runOneSuite and
+// the post-run diagnostics so both point at the same mtr-test_<tag>.log / walltime_<tag>.txt.
+@NonCPS
+String suiteTag(int workerId, int seq, String suite) {
+    return "${workerId}_${seq}_" + suite.replaceAll('[^A-Za-z0-9]', '_')
+}
+
 // Run a single suite pulled from the queue (normal work, no special bits).
 void runOneSuite(Integer WORKER_ID, Integer SEQ, String SUITE) {
-    String tag = "${WORKER_ID}_${SEQ}_" + SUITE.replaceAll('[^A-Za-z0-9]', '_')
-    doTests(WORKER_ID.toString(), SUITE, '', false, false, false, false, tag)
+    doTests(WORKER_ID.toString(), SUITE, '', false, false, false, false, suiteTag(WORKER_ID, SEQ, SUITE))
+}
+
+// Parse a finished suite's MTR log + walltime file for the diagnostics table (runs on the
+// worker node, where the files live). Returns spent/timeouts/fails/badTests/flaky/flakyTests
+// as strings; "fails" counts only hard failures, "flaky" the ones MTR passed on a retry.
+def suiteDiagnostics(String tag) {
+    String raw = sh(returnStdout: true, script:
+        "bash local/mtr-suite-diag.sh '${WORK_DIR}/walltimes/walltime_${tag}.txt' '${WORK_DIR}/mtr-test_${tag}.log' 2>/dev/null || echo '0|0|0||0||0'").trim()
+    def p = raw.split('\\|')
+    // "completed" defaults to 0 (here and in the fallback above), so a suite whose log could
+    // not be parsed is never reported as a pass and never checkpointed.
+    return [spent:      (p.length > 0 && p[0] ? p[0] : '0'),
+            timeouts:   (p.length > 1 && p[1] ? p[1] : '0'),
+            fails:      (p.length > 2 && p[2] ? p[2] : '0'),
+            badTests:   (p.length > 3 ? p[3] : ''),
+            flaky:      (p.length > 4 && p[4] ? p[4] : '0'),
+            flakyTests: (p.length > 5 ? p[5] : ''),
+            completed:  (p.length > 6 && p[6] ? p[6] : '0')]
 }
 
 // Primary-worker-only: unit tests + standalone tests. These need the original build tree
@@ -1356,14 +1427,65 @@ pipeline {
                                                         // cause) so no plugin class has to be referenced from the script.
                                                         nodeGone = isAgentLoss(err.toString())
                                                     } finally {
-                                                        recordSuiteResult(suite, workerId, seq,
-                                                            (long)((System.currentTimeMillis() - t0) / 1000), ok ? 'pass' : 'fail')
-                                                        // Get this suite's logs off the node now, while it is still
-                                                        // reachable, instead of waiting for the end-of-drain archive.
+                                                        long durSecs = (long)((System.currentTimeMillis() - t0) / 1000)
+                                                        // Parse the MTR log for parallelism + timeouts/failures. MTR masks
+                                                        // test failures (--max-test-fail=0 || true) so runOneSuite returns
+                                                        // OK even when tests failed/timed out; the diagnostics recover that.
+                                                        def diag = [spent: '0', timeouts: '0', fails: '0', badTests: '',
+                                                                    flaky: '0', flakyTests: '', completed: '0']
                                                         if (ok) {
-                                                            bestEffort("[worker ${workerId}] per-suite archive") {
+                                                            try { diag = suiteDiagnostics(suiteTag(workerId, seq, suite)) }
+                                                            catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException ie) { throw ie }
+                                                            catch (e) { echo "[worker ${workerId}] diag parse skipped: ${e}" }
+                                                        }
+                                                        // A suite whose only failures were recovered by a retry is 'flaky',
+                                                        // not 'fail' - MTR doesn't hard-fail the run for those either, so
+                                                        // the row no longer cries "FAIL x1" over a test that ended green.
+                                                        // 'unknown': the step returned OK but MTR never printed its
+                                                        // end-of-run line (suite killed, log missing, parse failed). The
+                                                        // runner masks MTR's exit with "|| true", so without this an empty
+                                                        // or truncated run reads as a pass and gets checkpointed.
+                                                        String st = !ok ? 'infra-fail'
+                                                                  : ((diag.timeouts as int) > 0 ? 'timeout'
+                                                                  : ((diag.fails as int) > 0 ? 'fail'
+                                                                  : ((diag.completed as int) < 1 ? 'unknown'
+                                                                  : ((diag.flaky as int) > 0 ? 'flaky' : 'pass'))))
+                                                        recordSuiteResult(suite, workerId, seq, durSecs, st,
+                                                            diag.spent as int, diag.timeouts as int, diag.fails as int, diag.badTests,
+                                                            diag.flaky as int, diag.flakyTests)
+                                                        // Get this suite's logs + JUnit XML off the node now, while it
+                                                        // is still reachable, instead of waiting for the end-of-drain
+                                                        // archive.
+                                                        boolean archived = false
+                                                        if (ok) {
+                                                            try {
                                                                 archiveSuiteLogs(workerId, suiteTag(workerId, seq, suite))
+                                                                archived = true
+                                                            } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException ie) {
+                                                                throw ie
+                                                            } catch (e) {
+                                                                echo "[worker ${workerId}] per-suite archive skipped: ${e}"
                                                             }
+                                                        }
+                                                        // Checkpoint only a suite that really passed AND whose results are
+                                                        // safely off the node. MTR masks test failures, so runOneSuite()
+                                                        // returns OK for a suite whose tests failed or timed out, and a
+                                                        // checkpoint written before the archive would let RESUME skip a
+                                                        // suite whose logs and JUnit XML died with the node.
+                                                        if (ok && archived && (st == 'pass' || st == 'flaky')) {
+                                                            bestEffort("[worker ${workerId}] checkpoint") {
+                                                                recordCheckpoint(workerId, suite)
+                                                            }
+                                                        }
+                                                        // A run that returned OK but never completed tells us nothing
+                                                        // about the suite, so treat it as a failed attempt: it is then
+                                                        // re-queued for another worker (and recorded failed once the
+                                                        // re-queue cap is hit) instead of quietly disappearing - found
+                                                        // by destroying a worker's server mid-suite. Set after the
+                                                        // archive above so the partial logs still go out.
+                                                        if (ok && st == 'unknown') {
+                                                            echo "[worker ${workerId}] '${suite}' returned OK but never completed - treating as a failed attempt"
+                                                            ok = false
                                                         }
                                                         markDone(suite)
                                                         updateProgress()
