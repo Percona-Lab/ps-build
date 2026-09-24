@@ -226,7 +226,7 @@
         block: true
         block-thresholds:
           build-step-failure-threshold: FAILURE
-          unstable-threshold: never
+          unstable-threshold: UNSTABLE
           failure-threshold: FAILURE
     - shell: |
         whoami
@@ -242,9 +242,6 @@
         echo "${{TRIGGERED_BUILD_NUMBERS_percona_server_{ps_version_no_dot}_pipeline_parallel_mtr}}" > PIPELINE_BUILD_NUMBER
         gunzip build.log.gz
     publishers:
-    - junit:
-        results: "**/*.xml"
-        keep-long-stdio: true
     - archive:
         artifacts: 'PIPELINE_BUILD_NUMBER'
 
