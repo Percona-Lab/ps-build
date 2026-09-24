@@ -29,13 +29,14 @@
         description: Reuse binaries built in the specified build. Useful for quick MTR test rerun without rebuild.
     - string:
         name: GIT_REPO
-        default: "https://github.com/percona/mysql-eol-dev"
+        default: "https://github.com/percona/percona-server"
         description: |
             Repository to build/test. Other repositories (copy into the field as needed):<br>
             https://github.com/percona/percona-server<br>
             https://github.com/percona/percona-server-private<br>
             https://github.com/percona/mysql-eol-dev<br>
-            https://github.com/percona/mysql-5.7-post-eol
+            https://github.com/percona/mysql-5.7-post-eol<br>
+            https://github.com/mysql/mysql-server
     - string:
         name: BRANCH
         default: "{branch_name}"
@@ -214,7 +215,7 @@
 - project:
     name: pipeline-dynamic-28.4
     ps_version: 28.4
-    branch_name: '28.4'
+    branch_name: 'release-26.7.0-1'
     mtr_opts: --unit-tests-report --mem --big-test
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: '8.0'
@@ -232,10 +233,12 @@
     jobs:
       - percona-server-{ps_version}-pipeline-dynamic
 
+# ----------------------- VALGRIND --------------------------------
+
 - project:
-    name: pipeline-dynamic-8.0-VALGRIND
-    ps_version: 8.0-VALGRIND
-    branch_name: 'release-8.0-post-EOL-1'
+    name: pipeline-dynamic-28.4-VALGRIND
+    ps_version: 28.4-VALGRIND
+    branch_name: 'release-26.7.0-1'
     mtr_opts: --unit-tests-report --big-test --retry-failure=0
     scripts_repo: https://github.com/Percona-Lab/ps-build
     scripts_branch: '8.0'
@@ -243,6 +246,45 @@
       - ubuntu:resolute
     sanitizer_opts_list:
       - -DWITH_VALGRIND=ON
-      -
     jobs:
       - percona-server-{ps_version}-pipeline-dynamic
+
+# ----------------------- ASAN --------------------------------
+
+- project:
+    name: pipeline-dynamic-28.4-ASAN
+    ps_version: 28.4-ASAN
+    branch_name: 'release-26.7.0-1'
+    mtr_opts: --unit-tests-report --big-test --retry-failure=0
+    scripts_repo: https://github.com/Percona-Lab/ps-build
+    scripts_branch: '8.0'
+    docker_os_list:
+      - ubuntu:resolute
+      - ubuntu:noble
+      - debian:bookworm
+    sanitizer_opts_list:
+      - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON
+      - -DWITH_ASAN=ON
+      - -DWITH_ASAN=ON -DWITH_ASAN_SCOPE=ON -DWITH_UBSAN=ON
+      - -DWITH_ASAN=ON -DWITH_UBSAN=ON
+      - -DWITH_UBSAN=ON
+      - -DWITH_MSAN=ON
+    jobs:
+      - percona-server-{ps_version}-pipeline-dynamic
+
+# ----------------------- 8.0 EOL -----------------------------
+
+#- project:
+#    name: pipeline-dynamic-8.0-VALGRIND
+#    ps_version: 8.0-VALGRIND
+#    branch_name: 'release-8.0-post-EOL-1'
+#    mtr_opts: --unit-tests-report --big-test --retry-failure=0
+#    scripts_repo: https://github.com/Percona-Lab/ps-build
+#    scripts_branch: '8.0'
+#    docker_os_list:
+#      - ubuntu:resolute
+#    sanitizer_opts_list:
+#      - -DWITH_VALGRIND=ON
+#      -
+#    jobs:
+#      - percona-server-{ps_version}-pipeline-dynamic
