@@ -642,22 +642,60 @@ void recordSpecialFailures(boolean ciFs, boolean kv, boolean psProto, boolean st
 // at the end of the drain, so a node that dies mid-run takes every log the worker produced with
 // it ("archive skipped (node may be down)") - in build 7 that lost component_keyring_file|big
 // and the unit-test run even though both had completed. Only the small per-suite files go out
-// here (console log + valgrind extracts + compressed full log); the mtr_var tarball and the
-// JUnit XMLs still wait for the end, where re-doing them per suite would be wasteful.
-void archiveSuiteLogs(Integer WORKER_ID, String TAG) {
+// here (console log + valgrind extracts + compressed full log); the mtr_var tarball waits for
+// the end, where re-doing it per suite would be wasteful. JUnit XMLs are never archived as
+// artifacts - they are ingested as Jenkins test results instead, which is the form worth
+// keeping, and that too happens per suite now (ingestJUnit below).
+//
+// Returns false when the suite left no JUnit XML. The runner always asks MTR for one
+// (--junit-output, or --xml-report when HAVE_JUNIT=0), so a missing file means its tests never
+// reached the report. MTR gets there when it dies mid-suite: it prints "Not all tests completed"
+// and the stats the completion check reads, then exits through mtr_error before the JUnit
+// writer (on 26.7 only if one of the completed tests failed, otherwise it writes a partial
+// XML). The caller must treat it as a failed attempt, not merely skip the checkpoint.
+boolean archiveSuiteLogs(Integer WORKER_ID, String TAG) {
+    String xmls = "${WORK_DIR}/results/junit_*${TAG}*.xml"
+    boolean haveXml = sh(returnStatus: true, script: "ls ${xmls} >/dev/null 2>&1") == 0
+    // Results first: a failed log upload below still blocks the checkpoint, but no longer
+    // costs the suite's tests while its XML is still on the node.
+    ingestJUnit(xmls)
     sh """#!/bin/bash
         set +e
         cd ${WORKSPACE}
         mkdir -p mtr_logs
         cp -f ${WORK_DIR}/mtr-test_${TAG}*.log* mtr_logs/ 2>/dev/null
-        # The JUnit XML goes out with it: the per-worker upload + JUnitResultArchiver only run
-        # at the end of the drain, so a node that dies later takes the XML of every suite it
-        # already finished - including ones RESUME will now skip because they are checkpointed.
-        cp -f ${WORK_DIR}/results/junit_*${TAG}*.xml mtr_logs/ 2>/dev/null
         exit 0
     """
     archiveArtifacts artifacts: 'mtr_logs/*', allowEmptyArchive: true
     sh "cd ${WORKSPACE} && rm -rf mtr_logs || :"
+    return haveXml
+}
+
+// Turn JUnit XMLs into Jenkins test results as soon as the work that produced them finishes,
+// instead of once per worker at the end of the drain: a node that dies later took the results
+// of everything it had already finished with it, and finished suites are checkpointed, so a
+// RESUME run skips them and their tests are never reported at all.
+//
+// Whatever is ingested is then deleted. Nothing in this repo reads a JUnit XML afterwards - the
+// results live in Jenkins now - and a file left behind would be published a second time by any
+// later ingest whose glob covers it (the JUnit plugin merges what it is given; it does not
+// notice a file it has already parsed). Deleting only after a successful ingest means a failed
+// one leaves the file for the leftover sweep in archiveWorkerArtifacts().
+//
+// Called per suite (tag-scoped), after the primary's unit pass (fixed junit_UNIT_TESTS.xml), and
+// first thing in archiveWorkerArtifacts() - which is how each special, alone on its own node, is
+// ingested, and which sweeps up whatever the others missed: an attempt that ended not-OK after
+// MTR wrote its XML, or an ingest that threw.
+void ingestJUnit(String xmls) {
+    // allowEmptyResults: an empty glob must not fail the caller - a worker's end-of-drain
+    // sweep normally finds nothing, and a missing suite XML is caught by archiveSuiteLogs() instead.
+    // A report with zero test cases also counts as empty to the plugin.
+    step([$class: 'JUnitResultArchiver', testResults: xmls, healthScaleFactor: 1.0,
+          keepLongStdio: false, allowEmptyResults: true])
+    // sudo: a runner that fails leaves results/ owned by mysql (docker/run-test-parallel-mtr only
+    // chowns it back on success), and a file the delete misses is published again by the sweep.
+    // No "|| :" - a delete that still fails must stop here, not pass silently.
+    sh "sudo rm -f ${xmls}"
 }
 
 // Archive everything this worker produced. Per-suite runs set SKIP_RESULTS_TARBALL=yes, so
@@ -667,6 +705,10 @@ void archiveSuiteLogs(Integer WORKER_ID, String TAG) {
 // Jenkins merges every branch's artifacts into one build. Walltimes are NOT archived (they
 // are only parsed for the end-of-run summary from work/walltimes on the node).
 void archiveWorkerArtifacts(Integer WORKER_ID) {
+    // Leftover results first, before the tarball and the uploads can throw: the XMLs a per-suite /
+    // unit / special ingest missed (see ingestJUnit). Every successful ingest deleted its file, so
+    // nothing is published twice.
+    bestEffort("[worker ${WORKER_ID}] leftover JUnit ingest") { ingestJUnit("${WORK_DIR}/results/*.xml") }
     sh """#!/bin/bash
         set +e
         cd ${WORKSPACE}
@@ -681,16 +723,15 @@ void archiveWorkerArtifacts(Integer WORKER_ID) {
         cp -f ${WORK_DIR}/mtr-test_*.log*                     mtr_logs/ 2>/dev/null
         exit 0
     """
-    // Note: results/*.xml is intentionally NOT archived as artifacts. JUnitResultArchiver
-    // below ingests them into Jenkins' test results (the useful form), and they are still
-    // synced to S3; keeping the raw XMLs as build artifacts would just be redundant.
+    // Note: results/*.xml is intentionally NOT archived as artifacts. ingestJUnit() turned
+    // them into Jenkins test results, and deleted them, as each suite / the unit pass finished;
+    // the sweep above is a special's only ingest, and otherwise picks up what those missed.
     archiveArtifacts artifacts: "mtr_var/*.tar.gz,mtr_logs/*", allowEmptyArchive: true
     // Drop the staging copies as soon as they are uploaded. cleanWorkspace would also remove
     // them via "git clean -xdf", but it is best-effort and the primary's prepareWorkspace
     // reuse-path doesn't git-clean, so a stale copy could otherwise be re-archived next build.
     sh "cd ${WORKSPACE} && rm -rf mtr_var mtr_logs || :"
     syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
-    step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0, keepLongStdio: false])
 }
 
 // Run a best-effort step: swallow an ordinary failure (a dead node must not fail the branch
@@ -1396,6 +1437,13 @@ pipeline {
                                                             recordSuiteResult('(special: unit/standalone)', workerId, 0,
                                                                 (long)((System.currentTimeMillis() - st0) / 1000), sst)
                                                             updateProgress()
+                                                            // The unit pass writes junit_UNIT_TESTS.xml - a fixed name, not
+                                                            // the run tag - and runs before this worker joins the drain, so
+                                                            // results/ holds only its XML at this point. In the finally so a
+                                                            // failed pass still reports the tests it did run.
+                                                            bestEffort("[worker ${workerId}] unit JUnit ingest") {
+                                                                ingestJUnit("${WORK_DIR}/results/*.xml")
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -1472,14 +1520,15 @@ pipeline {
                                                         recordSuiteResult(suite, workerId, seq, durSecs, st,
                                                             diag.spent as int, diag.timeouts as int, diag.fails as int, diag.badTests,
                                                             diag.flaky as int, diag.flakyTests)
-                                                        // Get this suite's logs + JUnit XML off the node now, while it
-                                                        // is still reachable, instead of waiting for the end-of-drain
+                                                        // Get this suite's JUnit results + logs off the node now, while
+                                                        // it is still reachable, instead of waiting for the end-of-drain
                                                         // archive.
                                                         boolean archived = false
+                                                        boolean noXml = false
                                                         if (ok) {
                                                             try {
-                                                                archiveSuiteLogs(workerId, suiteTag(workerId, seq, suite))
-                                                                archived = true
+                                                                noXml = !archiveSuiteLogs(workerId, suiteTag(workerId, seq, suite))
+                                                                archived = !noXml
                                                             } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException ie) {
                                                                 throw ie
                                                             } catch (e) {
@@ -1496,14 +1545,16 @@ pipeline {
                                                                 recordCheckpoint(workerId, suite)
                                                             }
                                                         }
-                                                        // A run that returned OK but never completed tells us nothing
-                                                        // about the suite, so treat it as a failed attempt: it is then
-                                                        // re-queued for another worker (and recorded failed once the
-                                                        // re-queue cap is hit) instead of quietly disappearing - found
-                                                        // by destroying a worker's server mid-suite. Set after the
-                                                        // archive above so the partial logs still go out.
-                                                        if (ok && st == 'unknown') {
-                                                            echo "[worker ${workerId}] '${suite}' returned OK but never completed - treating as a failed attempt"
+                                                        // A run that returned OK but never completed, or left no JUnit
+                                                        // XML, tells us nothing about the suite, so treat it as a failed
+                                                        // attempt: it is then re-queued for another worker (and recorded
+                                                        // failed once the re-queue cap is hit) instead of quietly
+                                                        // disappearing - found by destroying a worker's server mid-suite.
+                                                        // Set after the archive above so the partial logs still go out.
+                                                        // A failed log upload alone only blocks the checkpoint: the
+                                                        // suite's results already went in, so it is not re-run.
+                                                        if (ok && (st == 'unknown' || noXml)) {
+                                                            echo "[worker ${workerId}] '${suite}' ${noXml ? 'left no JUnit XML' : 'returned OK but never completed'} - treating as a failed attempt"
                                                             ok = false
                                                         }
                                                         markDone(suite)
@@ -1602,6 +1653,9 @@ pipeline {
                                                     recordSuiteResult("(special: ${tag})", workerId, 0,
                                                         (long)((System.currentTimeMillis() - t0) / 1000), status)
                                                     updateProgress()
+                                                    // archiveWorkerArtifacts() ingests the special's XMLs (junit_ci_fs /
+                                                    // junit_ps_protocol / junit_keyring_vault_*) before anything else;
+                                                    // this node ran only this special, so results/ holds nothing more.
                                                     bestEffort("[${tag}] archive (node may be down)") { archiveWorkerArtifacts(workerId) }
                                                     bestEffort("[${tag}] cleanup")                    { cleanWorkspace(workerId) }
                                                 }
