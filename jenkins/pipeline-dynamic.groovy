@@ -499,13 +499,13 @@ void dockerEcrLogin() {
 // token pulled from the queue; for the primary worker's special pass it is empty and only
 // the unit/CIFS/keyring-vault/ps-protocol bits run. MTR_RUN_TAG makes per-suite output file
 // names unique so many suites on one node don't overwrite each other.
-void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false, String MTR_RUN_TAG = '', String KV_VARIANT = 'all') {
+void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false, String MTR_RUN_TAG = '', String KV_VARIANT = 'all', boolean KMIP_TESTS = false) {
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
         withCredentials([
             string(credentialsId: VAULT_V1_DEV_ROOT_TOKEN, variable: VAULT_V1_DEV_ROOT_TOKEN),
             string(credentialsId: VAULT_V2_DEV_ROOT_TOKEN, variable: VAULT_V2_DEV_ROOT_TOKEN)]) {
             sh """#!/bin/bash
-                echo "Starting MTR worker ${WORKER_ID}, RUN_TAG: ${MTR_RUN_TAG}, SUITES: ${SUITES}, STANDALONE_TESTS: ${STANDALONE_TESTS}, UNIT_TESTS: ${UNIT_TESTS}, CIFS_TESTS: ${CIFS_TESTS}, KV_TESTS: ${KV_TESTS}, PS_PROTOCOL_TESTS: ${PS_PROTOCOL_TESTS}"
+                echo "Starting MTR worker ${WORKER_ID}, RUN_TAG: ${MTR_RUN_TAG}, SUITES: ${SUITES}, STANDALONE_TESTS: ${STANDALONE_TESTS}, UNIT_TESTS: ${UNIT_TESTS}, CIFS_TESTS: ${CIFS_TESTS}, KV_TESTS: ${KV_TESTS}, PS_PROTOCOL_TESTS: ${PS_PROTOCOL_TESTS}, KMIP_TESTS: ${KMIP_TESTS}"
 
                 if [[ "${CIFS_TESTS}" == "true" ]]; then
                     echo "Preparing filesystem for CIFS tests"
@@ -549,6 +549,13 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
                     echo "Enabling Keyring Vault mtr"
                     KEYRING_VAULT_MTR=yes
                 fi
+                if [[ "${KMIP_TESTS}" == "false" ]]; then
+                    echo "Disabling Keyring KMIP mtr"
+                    KEYRING_KMIP_MTR=no
+                else
+                    echo "Enabling Keyring KMIP mtr"
+                    KEYRING_KMIP_MTR=yes
+                fi
 
                 # NOTE: as in pipeline-parallel-mtr.groovy, this is passed through but no runner
                 # script reads MTR_STANDALONE_TESTS yet, so named standalone tests are not run by
@@ -574,7 +581,7 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
                 sg docker -c "
                     if [ \$(docker ps -a -q | wc -l) -ne 0 ]; then
                         docker ps -q | xargs docker stop --time 1 || :
-                        docker rm --force consul vault-prod-v{1..2} vault-dev-v{1..2} || :
+                        docker rm --force consul vault-prod-v{1..2} vault-dev-v{1..2} kms || :
                     fi
                     ./docker/run-test-parallel-mtr ${DOCKER_OS} ${WORKER_ID} ${WORKSPACE}/${WORK_DIR}
                 "
@@ -626,7 +633,7 @@ void runUnitWork(Integer WORKER_ID) {
 // On special-work failure, queue the enabled specials for rerun as pseudo-tokens.
 @NonCPS
 void recordSpecialFailures(boolean ciFs, boolean kv, boolean psProto, boolean standalone,
-                           boolean unit = false) {
+                           boolean unit = false, boolean kmip = false) {
     def tokens = []
     if (ciFs)       tokens += ['__CI_FS__']
     if (kv)         tokens += ['__KV__']
@@ -635,6 +642,7 @@ void recordSpecialFailures(boolean ciFs, boolean kv, boolean psProto, boolean st
     // The unit pass needs its own token: with MTR_STANDALONE_TESTS empty nothing was recorded
     // for it, so a failed or interrupted unit run just dropped out of the retry set.
     if (unit)       tokens += ['__UNIT__']
+    if (kmip)       tokens += ['__KMIP__']
     FAILED_SUITES = FAILED_SUITES + tokens
 }
 
@@ -955,6 +963,7 @@ void setupSuiteQueue() {
             env.CI_FS_MTR = 'no'
             env.WITH_PS_PROTOCOL = 'no'
             env.KEYRING_VAULT_MTR = 'no'
+            env.KEYRING_KMIP_MTR = 'no'
             env.MTR_STANDALONE_TESTS = ''
         } else {
             // FULL_MTR == 'no': manual run or aborted-suite rerun
@@ -1008,10 +1017,11 @@ void triggerFailedSuitesRerun() {
         def ciFs    = specials.contains('__CI_FS__') ? 'yes' : 'no'
         def kv      = specials.contains('__KV__') ? 'yes' : 'no'
         def psProto = specials.contains('__PS_PROTOCOL__') ? 'yes' : 'no'
+        def kmip    = specials.contains('__KMIP__') ? 'yes' : 'no'
         def standalone = specials.contains('__STANDALONE__') ? (env.MTR_STANDALONE_TESTS ?: '') : ''
         def unit       = specials.contains('__UNIT__')
 
-        echo "Restarting failed suites: ${realSuites} ; specials: ci_fs=${ciFs} kv=${kv} ps_protocol=${psProto} standalone='${standalone}' unit=${unit}"
+        echo "Restarting failed suites: ${realSuites} ; specials: ci_fs=${ciFs} kv=${kv} ps_protocol=${psProto} kmip=${kmip} standalone='${standalone}' unit=${unit}"
         if (unit) {
             // Recorded and reported, but not re-run automatically: unit tests need the original
             // build tree and this rerun always reuses the parent's binaries, so the only way to
@@ -1043,6 +1053,7 @@ void triggerFailedSuitesRerun() {
             string(name:'KEYRING_VAULT_MTR', value: kv),
             string(name:'KEYRING_VAULT_V1_VERSION', value: env.KEYRING_VAULT_V1_VERSION),
             string(name:'KEYRING_VAULT_V2_VERSION', value: env.KEYRING_VAULT_V2_VERSION),
+            string(name:'KEYRING_KMIP_MTR', value: kmip),
             string(name:'CLOUD', value: env.CLOUD),
             string(name:'USE_CCACHE', value: env.USE_CCACHE ?: 'yes'),
             string(name:'MTR_NUM_WORKERS', value: env.MTR_NUM_WORKERS ?: '8'),
@@ -1394,7 +1405,8 @@ pipeline {
                             boolean runKv    = env.KEYRING_VAULT_MTR?.trim() == 'yes'
                             boolean runCifs  = env.CI_FS_MTR?.trim() == 'yes'
                             boolean runPs    = env.WITH_PS_PROTOCOL?.trim() == 'yes'
-                            boolean runSpecial = runUnit || runKv || runCifs || runPs
+                            boolean runKmip  = env.KEYRING_KMIP_MTR?.trim() == 'yes'
+                            boolean runSpecial = runUnit || runKv || runCifs || runPs || runKmip
 
                             // Nothing to do at all (e.g. FULL_MTR=skip_mtr with empty queue).
                             if (queued == 0 && !runSpecial) {
@@ -1408,7 +1420,7 @@ pipeline {
                             int suiteWorkers = Math.min(requestedWorkers, queued)
                             int numWorkers   = Math.max(suiteWorkers, runUnit ? 1 : 0)
                             echo "Dynamic MTR: ${queued} suites queued, using ${numWorkers} suite worker(s) " +
-                                 "(requested ${requestedWorkers}); decoupled special: kv=${runKv} cifs=${runCifs} ps=${runPs}"
+                                 "(requested ${requestedWorkers}); decoupled special: kv=${runKv} cifs=${runCifs} ps=${runPs} kmip=${runKmip}"
 
                             // Factory so each closure captures its worker id by value (avoids the
                             // classic mutable-loop-variable capture bug in dynamic parallel).
@@ -1614,7 +1626,7 @@ pipeline {
                             // with the suite drain, so it never sits on worker 1's critical path.
                             // workerId/tag are distinct (90s) so artifacts don't collide with the
                             // suite workers (1..N).
-                            def makeSpecialWorker = { int workerId, String tag, boolean cifs, boolean kv, boolean ps, String kvVariant = 'all' ->
+                            def makeSpecialWorker = { int workerId, String tag, boolean cifs, boolean kv, boolean ps, String kvVariant = 'all', boolean kmip = false ->
                                 return {
                                     // The recorder inside the node() body can only run once the body
                                     // starts. node() itself can fail or be interrupted while the branch
@@ -1642,10 +1654,10 @@ pipeline {
                                                             prepareWorkspace(workerId, false)
                                                             downloadFilesForTests()
                                                             dockerEcrLogin()
-                                                            doTests(workerId.toString(), '', '', false, cifs, kv, ps, tag, kvVariant)
+                                                            doTests(workerId.toString(), '', '', false, cifs, kv, ps, tag, kvVariant, kmip)
                                                         } catch (err) {
                                                             status = 'fail'
-                                                            recordSpecialFailures(cifs, kv, ps, false)
+                                                            recordSpecialFailures(cifs, kv, ps, false, false, kmip)
                                                             throw err
                                                         }
                                                     }
@@ -1662,7 +1674,7 @@ pipeline {
                                             }
                                         }
                                     } catch (err) {
-                                        recordSpecialFailures(cifs, kv, ps, false)
+                                        recordSpecialFailures(cifs, kv, ps, false, false, kmip)
                                         throw err
                                     }
                                 }
@@ -1684,6 +1696,7 @@ pipeline {
                             }
                             if (runCifs) { branches['CI FS']       = makeSpecialWorker(92, 'cifs', true,  false, false) }
                             if (runPs)   { branches['PS Protocol'] = makeSpecialWorker(93, 'ps',   false, false, true)  }
+                            if (runKmip) { branches['KMIP']        = makeSpecialWorker(97, 'kmip', false, false, false, 'all', true) }
                             branches.failFast = false
                             try {
                                 parallel branches

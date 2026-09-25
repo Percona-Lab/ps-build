@@ -162,13 +162,13 @@ void cleanWorkspace(Integer WORKER_ID) {
     """
 }
 
-void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
+void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false, boolean KMIP_TESTS = false) {
     withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: AWS_CREDENTIALS_ID, secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
         withCredentials([
             string(credentialsId: VAULT_V1_DEV_ROOT_TOKEN, variable: VAULT_V1_DEV_ROOT_TOKEN),
             string(credentialsId: VAULT_V2_DEV_ROOT_TOKEN, variable: VAULT_V2_DEV_ROOT_TOKEN)]) {
             sh """#!/bin/bash
-                echo "Starting MTR worker ${WORKER_ID}, SUITES: ${SUITES}, STANDALONE_TESTS: ${STANDALONE_TESTS}, UNIT_TESTS: ${UNIT_TESTS}, CIFS_TESTS: ${CIFS_TESTS}, KV_TESTS: ${KV_TESTS}, PS_PROTOCOL_TESTS: ${PS_PROTOCOL_TESTS}"
+                echo "Starting MTR worker ${WORKER_ID}, SUITES: ${SUITES}, STANDALONE_TESTS: ${STANDALONE_TESTS}, UNIT_TESTS: ${UNIT_TESTS}, CIFS_TESTS: ${CIFS_TESTS}, KV_TESTS: ${KV_TESTS}, PS_PROTOCOL_TESTS: ${PS_PROTOCOL_TESTS}, KMIP_TESTS: ${KMIP_TESTS}"
 
                 if [[ "${CIFS_TESTS}" == "true" ]]; then
                     echo "Preparing filesystem for CIFS tests"
@@ -212,6 +212,13 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
                     echo "Enabling Keyring Vault mtr"
                     KEYRING_VAULT_MTR=yes
                 fi
+                if [[ "${KMIP_TESTS}" == "false" ]]; then
+                    echo "Disabling Keyring KMIP mtr"
+                    KEYRING_KMIP_MTR=no
+                else
+                    echo "Enabling Keyring KMIP mtr"
+                    KEYRING_KMIP_MTR=yes
+                fi
 
                 MTR_STANDALONE_TESTS="${STANDALONE_TESTS}"
                 export MTR_SUITES="${SUITES}"
@@ -221,7 +228,7 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
                 sg docker -c "
                     if [ \$(docker ps -a -q | wc -l) -ne 0 ]; then
                         docker ps -q | xargs docker stop --time 1 || :
-                        docker rm --force consul vault-prod-v{1..2} vault-dev-v{1..2} || :
+                        docker rm --force consul vault-prod-v{1..2} vault-dev-v{1..2} kms || :
                     fi
                     ./docker/run-test-parallel-mtr ${DOCKER_OS} ${WORKER_ID} ${WORKSPACE}/${WORK_DIR}
                 "
@@ -230,7 +237,7 @@ void doTests(String WORKER_ID, String SUITES, String STANDALONE_TESTS = '', bool
     }  // withCredentials
 }
 
-void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
+void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false, boolean KMIP_TESTS = false) {
     timeout(time: PIPELINE_TIMEOUT, unit: 'HOURS') {
         try {
             script {
@@ -254,7 +261,7 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
             script {
                 prepareWorkspace(WORKER_ID, UNIT_TESTS)
                 downloadFilesForTests()
-                doTests(WORKER_ID.toString(), SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
+                doTests(WORKER_ID.toString(), SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS, KMIP_TESTS)
             }
             echo "[INFO] Worker ${WORKER_ID} finished MTR testing."
         } catch (err) {
@@ -275,13 +282,13 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
     }
 }
 
-void doTestWorkerJobWithGuard(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
+void doTestWorkerJobWithGuard(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false, boolean KMIP_TESTS = false) {
     catchError(buildResult: 'UNSTABLE') {
         script {
             WORKER_ABORTED[WORKER_ID] = true
             echo "WORKER_${WORKER_ID.toString()}_ABORTED = true"
         }
-        doTestWorkerJobWithoutGuard(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
+        doTestWorkerJobWithoutGuard(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS, KMIP_TESTS)
         script {
             WORKER_ABORTED[WORKER_ID] = false
             echo "WORKER_${WORKER_ID.toString()}_ABORTED = false"
@@ -289,12 +296,12 @@ void doTestWorkerJobWithGuard(Integer WORKER_ID, String SUITES, String STANDALON
     } // catch
 }
 
-void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false) {
+void doTestWorkerJob(Integer WORKER_ID, String SUITES, String STANDALONE_TESTS = '', boolean UNIT_TESTS = false, boolean CIFS_TESTS = false, boolean KV_TESTS = false, boolean PS_PROTOCOL_TESTS = false, boolean KMIP_TESTS = false) {
     script {
         if (env.ALLOW_ABORTED_WORKERS_RERUN == 'true') {
-            doTestWorkerJobWithGuard(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
+            doTestWorkerJobWithGuard(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS, KMIP_TESTS)
         } else {
-            doTestWorkerJobWithoutGuard(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS)
+            doTestWorkerJobWithoutGuard(WORKER_ID, SUITES, STANDALONE_TESTS, UNIT_TESTS, CIFS_TESTS, KV_TESTS, PS_PROTOCOL_TESTS, KMIP_TESTS)
         }
     }
 }
@@ -491,6 +498,7 @@ void setupTestSuitesSplit() {
             env.CI_FS_MTR = 'no'
             env.WITH_PS_PROTOCOL = 'no'
             env.KEYRING_VAULT_MTR = 'no'
+            env.KEYRING_KMIP_MTR = 'no'
         }
 
         echo "WORKER_1_MTR_SUITES: ${env.WORKER_1_MTR_SUITES}"
@@ -599,6 +607,7 @@ void triggerAbortedTestWorkersRerun() {
                             string(name:'KEYRING_VAULT_MTR', value: env.KEYRING_VAULT_MTR),
                             string(name:'KEYRING_VAULT_V1_VERSION', value: env.KEYRING_VAULT_V1_VERSION),
                             string(name:'KEYRING_VAULT_V2_VERSION', value: env.KEYRING_VAULT_V2_VERSION),
+                            string(name:'KEYRING_KMIP_MTR', value: env.KEYRING_KMIP_MTR),
                             string(name:'CLOUD', value: env.CLOUD),
                             string(name:'USE_CCACHE', value: env.USE_CCACHE ?: 'yes'),
                     string(name:'FULL_MTR', value:'no'),
@@ -928,12 +937,12 @@ pipeline {
                         stage('Test 1') {
                             when {
                                 beforeAgent true
-                                expression { (env.WORKER_1_MTR_SUITES?.trim() || env.MTR_STANDALONE_TESTS?.trim() || env.CI_FS_MTR?.trim() == 'yes' || env.KEYRING_VAULT_MTR?.trim() == 'yes' || env.WITH_PS_PROTOCOL?.trim() == 'yes') }
+                                expression { (env.WORKER_1_MTR_SUITES?.trim() || env.MTR_STANDALONE_TESTS?.trim() || env.CI_FS_MTR?.trim() == 'yes' || env.KEYRING_VAULT_MTR?.trim() == 'yes' || env.WITH_PS_PROTOCOL?.trim() == 'yes' || env.KEYRING_KMIP_MTR?.trim() == 'yes') }
                             }
                             // "Test 1" reuses the same instance as "Build" and inherits "sources" + "work/build" which are required for running unit tests
                             // agent { label LABEL }
                             steps {
-                                doTestWorkerJob(1, "${WORKER_1_MTR_SUITES}", "${MTR_STANDALONE_TESTS}", true, env.CI_FS_MTR?.trim() == 'yes', env.KEYRING_VAULT_MTR?.trim() == 'yes', env.WITH_PS_PROTOCOL?.trim() == 'yes')
+                                doTestWorkerJob(1, "${WORKER_1_MTR_SUITES}", "${MTR_STANDALONE_TESTS}", true, env.CI_FS_MTR?.trim() == 'yes', env.KEYRING_VAULT_MTR?.trim() == 'yes', env.WITH_PS_PROTOCOL?.trim() == 'yes', env.KEYRING_KMIP_MTR?.trim() == 'yes')
                             }
                         }
                         stage('Test 2') {
