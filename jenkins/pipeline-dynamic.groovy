@@ -877,9 +877,10 @@ def getServerVersion() {
                 BRANCH=$(curl -s https://api.github.com/repos/percona/percona-server/pulls/$BRANCH | jq -r '.head.ref')
             fi
 
-            GIT_REPO_LINK=${GIT_REPO}
-            if [[ "${GIT_REPO}" =~ (post-eol|private|eol-dev) ]]; then
-                GIT_REPO_LINK=$(echo ${GIT_REPO} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
+            # Drop a trailing slash: "repo/" + "/${BRANCH}/..." gives a "//" raw URL that GitHub 307-redirects
+            GIT_REPO_LINK=${GIT_REPO%/}
+            if [[ "${GIT_REPO_LINK}" =~ (post-eol|private|eol-dev) ]]; then
+                GIT_REPO_LINK=$(echo ${GIT_REPO_LINK} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
             fi
             RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
 
@@ -921,9 +922,10 @@ void setupSuiteQueue() {
         set -xe
         rm -f ${WORKSPACE}/suites.flat
         if [[ "${FULL_MTR}" == "yes" ]]; then
-            GIT_REPO_LINK=${GIT_REPO}
-            if [[ "${GIT_REPO}" =~ (post-eol|private|eol-dev) ]]; then
-                GIT_REPO_LINK=$(echo ${GIT_REPO} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
+            # Drop a trailing slash: "repo/" + "/${BRANCH}/..." gives a "//" raw URL that GitHub 307-redirects
+            GIT_REPO_LINK=${GIT_REPO%/}
+            if [[ "${GIT_REPO_LINK}" =~ (post-eol|private|eol-dev) ]]; then
+                GIT_REPO_LINK=$(echo ${GIT_REPO_LINK} | sed -e "s|github|x-access-token:${JNKPercona_token}@github|g")
             fi
             RAW_VERSION_LINK=$(echo ${GIT_REPO_LINK%.git} | sed -e "s:github.com:raw.githubusercontent.com:g")
 
