@@ -664,6 +664,52 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     echo KH,SUITE_TOTAL,KEYRING_VAULT_tests,time,$runtime
 fi
 
+if [[ ${KEYRING_KMIP_MTR} == 'yes' ]]; then
+    echo "Running KEYRING_KMIP tests"
+    start=`date +%s`
+
+    MTR_ARGS_KK=${MTR_ARGS}
+
+    if [[ $BIG_TEST == "1" ]]; then
+        MTR_ARGS_KK+=" --big-test"
+    fi
+
+    # Source KMIP environment variables
+    if [ -f /tmp/certs/kmip_vars.sh ]; then
+        source /tmp/certs/kmip_vars.sh
+    else
+        echo "WARNING: /tmp/certs/kmip_vars.sh not found; bootstrap-cosmian may not have run. Falling back to defaults."
+    fi
+
+    echo "Running tests with Cosmian KMIP server"
+    KMIP_MTR_PARALLEL=${KMIP_MTR_PARALLEL:-1}
+    KMIP_ADDR=${KMIP_ADDR:-127.0.0.1} \
+    KMIP_PORT=${KMIP_PORT:-5696} \
+    KMIP_CLIENT_CA=${KMIP_CLIENT_CA:-/tmp/certs/mysql-client-cert.pem} \
+    KMIP_CLIENT_KEY=${KMIP_CLIENT_KEY:-/tmp/certs/mysql-client-key.pem} \
+    KMIP_SERVER_CA=${KMIP_SERVER_CA:-/tmp/certs/vault-kmip-ca.pem} \
+    MTR_BUILD_THREAD=auto ./mtr \
+        --force \
+        --max-test-fail=0 \
+        --parallel=$KMIP_MTR_PARALLEL \
+        --retry=0 \
+        ${MTR_ARGS_KK} \
+        ${ANALYZER_MTR_ARGS} \
+        --suite=component_keyring_kmip \
+        --junit-output=${RESULTS_DIR}/junit_keyring_kmip.xml \
+        --junit-package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.keyring_kmip" || true
+
+    ln -s $PWD/var $PWD/var_kmip
+    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kmip ${RESULTS_DIR}/mtr_var
+
+    killall -9 mysqld || true
+    rm -rf $PWD/var_kmip
+
+    end=`date +%s`
+    runtime=$((end-start))
+    echo KH,SUITE_TOTAL,KEYRING_KMIP_tests,time,$runtime
+fi
+
 rm -fr ${EXTRACT_DIR}/mysql-test/var
 # Keep the extracted tree when REUSE_EXTRACT=yes so the next suite on this worker
 # (dynamic pipeline) doesn't have to re-extract binary.tar.gz.

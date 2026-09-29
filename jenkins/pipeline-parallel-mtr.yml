@@ -141,6 +141,12 @@
         default: "1.9.0"
         description: Specifies version of Hashicorp Vault for V2 tests
     - choice:
+        name: KEYRING_KMIP_MTR
+        choices:
+        - "no"
+        - "yes"
+        description: Run mtr --suite=component_keyring_kmip
+    - choice:
         name: CLOUD
         choices:
         - "auto"

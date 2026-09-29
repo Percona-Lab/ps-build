@@ -25,13 +25,21 @@ if [[ $(uname -m) == "aarch64" ]]; then
   ARCH_SUFFIX="-aarch64"
 fi
 
+# For rootless Docker: capture host user/group IDs to fix permissions after build
+# If HOST_UID not set, use current user (useful for local development)
+HOST_UID=${HOST_UID:-$(id -u)}
+HOST_GID=${HOST_GID:-$(id -g)}
+
 ROOT_DIR=$(cd $(dirname $0)/..; pwd -P)
 SCRIPTS_DIR=$ROOT_DIR/local
 SOURCES_DIR=$ROOT_DIR/sources
 
 WORK_DIR=${2:-$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}}
-rm -rf $WORK_DIR
-mkdir $WORK_DIR
+if [[ -d "${WORK_DIR}" ]]; then
+    sudo chown -R "${HOST_UID}:${HOST_GID}" "${WORK_DIR}" 2>/dev/null || true
+fi
+rm -rf "${WORK_DIR}" 2>/dev/null || sudo rm -rf "${WORK_DIR}"
+mkdir -p "${WORK_DIR}"
 
 # Ensure .ccache directory exists for Docker mounting
 mkdir -p "${ROOT_DIR}/.ccache"
@@ -85,5 +93,7 @@ docker run --rm \
     bash -x /tmp/scripts/build-binary /tmp/work /tmp/sources
 
     rm -rf /tmp/work/source_downloads
-    sudo chown $(id -u):$(id -g) /tmp/work /tmp/sources /tmp/sources/mysql-test/collections \$MYROCKS_DIR /tmp/ccache || :
 "
+
+# Fix permissions on the HOST after docker exits (rootless Docker compatible)
+sudo chown -R "${HOST_UID}:${HOST_GID}" "${WORK_DIR}" "${SOURCES_DIR}" "${ROOT_DIR}/.ccache" 2>/dev/null || true

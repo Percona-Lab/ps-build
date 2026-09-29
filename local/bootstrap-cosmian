@@ -1,0 +1,221 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+
+usage () {
+    cat <<EOF
+Usage: $0 [OPTIONS]
+    The following options may be given:
+        --network            Docker network for KMS container (default: bridge-kmip)
+        --container-name     KMS container name (default: kms)
+        --kmip-address       Network alias/hostname for KMIP (default: kms)
+        --kmip-port          Host port mapped to KMIP (default: 5696)
+        --http-port          Host port mapped to HTTP API (default: 9998)
+        --work-dir           Working directory for generated config/certs (default: /tmp/cosmian-kms)
+        --certs-dir          Directory with certs mounted into test container (default: /tmp/certs)
+        --kms-image          Cosmian KMS Docker image (default: ghcr.io/cosmian/kms:5.17.0)
+        --help
+EOF
+    exit 1
+}
+
+parse_arguments() {
+    for arg in "$@"; do
+        val=$(echo "$arg" | sed -e 's;^--[^=]*=;;')
+        case "$arg" in
+            --network=*) NETWORK="$val" ;;
+            --container-name=*) CONTAINER_NAME="$val" ;;
+            --kmip-address=*) KMIP_ADDR="$val" ;;
+            --kmip-port=*) KMIP_PORT="$val" ;;
+            --http-port=*) HTTP_PORT="$val" ;;
+            --work-dir=*) WORK_DIR="$val" ;;
+            --certs-dir=*) CERTS_DIR="$val" ;;
+            --kms-image=*) KMS_IMAGE="$val" ;;
+            --help) usage ;;
+            *) usage ;;
+        esac
+    done
+}
+
+prepare_workspace() {
+    rm -rf "${WORK_DIR}" "${CERTS_DIR}"
+    mkdir -p "${WORK_DIR}/data" "${CERTS_DIR}"
+}
+
+generate_certs() {
+    local days=365
+    local subj_prefix="/C=US/ST=State/L=City/O=Testing"
+
+    openssl genrsa -out "${WORK_DIR}/ca.key" 4096
+    openssl req -x509 -new -nodes -key "${WORK_DIR}/ca.key" -sha256 -days "${days}" \
+        -subj "${subj_prefix}/CN=Shared-Test-CA" \
+        -extensions v3_ca \
+        -config <(cat /etc/ssl/openssl.cnf <(printf "[v3_ca]\nbasicConstraints=critical,CA:TRUE\nkeyUsage=critical,digitalSignature,keyCertSign")) \
+        -out "${WORK_DIR}/ca.crt"
+
+    openssl genrsa -out "${WORK_DIR}/server.key" 2048
+    openssl req -new -key "${WORK_DIR}/server.key" -subj "${subj_prefix}/CN=${KMIP_ADDR}" -out "${WORK_DIR}/server.csr"
+    cat > "${WORK_DIR}/server.ext" <<EOF
+subjectAltName = DNS:${KMIP_ADDR},DNS:localhost,IP:127.0.0.1
+EOF
+    openssl x509 -req -in "${WORK_DIR}/server.csr" -CA "${WORK_DIR}/ca.crt" -CAkey "${WORK_DIR}/ca.key" \
+        -CAcreateserial -out "${WORK_DIR}/server.crt" -days "${days}" -sha256 -extfile "${WORK_DIR}/server.ext"
+
+    openssl genrsa -out "${WORK_DIR}/client.key" 2048
+    openssl req -new -key "${WORK_DIR}/client.key" -subj "${subj_prefix}/CN=test-user" -out "${WORK_DIR}/client.csr"
+    openssl x509 -req -in "${WORK_DIR}/client.csr" -CA "${WORK_DIR}/ca.crt" -CAkey "${WORK_DIR}/ca.key" \
+        -CAcreateserial -out "${WORK_DIR}/client.crt" -days "${days}" -sha256
+
+    rm -f "${WORK_DIR}"/*.csr "${WORK_DIR}"/*.srl "${WORK_DIR}/server.ext"
+}
+
+prepare_kms_data() {
+    cp "${WORK_DIR}/ca.crt" "${WORK_DIR}/data/ca.crt"
+    cp "${WORK_DIR}/server.crt" "${WORK_DIR}/data/server.crt"
+    cp "${WORK_DIR}/server.key" "${WORK_DIR}/data/server.key"
+
+    cat > "${WORK_DIR}/data/kms.toml" <<EOF
+vendor_identification = "cosmian"
+default_username = "test-user"
+force_default_username = false
+info = false
+hsm_model = ""
+hsm_admin = ""
+hsm_slot = []
+hsm_password = []
+
+[db]
+database_type = "sqlite"
+sqlite_path = "/kms-data/sqlite-data"
+clear_database = false
+unwrapped_cache_max_age = 15
+
+[socket_server]
+socket_server_start = true
+socket_server_port = 5696
+socket_server_hostname = "0.0.0.0"
+
+[tls]
+tls_cert_file = "/data/server.crt"
+tls_key_file = "/data/server.key"
+clients_ca_cert_file = "/data/ca.crt"
+
+[http]
+port = 9998
+hostname = "0.0.0.0"
+
+[proxy]
+
+[idp_auth]
+
+[ui_config]
+ui_index_html_folder = "/usr/local/cosmian/ui/dist/"
+
+[ui_config.ui_oidc_auth]
+
+[google_cse_config]
+google_cse_enable = false
+google_cse_disable_tokens_validation = false
+
+[azure_ekm_config]
+azure_ekm_enable = false
+
+[workspace]
+root_data_path = "/kms-data/cosmian-kms"
+tmp_path = "/tmp"
+
+[logging]
+quiet = false
+log_to_syslog = false
+enable_metering = false
+environment = "development"
+ansi_colors = false
+
+[aws_xks_config]
+aws_xks_enable = false
+
+[kmip]
+policy_id = "DEFAULT"
+
+[kmip.allowlists]
+EOF
+
+    cp "${WORK_DIR}/ca.crt" "${CERTS_DIR}/vault-kmip-ca.pem"
+    cp "${WORK_DIR}/client.crt" "${CERTS_DIR}/mysql-client-cert.pem"
+    cp "${WORK_DIR}/client.key" "${CERTS_DIR}/mysql-client-key.pem"
+    chmod 644 "${CERTS_DIR}/vault-kmip-ca.pem" "${CERTS_DIR}/mysql-client-cert.pem" "${CERTS_DIR}/mysql-client-key.pem"
+
+    cat > "${CERTS_DIR}/kmip_vars.sh" <<EOF
+export CERTS_DIR="${CERTS_DIR}"
+export KMIP_ADDR="${KMIP_ADDR}"
+export KMIP_PORT="${KMIP_PORT}"
+export KMIP_CLIENT_CA="\$CERTS_DIR/mysql-client-cert.pem"
+export KMIP_CLIENT_KEY="\$CERTS_DIR/mysql-client-key.pem"
+export KMIP_SERVER_CA="\$CERTS_DIR/vault-kmip-ca.pem"
+EOF
+    chmod 644 "${CERTS_DIR}/kmip_vars.sh"
+}
+
+start_server() {
+    if ! docker network inspect "${NETWORK}" >/dev/null 2>&1; then
+        docker network create "${NETWORK}" >/dev/null || :
+    fi
+
+    docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || :
+    # Cosmian's sqlite backend fsyncs on every write. Backing it with the
+    # container's default (disk-backed) writable layer means every KMIP
+    # register/activate call competes for host disk I/O with the rest of the
+    # parallel build/test workload, which gets worse the more KMIP write
+    # traffic a test generates (e.g. many master key rotations in quick
+    # succession). Put it on tmpfs instead: the data is ephemeral for the
+    # life of this container anyway (wiped by prepare_workspace() on the
+    # next bootstrap), so there is nothing to gain from real persistence.
+    # --cpu-shares gives it a relative scheduling priority boost (default is
+    # 1024) so it isn't starved when the host is CPU-saturated.
+    docker run -d --name "${CONTAINER_NAME}" \
+        --network "${NETWORK}" --network-alias "${KMIP_ADDR}" \
+        -p "${KMIP_PORT}:5696" -p "${HTTP_PORT}:9998" \
+        -v "${WORK_DIR}/data:/data" \
+        --tmpfs /kms-data:rw,size=512m \
+        --cpu-shares=2048 \
+        -e RUST_LOG=warn \
+        "${KMS_IMAGE}" \
+        /bin/cosmian_kms \
+        --config /data/kms.toml >/dev/null
+}
+
+wait_ready() {
+    for _ in $(seq 1 30); do
+        if (echo > /dev/tcp/127.0.0.1/"${KMIP_PORT}") >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 1
+    done
+
+    echo "Cosmian KMS is not reachable on port ${KMIP_PORT}"
+    docker logs "${CONTAINER_NAME}" || :
+    exit 1
+}
+
+main() {
+    NETWORK=bridge-kmip
+    CONTAINER_NAME=kms
+    KMIP_ADDR=kms
+    KMIP_PORT=5696
+    HTTP_PORT=9998
+    WORK_DIR=/tmp/cosmian-kms
+    CERTS_DIR=/tmp/certs
+    KMS_IMAGE=ghcr.io/cosmian/kms:5.17.0
+
+    parse_arguments "$@"
+    prepare_workspace
+    generate_certs
+    prepare_kms_data
+    start_server
+    wait_ready
+
+    echo "KMIP bootstrap complete"
+}
+
+main "$@"

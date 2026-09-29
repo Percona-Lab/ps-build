@@ -50,11 +50,24 @@ if [[ $(uname -m) == "aarch64" ]]; then
   ARCH_SUFFIX="-aarch64"
 fi
 
+# For rootless Docker: capture host user/group IDs to fix permissions after tests
+# If HOST_UID not set, use current user (useful for local testing)
+HOST_UID=${HOST_UID:-$(id -u)}
+HOST_GID=${HOST_GID:-$(id -g)}
+
 ROOT_DIR=$(cd $(dirname $0)/..; pwd -P)
 SCRIPTS_DIR=$ROOT_DIR/local
 # SOURCES_DIR is only required by an original build in ${WORK_DIR}/build to run unit tests
 SOURCES_DIR=$ROOT_DIR/sources
 mkdir -p ${SOURCES_DIR}
+KMIP_CONTAINER_NAME=${KMIP_CONTAINER_NAME:-kms}
+
+cleanup_kmip() {
+    if [[ "${KEYRING_KMIP_MTR}" == 'yes' ]]; then
+        docker rm -f "${KMIP_CONTAINER_NAME}" >/dev/null 2>&1 || :
+    fi
+}
+trap cleanup_kmip EXIT
 
 WORK_DIR=${3:-$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}}
 ls -l ${ROOT_DIR}
@@ -70,10 +83,13 @@ if [[ ${CI_FS_MTR} == 'yes' ]]; then
     CI_FS_DOCKER_FLAG="--mount type=bind,source=/mnt/ci_disk_dir_${CMAKE_BUILD_TYPE},destination=/tmp/ci_disk_dir"
 fi
 
+TEST_DOCKER_NETWORK=
+
 if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
-    if [[ $(docker network list | grep bridge-vault) != *bridge-vault* ]]; then
+    if ! docker network inspect bridge-vault >/dev/null 2>&1; then
         docker network create bridge-vault
     fi
+    TEST_DOCKER_NETWORK=bridge-vault
 
     # Bootstrap only the vault instance(s) needed for the selected KV_VARIANT, so a
     # single-variant worker doesn't pay for the other three.
@@ -104,7 +120,26 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         sudo install --owner=1001 --group=1001 /tmp/vault.d-v2-prod/ssl/ca.pem ${WORK_DIR}/cert/vault-prod-v2-ca.pem
     fi
 
-    VAULT_DOCKER_FLAG="--network bridge-vault"
+fi
+
+if [[ "${KEYRING_KMIP_MTR}" == 'yes' ]]; then
+    KMIP_ADDR=${KMIP_ADDR:-kms}
+    KMIP_PORT=${KMIP_PORT:-5696}
+    KMIP_DOCKER_NETWORK=${TEST_DOCKER_NETWORK:-bridge-kmip}
+    TEST_DOCKER_NETWORK=${KMIP_DOCKER_NETWORK}
+
+    bash "${SCRIPTS_DIR}/bootstrap-cosmian" \
+        --network="${KMIP_DOCKER_NETWORK}" \
+        --container-name="${KMIP_CONTAINER_NAME}" \
+        --kmip-address="${KMIP_ADDR}" \
+        --kmip-port="${KMIP_PORT}" \
+        --http-port=9998
+
+    export KMIP_MOUNT_CERTS="--mount type=bind,source=/tmp/certs,destination=/tmp/certs"
+fi
+
+if [[ -n "${TEST_DOCKER_NETWORK}" ]]; then
+    TEST_DOCKER_NETWORK_FLAG="--network ${TEST_DOCKER_NETWORK}"
 fi
 
 # Verify bind mount source paths exist before docker run
@@ -123,7 +158,8 @@ docker run --rm --shm-size=32G \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
     --mount type=bind,source=${WORK_DIR},destination=/tmp/work \
     ${CI_FS_DOCKER_FLAG} \
-    ${VAULT_DOCKER_FLAG} \
+    ${TEST_DOCKER_NETWORK_FLAG} \
+    ${KMIP_MOUNT_CERTS} \
     public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE}${ARCH_SUFFIX} \
     sh -c "
     set -o errexit
@@ -140,6 +176,9 @@ docker run --rm --shm-size=32G \
     export WITH_PS_PROTOCOL='${WITH_PS_PROTOCOL}'
     export KEYRING_VAULT_MTR='${KEYRING_VAULT_MTR}'
     export KV_VARIANT='${KV_VARIANT}'
+    export KEYRING_KMIP_MTR='${KEYRING_KMIP_MTR}'
+    export KMIP_ADDR='${KMIP_ADDR}'
+    export KMIP_PORT='${KMIP_PORT}'
     export WORKER_NO='${WORKER_NO}'
     export VAULT_V1_DEV_ADDRESS='http://vault-dev-v1:9200'
     export VAULT_V2_DEV_ADDRESS='http://vault-dev-v2:9400'
@@ -164,13 +203,15 @@ docker run --rm --shm-size=32G \
     export USER='mysql'
 
     sudo chown mysql:mysql /tmp/work
+    sudo chown -R mysql:mysql /tmp/work/build || :
+    sudo chown -R mysql:mysql /tmp/work/extract || :
     sudo chown -R mysql:mysql /tmp/work/results || :
 
     bash -x /tmp/scripts/test-binary-parallel-mtr /tmp/work/
-
-    sudo chown $(id -u):$(id -g) /tmp/work
-    sudo chown -R $(id -u):$(id -g) /tmp/work/results
 " 2>&1 | tee ${WORK_DIR}/mtr-test_${MTR_RUN_TAG}.log
+
+# Fix permissions on the HOST after docker exits (rootless Docker compatible)
+sudo chown -R "${HOST_UID}:${HOST_GID}" "${WORK_DIR}" 2>/dev/null || true
 
 cd $WORK_DIR
 whoami
