@@ -613,6 +613,21 @@ def suiteDiagnostics(String tag) {
             completed:  (p.length > 6 && p[6] ? p[6] : '0')]
 }
 
+// Read a special's JUnit report (runs on the worker node, before archiveWorkerArtifacts() ingests
+// and deletes it). 'none': the special left no junit_*.xml. 'setup-failure' / 'setup-skipped':
+// special_report (local/test-binary-parallel-mtr) wrote its single "setup" test case because the
+// special could not run / had nothing to test. 'report': anything else, i.e. mtr's own report.
+String specialReportVerdict() {
+    return sh(returnStdout: true, script: """#!/bin/bash
+        cd ${WORK_DIR}/results 2>/dev/null && ls junit_*.xml >/dev/null 2>&1 || { echo none; exit 0; }
+        case "\$(grep -hs -A1 -E '<testcase name="setup" class="[^"]*[.]setup"' junit_*.xml | grep -oE '<(failure|skipped)' | head -1)" in
+            '<failure') echo setup-failure ;;
+            '<skipped') echo setup-skipped ;;
+            *)          echo report ;;
+        esac
+    """).trim()
+}
+
 // Primary-worker-only: unit tests + standalone tests. These need the original build tree
 // ("sources/" + "work/build"), which only exists on the reused build node, so they must run
 // on the primary. They are cheap relative to the queue, so they run once before the primary
@@ -1631,6 +1646,7 @@ pipeline {
                                             timeout(time: PIPELINE_TIMEOUT, unit: 'HOURS') {
                                                 long t0 = System.currentTimeMillis()
                                                 String status = 'pass'
+                                                boolean ran = false
                                                 try {
                                                     catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE', catchInterruptions: false) {
                                                         try {
@@ -1645,6 +1661,7 @@ pipeline {
                                                             downloadFilesForTests()
                                                             dockerEcrLogin()
                                                             doTests(workerId.toString(), '', '', false, cifs, kv, ps, tag, kvVariant)
+                                                            ran = true
                                                         } catch (err) {
                                                             status = 'fail'
                                                             recordSpecialFailures(cifs, kv, ps, false)
@@ -1652,8 +1669,42 @@ pipeline {
                                                         }
                                                     }
                                                 } finally {
+                                                    def diag = [spent: '0', timeouts: '0', fails: '0', badTests: '',
+                                                                flaky: '0', flakyTests: '', completed: '0']
+                                                    if (ran) {
+                                                        // doTests() returning only means the special was attempted:
+                                                        // run_special_mtr masks mtr's exit status ("|| true"), so read
+                                                        // the verdict the way a suite worker does, from the MTR log,
+                                                        // plus the JUnit report (before archiveWorkerArtifacts() ingests
+                                                        // and deletes it) for a special that could not run at all.
+                                                        String report = 'none'
+                                                        try {
+                                                            report = specialReportVerdict()
+                                                            diag = suiteDiagnostics(tag)
+                                                        } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException ie) {
+                                                            throw ie
+                                                        } catch (e) {
+                                                            echo "[${tag}] result parse skipped: ${e}"
+                                                        }
+                                                        status = report == 'setup-skipped' ? 'skipped'
+                                                               : (report == 'setup-failure' ? 'infra-fail'
+                                                               : ((diag.timeouts as int) > 0 ? 'timeout'
+                                                               : ((diag.fails as int) > 0 ? 'fail'
+                                                               : ((diag.completed as int) < 1 ? 'unknown'
+                                                               : ((diag.flaky as int) > 0 ? 'flaky' : 'pass')))))
+                                                        // As for a suite: test failures are reported, not re-run, but a
+                                                        // special that could not run, never completed or left no report
+                                                        // says nothing about its tests, so it is queued for the rerun.
+                                                        if (status == 'infra-fail' || status == 'unknown' || report == 'none') {
+                                                            echo "[${tag}] special did not complete (status ${status}, report ${report}) - queued for rerun"
+                                                            unstable("special '${tag}' did not complete")
+                                                            recordSpecialFailures(cifs, kv, ps, false)
+                                                        }
+                                                    }
                                                     recordSuiteResult("(special: ${tag})", workerId, 0,
-                                                        (long)((System.currentTimeMillis() - t0) / 1000), status)
+                                                        (long)((System.currentTimeMillis() - t0) / 1000), status,
+                                                        diag.spent as int, diag.timeouts as int, diag.fails as int, diag.badTests,
+                                                        diag.flaky as int, diag.flakyTests)
                                                     updateProgress()
                                                     // archiveWorkerArtifacts() ingests the special's XMLs (junit_ci_fs /
                                                     // junit_ps_protocol / junit_keyring_vault_*) before anything else;
