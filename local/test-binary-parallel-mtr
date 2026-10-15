@@ -400,6 +400,78 @@ fi
 
 
 #
+# Special (non-suite) MTR runs: CI FS, PS protocol, Keyring Vault.
+#
+# A special that cannot run is reported through its junit_<tag>.xml, like a test failure, and
+# never by exiting non-zero: on the static pipeline a non-zero exit marks worker 1 as aborted
+# and its rerun repeats every suite and special of that worker.
+
+# special_report <tag> <failure|skipped> <message>
+#   Writes junit_<tag>.xml with a single "setup" test case carrying the message, in the layout
+#   mtr's own JUnit output uses.
+function special_report() {
+    local tag=$1
+    local kind=$2
+    local msg=$3
+    local package="${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.${tag}"
+    local failures=0 skipped=0
+
+    [[ "${kind}" == "failure" ]] && failures=1 || skipped=1
+    echo "${kind^^}: ${tag}: ${msg}"
+    msg=${msg//&/\&amp;}
+    msg=${msg//</\&lt;}
+    msg=${msg//>/\&gt;}
+    msg=${msg//\"/\&quot;}
+    cat > "${RESULTS_DIR}/junit_${tag}.xml" <<EOF
+<testsuites>
+  <testsuite name="${package}.setup" errors="0" failures="${failures}" package="${package}" skip="${skipped}" tests="1" time="0">
+    <testcase name="setup" class="${tag}.setup" time="0">
+      <${kind} message="${msg}"/>
+    </testcase>
+  </testsuite>
+</testsuites>
+EOF
+}
+
+# run_special_mtr <tag> <vardir> <mtr command...>
+#   Runs the mtr command with the JUnit/xml-report arguments for junit_<tag>.xml appended,
+#   collects the *.err logs from <vardir> into mtr_var/var_<tag> and kills leftover servers.
+#   The command runs with "|| true" (test failures are reported through the XML); when mtr
+#   died before writing any report, a failed "setup" test case takes its place.
+function run_special_mtr() {
+    local tag=$1
+    local vardir=$2
+    shift 2
+    local report="${RESULTS_DIR}/junit_${tag}.xml"
+    local report_args
+
+    if [[ "${HAVE_JUNIT}" == "1" ]]; then
+        report_args=" --junit-output=${report} --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.${tag}"
+    else
+        report_args=" --xml-report=${report}"
+    fi
+    # A report left over from an earlier run on this node must not satisfy the check below.
+    rm -f "${report}"
+
+    MTR_BUILD_THREAD=auto "$@" ${report_args} || true
+
+    # mtr that dies at startup never creates its vardir, and rsync fails on a dangling link.
+    # Collecting logs must not abort the script: the other specials and the tarball still run.
+    if [[ -d "${vardir}" ]]; then
+        ln -s "${vardir}" $PWD/var_${tag}
+        rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_${tag} ${RESULTS_DIR}/mtr_var \
+            || echo "WARNING: could not collect the logs of ${tag}"
+        rm -rf $PWD/var_${tag}
+    fi
+
+    killall -9 mysqld || true
+
+    if [[ ! -s "${report}" ]]; then
+        special_report "${tag}" failure "mtr produced no test report; see its output in the worker log"
+    fi
+}
+
+#
 # CI FS tests
 if [[ "${CI_FS_MTR}" == 'yes' ]]; then
     echo "Running CI FS tests"
@@ -432,13 +504,8 @@ if [[ "${CI_FS_MTR}" == 'yes' ]]; then
     done
     set -x
 
-    if [[ "${HAVE_JUNIT}" == "1" ]]; then
-        JUNIT_CI_FS_ARGS=" --junit-output=${RESULTS_DIR}/junit_ci_fs.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.ci_fs"
-    else
-        JUNIT_CI_FS_ARGS=" --xml-report=${RESULTS_DIR}/junit_ci_fs.xml"
-    fi
-
-    MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
+    run_special_mtr ci_fs /tmp/ci_disk_dir/var \
+        ./mysql-test-run.pl \
         --result-file \
         --force ${MYSQLD_ENV} \
         --max-test-fail=0 \
@@ -449,14 +516,7 @@ if [[ "${CI_FS_MTR}" == 'yes' ]]; then
         --tmpdir="/tmp/ps_mtr_tempdir" \
         --vardir="/tmp/ci_disk_dir/var" \
         ${CI_TESTS} \
-        ${ANALYZER_MTR_ARGS} \
-        ${JUNIT_CI_FS_ARGS} || true
-
-    ln -s /tmp/ci_disk_dir/var $PWD/var_ci_fs
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ci_fs ${RESULTS_DIR}/mtr_var
-
-    killall -9 mysqld || true
-    rm -rf $PWD/var_ci_fs
+        ${ANALYZER_MTR_ARGS}
 
     end=`date +%s`
     runtime=$((end-start))
@@ -489,13 +549,8 @@ if [[ "${SERVER_VERSION}" != 5.7.* && "${WITH_PS_PROTOCOL}" == 'yes' ]]; then
     done
     set -x
 
-    if [[ "${HAVE_JUNIT}" == "1" ]]; then
-        JUNIT_PS_PROTOCOL_ARGS=" --junit-output=${RESULTS_DIR}/junit_ps_protocol.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.ps_protocol"
-    else
-        JUNIT_PS_PROTOCOL_ARGS=" --xml-report=${RESULTS_DIR}/junit_ps_protocol.xml"
-    fi
-
-    MTR_BUILD_THREAD=auto ./mysql-test-run.pl \
+    run_special_mtr ps_protocol $PWD/var \
+        ./mysql-test-run.pl \
         --result-file \
         --force ${MYSQLD_ENV} \
         --max-test-fail=0 \
@@ -505,14 +560,7 @@ if [[ "${SERVER_VERSION}" != 5.7.* && "${WITH_PS_PROTOCOL}" == 'yes' ]]; then
         --testcase-timeout=${TESTCASE_TIMEOUT} \
         ${MTR_ARGS_PS} \
         ${PS_TESTS} \
-        ${ANALYZER_MTR_ARGS} \
-        ${JUNIT_PS_PROTOCOL_ARGS} || true
-
-    ln -s $PWD/var $PWD/var_ps_protocol
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_ps_protocol ${RESULTS_DIR}/mtr_var
-
-    killall -9 mysqld || true
-    rm -rf $PWD/var_ps_protocol
+        ${ANALYZER_MTR_ARGS}
 
     end=`date +%s`
     runtime=$((end-start))
@@ -541,122 +589,57 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
         fi
     fi
 
+    # run_vault_mtr <tag> <MTR_VAULT_* env assignments...>
+    run_vault_mtr() {
+        local tag=$1
+        shift
+        run_special_mtr "${tag}" $PWD/var \
+            env "$@" ./mtr \
+            --force \
+            --max-test-fail=0 \
+            --parallel=$PARALLEL \
+            --retry=0 \
+            ${MTR_ARGS_KV} \
+            ${MTR_ARGS_KV_SUITE} \
+            ${ANALYZER_MTR_ARGS}
+    }
+
     if kv_want dev_v1; then
-    echo "Running tests with Hashicorp Vault in Dev mode (v1)"
-    if [[ "${HAVE_JUNIT}" == "1" ]]; then
-        JUNIT_VAULT_V1_DEV_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v1.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_dev_v1"
-    else
-        JUNIT_VAULT_V1_DEV_TC_ARGS=" --xml-report=${RESULTS_DIR}/junit_keyring_vault_dev_v1.xml"
-    fi
-
-    MTR_VAULT_ADDRESS=${VAULT_V1_DEV_ADDRESS} \
-    MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_DEV_ROOT_TOKEN} \
-    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_DEV_MTR_TOKEN} \
-    MTR_VAULT_VERSION=1 \
-    MTR_BUILD_THREAD=auto ./mtr \
-        --force \
-        --max-test-fail=0 \
-        --parallel=$PARALLEL \
-        --retry=0 \
-        ${MTR_ARGS_KV} \
-        ${MTR_ARGS_KV_SUITE} \
-        ${ANALYZER_MTR_ARGS} \
-        ${JUNIT_VAULT_V1_DEV_TC_ARGS} || true
-
-    ln -s $PWD/var $PWD/var_kv1_dev
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv1_dev ${RESULTS_DIR}/mtr_var
-
-    killall -9 mysqld || true
-    rm -rf $PWD/var_kv1_dev
+        echo "Running tests with Hashicorp Vault in Dev mode (v1)"
+        run_vault_mtr keyring_vault_dev_v1 \
+            MTR_VAULT_ADDRESS="${VAULT_V1_DEV_ADDRESS}" \
+            MTR_VAULT_ADMIN_TOKEN="${VAULT_V1_DEV_ROOT_TOKEN}" \
+            MTR_VAULT_PLUGIN_TOKEN="${VAULT_V1_DEV_MTR_TOKEN}" \
+            MTR_VAULT_VERSION=1
     fi
 
     if kv_want dev_v2; then
-    echo "Running tests with Hashicorp Vault in Dev mode (v2)"
-    if [[ "${HAVE_JUNIT}" == "1" ]]; then
-        JUNIT_VAULT_V2_DEV_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_dev_v2.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_dev_v2"
-    else
-        JUNIT_VAULT_V2_DEV_TC_ARGS=" --xml-report=${RESULTS_DIR}/junit_keyring_vault_dev_v2.xml"
-    fi
-
-    MTR_VAULT_ADDRESS=${VAULT_V2_DEV_ADDRESS} \
-    MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_DEV_ROOT_TOKEN} \
-    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_DEV_MTR_TOKEN} \
-    MTR_VAULT_VERSION=2 \
-    MTR_BUILD_THREAD=auto ./mtr \
-        --force \
-        --max-test-fail=0 \
-        --parallel=$PARALLEL \
-        --retry=0 \
-        ${MTR_ARGS_KV} \
-        ${MTR_ARGS_KV_SUITE} \
-        ${ANALYZER_MTR_ARGS} \
-        ${JUNIT_VAULT_V2_DEV_TC_ARGS} || true
-
-    ln -s $PWD/var $PWD/var_kv2_dev
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv2_dev ${RESULTS_DIR}/mtr_var
-
-    killall -9 mysqld || true
-    rm -rf $PWD/var_kv2_dev
+        echo "Running tests with Hashicorp Vault in Dev mode (v2)"
+        run_vault_mtr keyring_vault_dev_v2 \
+            MTR_VAULT_ADDRESS="${VAULT_V2_DEV_ADDRESS}" \
+            MTR_VAULT_ADMIN_TOKEN="${VAULT_V2_DEV_ROOT_TOKEN}" \
+            MTR_VAULT_PLUGIN_TOKEN="${VAULT_V2_DEV_MTR_TOKEN}" \
+            MTR_VAULT_VERSION=2
     fi
 
     if kv_want prod_v1; then
-    echo "Running tests with Hashicorp Vault in Production mode (v1)"
-    if [[ "${HAVE_JUNIT}" == "1" ]]; then
-        JUNIT_VAULT_V1_PROD_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v1.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_prod_v1"
-    else
-        JUNIT_VAULT_V1_PROD_TC_ARGS=" --xml-report=${RESULTS_DIR}/junit_keyring_vault_prod_v1.xml"
-    fi
-
-    MTR_VAULT_ADDRESS=${VAULT_V1_PROD_ADDRESS} \
-    MTR_VAULT_ADMIN_TOKEN=${VAULT_V1_PROD_ROOT_TOKEN} \
-    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V1_PROD_MTR_TOKEN} \
-    MTR_VAULT_CA="${WORKDIR}/cert/vault-prod-v1-ca.pem" \
-    MTR_VAULT_VERSION=1 \
-    MTR_BUILD_THREAD=auto ./mtr \
-        --force \
-        --max-test-fail=0 \
-        --parallel=$PARALLEL \
-        --retry=0 \
-        ${MTR_ARGS_KV} \
-        ${MTR_ARGS_KV_SUITE} \
-        ${ANALYZER_MTR_ARGS} \
-        ${JUNIT_VAULT_V1_PROD_TC_ARGS} || true
-
-    ln -s $PWD/var $PWD/var_kv1_prod
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv1_prod ${RESULTS_DIR}/mtr_var
-
-    killall -9 mysqld || true
-    rm -rf $PWD/var_kv1_prod
+        echo "Running tests with Hashicorp Vault in Production mode (v1)"
+        run_vault_mtr keyring_vault_prod_v1 \
+            MTR_VAULT_ADDRESS="${VAULT_V1_PROD_ADDRESS}" \
+            MTR_VAULT_ADMIN_TOKEN="${VAULT_V1_PROD_ROOT_TOKEN}" \
+            MTR_VAULT_PLUGIN_TOKEN="${VAULT_V1_PROD_MTR_TOKEN}" \
+            MTR_VAULT_CA="${WORKDIR}/cert/vault-prod-v1-ca.pem" \
+            MTR_VAULT_VERSION=1
     fi
 
     if kv_want prod_v2; then
-    echo "Running tests with Hashicorp Vault in Production mode (v2)"
-    if [[ "${HAVE_JUNIT}" == "1" ]]; then
-        JUNIT_VAULT_V2_PROD_TC_ARGS=" --junit-output=${RESULTS_DIR}/junit_keyring_vault_prod_v2.xml --junit-package=${DOCKER_OS}.${CMAKE_BUILD_TYPE}.WORKER_${WORKER_NO}.keyring_vault_prod_v2"
-    else
-        JUNIT_VAULT_V2_PROD_TC_ARGS=" --xml-report=${RESULTS_DIR}/junit_keyring_vault_prod_v2.xml"
-    fi
-
-    MTR_VAULT_ADDRESS=${VAULT_V2_PROD_ADDRESS} \
-    MTR_VAULT_ADMIN_TOKEN=${VAULT_V2_PROD_ROOT_TOKEN} \
-    MTR_VAULT_PLUGIN_TOKEN=${VAULT_V2_PROD_MTR_TOKEN} \
-    MTR_VAULT_CA="${WORKDIR}/cert/vault-prod-v2-ca.pem" \
-    MTR_VAULT_VERSION=2 \
-    MTR_BUILD_THREAD=auto ./mtr \
-        --force \
-        --max-test-fail=0 \
-        --parallel=$PARALLEL \
-        --retry=0 \
-        ${MTR_ARGS_KV} \
-        ${MTR_ARGS_KV_SUITE} \
-        ${ANALYZER_MTR_ARGS} \
-        ${JUNIT_VAULT_V2_PROD_TC_ARGS} || true
-
-    ln -s $PWD/var $PWD/var_kv2_prod
-    rsync -a -L --prune-empty-dirs --include '*/' --include '*.err' --exclude '*' $PWD/var_kv2_prod ${RESULTS_DIR}/mtr_var
-
-    killall -9 mysqld || true
-    rm -rf $PWD/var_kv2_prod
+        echo "Running tests with Hashicorp Vault in Production mode (v2)"
+        run_vault_mtr keyring_vault_prod_v2 \
+            MTR_VAULT_ADDRESS="${VAULT_V2_PROD_ADDRESS}" \
+            MTR_VAULT_ADMIN_TOKEN="${VAULT_V2_PROD_ROOT_TOKEN}" \
+            MTR_VAULT_PLUGIN_TOKEN="${VAULT_V2_PROD_MTR_TOKEN}" \
+            MTR_VAULT_CA="${WORKDIR}/cert/vault-prod-v2-ca.pem" \
+            MTR_VAULT_VERSION=2
     fi
 
     end=`date +%s`
@@ -675,8 +658,11 @@ cd ${WORKDIR}
 # The dynamic pipeline accumulates mtr_var across many per-suite invocations and
 # tars it once at worker end, so it sets SKIP_RESULTS_TARBALL=yes here.
 if [[ "${SKIP_RESULTS_TARBALL:-no}" != "yes" ]]; then
+    # Nothing creates mtr_var when no suite or special got to run; the tarball is still written.
+    mkdir -p ${RESULTS_DIR}/mtr_var
     tar -C ${RESULTS_DIR} --owner=0 --group=0 -czf "${RESULTS_DIR}/ps80-test-mtr_logs-${MTR_RUN_TAG:-$WORKER_NO}.tar.gz" mtr_var
 fi
 
 ls -l ${WORKDIR}
 ls -l ${RESULTS_DIR}
+
