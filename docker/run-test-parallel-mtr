@@ -59,6 +59,8 @@ source "${SCRIPTS_DIR}/utils.inc.sh"
 # SOURCES_DIR is only required by an original build in ${WORK_DIR}/build to run unit tests
 SOURCES_DIR=$ROOT_DIR/sources
 mkdir -p ${SOURCES_DIR}
+KMIP_CONTAINER_NAME=${KMIP_CONTAINER_NAME:-kms}
+KMIP_CERTS_DIR=${KMIP_CERTS_DIR:-/tmp/certs}
 
 WORK_DIR=${3:-$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}}
 
@@ -82,6 +84,9 @@ restore_ownership() {
 cleanup() {
     local status=$?
     restore_ownership || { [[ ${status} -ne 0 ]] || status=1; }
+    if [[ "${KEYRING_KMIP_MTR}" == 'yes' ]]; then
+        docker rm -f "${KMIP_CONTAINER_NAME}" "${KMIP_CONTAINER_NAME}-probe" >/dev/null 2>&1 || :
+    fi
     exit "${status}"
 }
 trap cleanup EXIT
@@ -98,10 +103,13 @@ if [[ ${CI_FS_MTR} == 'yes' ]]; then
     CI_FS_DOCKER_FLAG="--mount type=bind,source=/mnt/ci_disk_dir_${CMAKE_BUILD_TYPE},destination=/tmp/ci_disk_dir"
 fi
 
+TEST_DOCKER_NETWORK=
+
 if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
-    if [[ $(docker network list | grep bridge-vault) != *bridge-vault* ]]; then
+    if ! docker network inspect bridge-vault >/dev/null 2>&1; then
         docker network create bridge-vault
     fi
+    TEST_DOCKER_NETWORK=bridge-vault
 
     # Bootstrap only the vault instance(s) needed for the selected KV_VARIANT, so a
     # single-variant worker doesn't pay for the other three.
@@ -132,7 +140,33 @@ if [[ "${KEYRING_VAULT_MTR}" == 'yes' ]]; then
         sudo install --owner=1001 --group=1001 /tmp/vault.d-v2-prod/ssl/ca.pem ${WORK_DIR}/cert/vault-prod-v2-ca.pem
     fi
 
-    VAULT_DOCKER_FLAG="--network bridge-vault"
+fi
+
+if [[ "${KEYRING_KMIP_MTR}" == 'yes' ]]; then
+    KMIP_ADDR=${KMIP_ADDR:-kms}
+    # Shares the Vault network when Vault runs too.
+    TEST_DOCKER_NETWORK=${TEST_DOCKER_NETWORK:-bridge-kmip}
+
+    # The test container reaches the KMS by network alias on 5696 (exported by kmip_vars.sh).
+    # The test image itself, already pulled, doubles as the in-network readiness probe.
+    # A KMS that fails to come up must not abort the worker's suites and other specials: without
+    # kmip_vars.sh, test-binary-parallel-mtr reports keyring_kmip as a failed JUnit "setup" case.
+    if ! bash "${SCRIPTS_DIR}/bootstrap-cosmian" \
+            --network="${TEST_DOCKER_NETWORK}" \
+            --container-name="${KMIP_CONTAINER_NAME}" \
+            --kmip-address="${KMIP_ADDR}" \
+            --certs-dir="${KMIP_CERTS_DIR}" \
+            --probe-image="${TEST_IMAGE}"; then
+        echo "WARNING: bootstrap-cosmian failed; keyring_kmip will be reported as failed"
+        rm -f "${KMIP_CERTS_DIR}/kmip_vars.sh"
+        mkdir -p "${KMIP_CERTS_DIR}"
+    fi
+
+    KMIP_MOUNT_CERTS="--mount type=bind,source=${KMIP_CERTS_DIR},destination=/tmp/certs"
+fi
+
+if [[ -n "${TEST_DOCKER_NETWORK}" ]]; then
+    TEST_DOCKER_NETWORK_FLAG="--network ${TEST_DOCKER_NETWORK}"
 fi
 
 # Verify bind mount source paths exist before docker run
@@ -151,7 +185,8 @@ docker run --rm --shm-size=32G \
     --mount type=bind,source=${SCRIPTS_DIR},destination=/tmp/scripts \
     --mount type=bind,source=${WORK_DIR},destination=/tmp/work \
     ${CI_FS_DOCKER_FLAG} \
-    ${VAULT_DOCKER_FLAG} \
+    ${TEST_DOCKER_NETWORK_FLAG} \
+    ${KMIP_MOUNT_CERTS} \
     ${TEST_IMAGE} \
     sh -c "
     set -o errexit
@@ -168,6 +203,7 @@ docker run --rm --shm-size=32G \
     export WITH_PS_PROTOCOL='${WITH_PS_PROTOCOL}'
     export KEYRING_VAULT_MTR='${KEYRING_VAULT_MTR}'
     export KV_VARIANT='${KV_VARIANT}'
+    export KEYRING_KMIP_MTR='${KEYRING_KMIP_MTR}'
     export WORKER_NO='${WORKER_NO}'
     export VAULT_V1_DEV_ADDRESS='http://vault-dev-v1:9200'
     export VAULT_V2_DEV_ADDRESS='http://vault-dev-v2:9400'
