@@ -386,3 +386,81 @@ function check_suites() {
 
   return ${failure}
 }
+
+# docker_is_rootless: true when the Docker daemon runs rootless. Container users then map to
+# subordinate uids the host user cannot touch, so ownership has to be handed back explicitly.
+function docker_is_rootless() {
+    docker info -f '{{.SecurityOptions}}' 2>/dev/null | grep -q rootless
+}
+
+# restore_host_ownership [-R] <path>...
+#   Gives the existing paths among <path>... back to HOST_UID:HOST_GID (default: the current
+#   user). If host sudo is unavailable, rootful Docker can restore ownership using the
+#   already-used OWNERSHIP_IMAGE. Rootless Docker needs host sudo because its container
+#   uid/gid namespace does not match the host. Failed restoration is an error in either case.
+function restore_host_ownership() {
+    local opts=() paths=() mounts=() targets=() path target
+    local owner="${HOST_UID:-$(id -u)}:${HOST_GID:-$(id -g)}"
+    if [[ "$1" == "-R" ]]; then
+        opts=(-R)
+        shift
+    fi
+    for path in "$@"; do
+        if [[ -e "${path}" ]]; then
+            paths+=("${path}")
+        fi
+    done
+    if [[ ${#paths[@]} -eq 0 ]]; then
+        return 0
+    fi
+    if sudo -n chown "${opts[@]}" -- "${owner}" "${paths[@]}" 2>/dev/null; then
+        return 0
+    fi
+
+    if [[ -n "${OWNERSHIP_IMAGE}" ]] && ! docker_is_rootless; then
+        for path in "${paths[@]}"; do
+            path=$(realpath -e -- "${path}") || return 1
+            target="/restore/${#targets[@]}"
+            mounts+=(--mount "type=bind,source=${path},destination=${target}")
+            targets+=("${target}")
+        done
+        if docker run --rm --network none --user 0:0 --entrypoint chown \
+                "${mounts[@]}" "${OWNERSHIP_IMAGE}" "${opts[@]}" -- "${owner}" "${targets[@]}"; then
+            return 0
+        fi
+    fi
+
+    echo "ERROR: could not restore ownership of ${paths[*]} to ${owner}" >&2
+    return 1
+}
+
+# restore_build_ownership <work_dir> <sources_dir> [<extra path>...]
+#   Hands what a build container wrote back to the host user. With rootful Docker only
+#   <work_dir> itself and the tarball need to be host-owned; build/ stays mysql's, so the test
+#   container doesn't have to chown it back. Under rootless Docker mysql maps to a subordinate
+#   uid the host user cannot touch, so the whole <work_dir> is handed back. In <sources_dir>
+#   only the directories the build container gave to mysql (build-binary generates files
+#   there) are restored, plus any extra paths (e.g. the ccache directory).
+function restore_build_ownership() {
+    local work_dir=$1
+    local sources_dir=$2
+    local status=0
+    shift 2
+    if docker_is_rootless; then
+        restore_host_ownership -R "${work_dir}" || status=1
+    else
+        restore_host_ownership "${work_dir}" "${work_dir}"/*.tar.gz || status=1
+    fi
+    restore_host_ownership "${sources_dir}" "${sources_dir}/mysql-test/collections" \
+        "${sources_dir}/storage/rocksdb/rocksdb/util" "${sources_dir}/rocksdb/util" "$@" || status=1
+    return "${status}"
+}
+
+# Preserve the build's failure status, while making cleanup failure fail a successful build.
+# Returns that status; the EXIT trap has to pass it to exit, e.g.
+#   trap 'cleanup_build_ownership <work_dir> <sources_dir>; exit $?' EXIT
+function cleanup_build_ownership() {
+    local status=$?
+    restore_build_ownership "$@" || { [[ ${status} -ne 0 ]] || status=1; }
+    return "${status}"
+}
