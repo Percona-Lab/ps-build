@@ -400,7 +400,7 @@ fi
 
 
 #
-# Special (non-suite) MTR runs: CI FS, PS protocol, Keyring Vault.
+# Special (non-suite) MTR runs: CI FS, PS protocol, Keyring Vault, Keyring KMIP.
 #
 # A special that cannot run is reported through its junit_<tag>.xml, like a test failure, and
 # never by exiting non-zero: on the static pipeline a non-zero exit marks worker 1 as aborted
@@ -645,6 +645,44 @@ if [[ ${KEYRING_VAULT_MTR} == 'yes' ]]; then
     end=`date +%s`
     runtime=$((end-start))
     echo KH,SUITE_TOTAL,KEYRING_VAULT_tests,time,$runtime
+fi
+
+if [[ ${KEYRING_KMIP_MTR} == 'yes' ]]; then
+    echo "Running KEYRING_KMIP tests"
+    start=`date +%s`
+
+    MTR_ARGS_KK=${MTR_ARGS}
+
+    if [[ $BIG_TEST == "1" ]]; then
+        MTR_ARGS_KK+=" --big-test"
+    fi
+
+    if [[ ! -d ${EXTRACT_DIR}/mysql-test/suite/component_keyring_kmip ]]; then
+        # A server version without the KMIP keyring component: nothing to test.
+        special_report keyring_kmip skipped "this tree has no component_keyring_kmip suite"
+    elif [[ ! -f /tmp/certs/kmip_vars.sh ]]; then
+        # docker/run-test-parallel-mtr mounts the certs dir whenever KEYRING_KMIP_MTR=yes.
+        special_report keyring_kmip failure "/tmp/certs/kmip_vars.sh not found; bootstrap-cosmian did not prepare the KMIP runtime"
+    else
+        # Exports KMIP_ADDR/KMIP_PORT/KMIP_CLIENT_CA/KMIP_CLIENT_KEY/KMIP_SERVER_CA for the suite.
+        source /tmp/certs/kmip_vars.sh
+
+        echo "Running tests with Cosmian KMIP server"
+        # Serial by design: every test of the suite works against the same KMS container.
+        run_special_mtr keyring_kmip $PWD/var \
+            ./mtr \
+            --force \
+            --max-test-fail=0 \
+            --parallel=1 \
+            --retry=0 \
+            ${MTR_ARGS_KK} \
+            ${ANALYZER_MTR_ARGS} \
+            --suite=component_keyring_kmip
+    fi
+
+    end=`date +%s`
+    runtime=$((end-start))
+    echo KH,SUITE_TOTAL,KEYRING_KMIP_tests,time,$runtime
 fi
 
 rm -fr ${EXTRACT_DIR}/mysql-test/var

@@ -1,0 +1,261 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+
+usage () {
+    cat <<EOF
+Usage: $0 [OPTIONS]
+    The following options may be given:
+        --network            Docker network for KMS container (default: bridge-kmip)
+        --container-name     KMS container name (default: kms)
+        --kmip-address       Network alias/hostname for KMIP (default: kms)
+        --work-dir           Working directory for generated config/certs (default: /tmp/cosmian-kms)
+        --certs-dir          Directory for client certs + kmip_vars.sh, to be mounted into
+                             the test container (default: /tmp/certs)
+        --kms-image          Cosmian KMS Docker image (default: ghcr.io/cosmian/kms:5.17.0)
+        --probe-image        Image with openssl used to check readiness from inside --network
+                             (default: public.ecr.aws/e7j3v3n0/ps-build:ubuntu-jammy)
+        --help
+
+    Nothing is published on the host: clients on --network reach the KMS as
+    <kmip-address>:5696, which is what the generated kmip_vars.sh exports.
+EOF
+    exit 1
+}
+
+parse_arguments() {
+    for arg in "$@"; do
+        val=$(echo "$arg" | sed -e 's;^--[^=]*=;;')
+        case "$arg" in
+            --network=*) NETWORK="$val" ;;
+            --container-name=*) CONTAINER_NAME="$val" ;;
+            --kmip-address=*) KMIP_ADDR="$val" ;;
+            --work-dir=*) WORK_DIR="$val" ;;
+            --certs-dir=*) CERTS_DIR="$val" ;;
+            --kms-image=*) KMS_IMAGE="$val" ;;
+            --probe-image=*) PROBE_IMAGE="$val" ;;
+            --help) usage ;;
+            *) usage ;;
+        esac
+    done
+}
+
+prepare_workspace() {
+    rm -rf "${WORK_DIR}" "${CERTS_DIR}"
+    mkdir -p "${WORK_DIR}/data" "${CERTS_DIR}"
+}
+
+generate_certs() {
+    local days=365
+    local subj_prefix="/C=US/ST=State/L=City/O=Testing"
+
+    # Self-contained config for the CA: the system openssl.cnf lives in different places on
+    # Debian (/etc/ssl) and RHEL-like (/etc/pki/tls) agents, and -addext needs OpenSSL >= 1.1.1.
+    cat > "${WORK_DIR}/ca.cnf" <<EOF
+[req]
+distinguished_name = req_dn
+[req_dn]
+[v3_ca]
+basicConstraints = critical,CA:TRUE
+keyUsage = critical,digitalSignature,keyCertSign
+subjectKeyIdentifier = hash
+EOF
+
+    openssl genrsa -out "${WORK_DIR}/ca.key" 4096
+    openssl req -x509 -new -nodes -key "${WORK_DIR}/ca.key" -sha256 -days "${days}" \
+        -subj "${subj_prefix}/CN=Shared-Test-CA" \
+        -config "${WORK_DIR}/ca.cnf" \
+        -extensions v3_ca \
+        -out "${WORK_DIR}/ca.crt"
+
+    openssl genrsa -out "${WORK_DIR}/server.key" 2048
+    openssl req -new -key "${WORK_DIR}/server.key" -subj "${subj_prefix}/CN=${KMIP_ADDR}" -out "${WORK_DIR}/server.csr"
+    cat > "${WORK_DIR}/server.ext" <<EOF
+subjectAltName = DNS:${KMIP_ADDR},DNS:localhost,IP:127.0.0.1
+EOF
+    openssl x509 -req -in "${WORK_DIR}/server.csr" -CA "${WORK_DIR}/ca.crt" -CAkey "${WORK_DIR}/ca.key" \
+        -CAcreateserial -out "${WORK_DIR}/server.crt" -days "${days}" -sha256 -extfile "${WORK_DIR}/server.ext"
+
+    # Sign with extensions: without -extfile, OpenSSL 1.1.x "x509 -req" emits an X.509 v1
+    # certificate. Cosmian KMS 5.17 accepts it, but strict verifiers reject v1 client certs.
+    openssl genrsa -out "${WORK_DIR}/client.key" 2048
+    openssl req -new -key "${WORK_DIR}/client.key" -subj "${subj_prefix}/CN=test-user" -out "${WORK_DIR}/client.csr"
+    cat > "${WORK_DIR}/client.ext" <<EOF
+basicConstraints = CA:FALSE
+keyUsage = critical,digitalSignature
+extendedKeyUsage = clientAuth
+EOF
+    openssl x509 -req -in "${WORK_DIR}/client.csr" -CA "${WORK_DIR}/ca.crt" -CAkey "${WORK_DIR}/ca.key" \
+        -CAcreateserial -out "${WORK_DIR}/client.crt" -days "${days}" -sha256 -extfile "${WORK_DIR}/client.ext"
+
+    rm -f "${WORK_DIR}"/*.csr "${WORK_DIR}"/*.srl "${WORK_DIR}"/*.ext "${WORK_DIR}/ca.cnf"
+}
+
+prepare_kms_data() {
+    cp "${WORK_DIR}/ca.crt" "${WORK_DIR}/data/ca.crt"
+    cp "${WORK_DIR}/server.crt" "${WORK_DIR}/data/server.crt"
+    cp "${WORK_DIR}/server.key" "${WORK_DIR}/data/server.key"
+
+    cat > "${WORK_DIR}/data/kms.toml" <<EOF
+vendor_identification = "cosmian"
+default_username = "test-user"
+force_default_username = false
+info = false
+hsm_model = ""
+hsm_admin = ""
+hsm_slot = []
+hsm_password = []
+
+[db]
+database_type = "sqlite"
+sqlite_path = "/kms-data/sqlite-data"
+clear_database = false
+unwrapped_cache_max_age = 15
+
+[socket_server]
+socket_server_start = true
+socket_server_port = 5696
+socket_server_hostname = "0.0.0.0"
+
+[tls]
+tls_cert_file = "/data/server.crt"
+tls_key_file = "/data/server.key"
+clients_ca_cert_file = "/data/ca.crt"
+
+[http]
+port = 9998
+hostname = "0.0.0.0"
+
+[proxy]
+
+[idp_auth]
+
+[ui_config]
+ui_index_html_folder = "/usr/local/cosmian/ui/dist/"
+
+[ui_config.ui_oidc_auth]
+
+[google_cse_config]
+google_cse_enable = false
+google_cse_disable_tokens_validation = false
+
+[azure_ekm_config]
+azure_ekm_enable = false
+
+[workspace]
+root_data_path = "/kms-data/cosmian-kms"
+tmp_path = "/tmp"
+
+[logging]
+quiet = false
+log_to_syslog = false
+enable_metering = false
+environment = "development"
+ansi_colors = false
+
+[aws_xks_config]
+aws_xks_enable = false
+
+[kmip]
+policy_id = "DEFAULT"
+
+[kmip.allowlists]
+EOF
+
+    cp "${WORK_DIR}/ca.crt" "${CERTS_DIR}/vault-kmip-ca.pem"
+    cp "${WORK_DIR}/client.crt" "${CERTS_DIR}/mysql-client-cert.pem"
+    cp "${WORK_DIR}/client.key" "${CERTS_DIR}/mysql-client-key.pem"
+    chmod 644 "${CERTS_DIR}/vault-kmip-ca.pem" "${CERTS_DIR}/mysql-client-cert.pem" "${CERTS_DIR}/mysql-client-key.pem"
+
+    # CERTS_DIR is resolved from the file's own location, so the same kmip_vars.sh works on the
+    # host and in a test container that mounts --certs-dir elsewhere. KMIP_PORT is the
+    # in-network port (kms.toml socket_server_port).
+    cat > "${CERTS_DIR}/kmip_vars.sh" <<EOF
+export CERTS_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+export KMIP_ADDR="${KMIP_ADDR}"
+export KMIP_PORT="5696"
+export KMIP_CLIENT_CA="\$CERTS_DIR/mysql-client-cert.pem"
+export KMIP_CLIENT_KEY="\$CERTS_DIR/mysql-client-key.pem"
+export KMIP_SERVER_CA="\$CERTS_DIR/vault-kmip-ca.pem"
+EOF
+    chmod 644 "${CERTS_DIR}/kmip_vars.sh"
+}
+
+start_server() {
+    if ! docker network inspect "${NETWORK}" >/dev/null 2>&1; then
+        docker network create "${NETWORK}" >/dev/null || :
+    fi
+
+    docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || :
+    # Cosmian's sqlite backend fsyncs on every write. Backing it with the
+    # container's default (disk-backed) writable layer means every KMIP
+    # register/activate call competes for host disk I/O with the rest of the
+    # parallel build/test workload, which gets worse the more KMIP write
+    # traffic a test generates (e.g. many master key rotations in quick
+    # succession). Put it on tmpfs instead: the data is ephemeral for the
+    # life of this container anyway (wiped by prepare_workspace() on the
+    # next bootstrap), so there is nothing to gain from real persistence.
+    # --cpu-shares gives it a relative scheduling priority boost (default is
+    # 1024) so it isn't starved when the host is CPU-saturated.
+    # No -p: clients reach the KMS over the bridge network, and a published port would make
+    # the run abort with "port is already allocated" whenever something on the agent holds it.
+    docker run -d --name "${CONTAINER_NAME}" \
+        --network "${NETWORK}" --network-alias "${KMIP_ADDR}" \
+        -v "${WORK_DIR}/data:/data" \
+        --tmpfs /kms-data:rw,size=512m \
+        --cpu-shares=2048 \
+        -e RUST_LOG=warn \
+        "${KMS_IMAGE}" \
+        --config /data/kms.toml >/dev/null
+}
+
+wait_ready() {
+    # Probe the way the tests connect: from a throwaway container on the same network, to
+    # <kmip-address>:5696. A completed TLS handshake verified against our CA can only come from
+    # cosmian_kms itself (the client cert is offered, but the KMS checks it only after the
+    # handshake, so this proves readiness, not client-cert acceptance). The KMS image has no
+    # openssl, hence a separate probe image (run as root so it can read the 0600 client key).
+    local probe_name="${CONTAINER_NAME}-probe"
+    docker rm -f "${probe_name}" >/dev/null 2>&1 || :
+    for _ in $(seq 1 60); do
+        if timeout 20 docker run --rm --name "${probe_name}" --network "${NETWORK}" --user root \
+                -v "${WORK_DIR}:/kms:ro" --entrypoint timeout "${PROBE_IMAGE}" \
+                5 openssl s_client -connect "${KMIP_ADDR}:5696" \
+                -CAfile /kms/ca.crt -cert /kms/client.crt -key /kms/client.key \
+                -verify_return_error </dev/null >/dev/null 2>&1; then
+            return 0
+        fi
+        docker rm -f "${probe_name}" >/dev/null 2>&1 || :
+        if [[ "$(docker inspect -f '{{.State.Running}}' "${CONTAINER_NAME}" 2>/dev/null)" != "true" ]]; then
+            echo "Cosmian KMS container ${CONTAINER_NAME} is not running"
+            break
+        fi
+        sleep 1
+    done
+
+    echo "Cosmian KMS is not reachable at ${KMIP_ADDR}:5696 on network ${NETWORK}"
+    docker logs "${CONTAINER_NAME}" || :
+    exit 1
+}
+
+main() {
+    NETWORK=bridge-kmip
+    CONTAINER_NAME=kms
+    KMIP_ADDR=kms
+    WORK_DIR=/tmp/cosmian-kms
+    CERTS_DIR=/tmp/certs
+    KMS_IMAGE=ghcr.io/cosmian/kms:5.17.0
+    PROBE_IMAGE=public.ecr.aws/e7j3v3n0/ps-build:ubuntu-jammy
+
+    parse_arguments "$@"
+    prepare_workspace
+    generate_certs
+    prepare_kms_data
+    start_server
+    wait_ready
+
+    echo "KMIP bootstrap complete"
+}
+
+main "$@"
