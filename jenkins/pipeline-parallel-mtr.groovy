@@ -261,14 +261,16 @@ void doTestWorkerJobWithoutGuard(Integer WORKER_ID, String SUITES, String STANDA
             echo "[WARNING] Worker ${WORKER_ID} failed with error: ${err}"
             throw err // rethrow so outer catchError or pipeline failure handling still works
         } finally {
-            archiveArtifacts "${WORK_DIR}/*.log*,${WORK_DIR}/walltimes/*.txt,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
+            try {
+                archiveArtifacts "${WORK_DIR}/*.log*,${WORK_DIR}/walltimes/*.txt,${WORK_DIR}/results/ps80-test-mtr_logs-*.tar.gz"
 
-            // This is questionable. Do we need result XMLs in S3 cache while Jenkins archives them as well?
-            syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
-            step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0, keepLongStdio: false])
-
-            // cleanup before marking success
-            cleanWorkspace(WORKER_ID)
+                // This is questionable. Do we need result XMLs in S3 cache while Jenkins archives them as well?
+                syncDirToS3("./${WORK_DIR}/results/", "${BUILD_TAG_BINARIES}", 'mtr_var/*')
+                step([$class: 'JUnitResultArchiver', testResults: "${WORK_DIR}/results/*.xml", healthScaleFactor: 1.0, keepLongStdio: false])
+            } finally {
+                // Cleanup must also run when artifact or report publishing fails.
+                cleanWorkspace(WORKER_ID)
+            }
 
             echo "[INFO] Worker ${WORKER_ID} completed."
         }
@@ -531,8 +533,10 @@ void triggerAbortedTestWorkersRerun() {
                 WORKER_1_RERUN_SUITES = env.WORKER_1_MTR_SUITES
                 rerunNeeded = true
             } else {
-                // Prevent CI_FS re-trigger
+                // The specials only run on worker 1; don't re-run them if it finished.
                 env.CI_FS_MTR = 'no'
+                env.KEYRING_VAULT_MTR = 'no'
+                env.WITH_PS_PROTOCOL = 'no'
             }
             if (WORKER_ABORTED[2]) {
                 echo 'rerun worker 2'
