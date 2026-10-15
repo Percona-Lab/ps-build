@@ -23,14 +23,21 @@ ARCH_SUFFIX=""
 if [[ $(uname -m) == "aarch64" ]]; then
   ARCH_SUFFIX="-aarch64"
 fi
+OWNERSHIP_IMAGE=public.ecr.aws/e7j3v3n0/ps-build:${SOURCE_IMAGE}${ARCH_SUFFIX}
 
 ROOT_DIR=$(cd $(dirname $0)/..; pwd -P)
 SCRIPTS_DIR=$ROOT_DIR/local
+# docker_is_rootless, restore_build_ownership (HOST_UID/HOST_GID default to the current user)
+source "${SCRIPTS_DIR}/utils.inc.sh"
 SOURCES_DIR=$ROOT_DIR/sources
 
 WORK_DIR=${2:-$ROOT_DIR/${SOURCE_IMAGE}_${CMAKE_BUILD_TYPE}}
-rm -rf $WORK_DIR
-mkdir $WORK_DIR
+rm -rf "${WORK_DIR}" 2>/dev/null || sudo rm -rf "${WORK_DIR}"
+mkdir -p "${WORK_DIR}"
+
+# Restore ownership even when the interactive container exits with an error.
+# A trap's return status is ignored on EXIT; only an explicit exit sets the script's status.
+trap 'cleanup_build_ownership "${WORK_DIR}" "${SOURCES_DIR}"; exit $?' EXIT
 
 docker run -it --rm \
     --cap-add SYS_PTRACE \
@@ -74,5 +81,4 @@ docker run -it --rm \
     bash
 
     rm -rf /tmp/work/source_downloads
-    sudo chown $(id -u):$(id -g) /tmp/work /tmp/sources /tmp/sources/mysql-test/collections /tmp/sources/storage/rocksdb/rocksdb/util /tmp/sources/rocksdb/util || :
 "
