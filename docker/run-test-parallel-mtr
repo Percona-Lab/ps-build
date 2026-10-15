@@ -212,7 +212,11 @@ whoami
 ls -l
 
 mkdir -p ${WORK_DIR}/walltimes
-grep -E "Logging:|seconds executing testcase" mtr-test_${MTR_RUN_TAG}.log >${WORK_DIR}/walltimes/walltime_${MTR_RUN_TAG}.txt
+# A skipped run has no MTR timing lines. Accept only grep's no-match status;
+# errors reading the log or writing the walltime file must still fail the runner.
+{
+    grep -E "Logging:|seconds executing testcase" mtr-test_${MTR_RUN_TAG}.log || [[ $? -eq 1 ]]
+} >${WORK_DIR}/walltimes/walltime_${MTR_RUN_TAG}.txt
 
 if [[ "$ANALYZER_OPTS" == *"-DWITH_VALGRIND=ON"* ]]; then
     mv mtr-test_${MTR_RUN_TAG}.log mtr-test_${MTR_RUN_TAG}_full.log
