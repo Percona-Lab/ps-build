@@ -645,15 +645,14 @@ if (params.ANALYZER_OPTS.contains('-DWITH_VALGRIND=ON')) {
     PIPELINE_TIMEOUT = 144
 }
 
-@NonCPS
+// Not @NonCPS: slackUserIdFromEmail is a pipeline step. Returns null when not found.
 def fetchSlackUserId(email) {
     try {
         echo "Fetching Slack User ID for email: ${email}"
-        def response = slackUserIdFromEmail(email)
-        return response?.toString() ?: 'Unknown User'
+        return slackUserIdFromEmail(email)?.toString()
     } catch (Exception e) {
         echo "Error fetching Slack User ID for email '${email}': ${e.message}"
-        return 'Unknown User'
+        return null
     }
 }
 
@@ -674,6 +673,7 @@ def notifySlack(status, color, customMessage) {
             def userId = params.LAUNCHER_USER_ID?.trim() ? params.LAUNCHER_USER_ID : currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)?.userId ?: 'System'
             def email = getUserEmail(userId)
             def slackUserId = fetchSlackUserId(email)
+            def slackMention = slackUserId ? "<@${slackUserId}>" : 'no Slack user'
 
             echo "User ID: ${userId}"
             echo "Email: ${email}"
@@ -684,7 +684,7 @@ def notifySlack(status, color, customMessage) {
                 .replace('{status}', status)
                 .replace('{userId}', userId)
                 .replace('{email}', email)
-                .replace('{slackUserId}', slackUserId)
+                .replace('<@{slackUserId}>', slackMention)
                 .replace('{jobName}', "<${env.BUILD_URL}|${env.JOB_NAME} #${env.BUILD_NUMBER}>")
 
             slackSend botUser: true,
