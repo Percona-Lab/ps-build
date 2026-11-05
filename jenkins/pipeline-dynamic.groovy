@@ -1643,7 +1643,10 @@ pipeline {
                             // with the suite drain, so it never sits on worker 1's critical path.
                             // workerId/tag are distinct (90s) so artifacts don't collide with the
                             // suite workers (1..N).
-                            def makeSpecialWorker = { int workerId, String tag, boolean cifs, boolean kv, boolean ps, String kvVariant = 'all', boolean kmip = false ->
+                            // No default parameter values: CPS does not apply them to closures, so an
+                            // omitted argument arrives as null, and a null boolean then matches no
+                            // doTests() signature ("No such DSL method 'doTests'"). Pass every argument.
+                            def makeSpecialWorker = { int workerId, String tag, boolean cifs, boolean kv, boolean ps, String kvVariant, boolean kmip ->
                                 return {
                                     // The recorder inside the node() body can only run once the body
                                     // starts. node() itself can fail or be interrupted while the branch
@@ -1674,7 +1677,10 @@ pipeline {
                                                             dockerEcrLogin()
                                                             doTests(workerId.toString(), '', '', false, cifs, kv, ps, tag, kvVariant, kmip)
                                                             ran = true
-                                                        } catch (err) {
+                                                        } catch (Throwable err) {
+                                                            // Throwable, not the implicit Exception: an Error (e.g. a
+                                                            // script error) must also mark the special failed and
+                                                            // queue it for the rerun.
                                                             status = 'fail'
                                                             recordSpecialFailures(cifs, kv, ps, false, false, kmip)
                                                             throw err
@@ -1743,13 +1749,13 @@ pipeline {
                             // critical path drops from their sum (~83 min) toward the slowest single
                             // variant (~26 min). KV_VARIANT tells the runner which one to bootstrap+run.
                             if (runKv) {
-                                branches['KV dev_v1']  = makeSpecialWorker(91, 'kv_dev_v1',  false, true, false, 'dev_v1')
-                                branches['KV dev_v2']  = makeSpecialWorker(94, 'kv_dev_v2',  false, true, false, 'dev_v2')
-                                branches['KV prod_v1'] = makeSpecialWorker(95, 'kv_prod_v1', false, true, false, 'prod_v1')
-                                branches['KV prod_v2'] = makeSpecialWorker(96, 'kv_prod_v2', false, true, false, 'prod_v2')
+                                branches['KV dev_v1']  = makeSpecialWorker(91, 'kv_dev_v1',  false, true, false, 'dev_v1',  false)
+                                branches['KV dev_v2']  = makeSpecialWorker(94, 'kv_dev_v2',  false, true, false, 'dev_v2',  false)
+                                branches['KV prod_v1'] = makeSpecialWorker(95, 'kv_prod_v1', false, true, false, 'prod_v1', false)
+                                branches['KV prod_v2'] = makeSpecialWorker(96, 'kv_prod_v2', false, true, false, 'prod_v2', false)
                             }
-                            if (runCifs) { branches['CI FS']       = makeSpecialWorker(92, 'cifs', true,  false, false) }
-                            if (runPs)   { branches['PS Protocol'] = makeSpecialWorker(93, 'ps',   false, false, true)  }
+                            if (runCifs) { branches['CI FS']       = makeSpecialWorker(92, 'cifs', true,  false, false, 'all', false) }
+                            if (runPs)   { branches['PS Protocol'] = makeSpecialWorker(93, 'ps',   false, false, true,  'all', false) }
                             if (runKmip) { branches['KMIP']        = makeSpecialWorker(97, 'kmip', false, false, false, 'all', true) }
                             branches.failFast = false
                             try {
